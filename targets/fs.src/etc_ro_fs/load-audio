@@ -1,0 +1,3 @@
+# Support USB audio (no quite working)
+insmod soundcore
+insmod audio

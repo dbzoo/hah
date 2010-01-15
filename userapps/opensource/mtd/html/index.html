@@ -1,0 +1,394 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+  <head>
+    <title>Memory Technology Device (MTD) Subsystem for Linux</title>
+    <meta name="description" content="A generic subsystem for handling memory technology devices under Linux">
+    <meta name="keywords" content="Disk-On-Chip, CompactFlash, Compact Flash, Disk On Chip, M-Systems, Linux, MTD, Flash, Memory Technology Device">
+  </head>
+
+  <body BGCOLOR="white">
+    <h1 ALIGN="CENTER">Memory Technology Device (MTD) Subsystem for Linux</h1>
+    
+    <H2>Design aims</H2>
+    <P>We're working on a generic Linux subsystem for memory devices, 
+      especially Flash devices.
+    </P>
+    <P>The aim of the system is to make it simple to provide a driver for new
+      hardware, by providing a generic interface between the hardware drivers
+      and the upper layers of the system.
+    </P>
+    <P>Hardware drivers need to know nothing about the storage formats used,
+      such as FTL, FFS2, etc., but will only need to provide simple routines
+      for <tt>read</tt>, <tt>write</tt> and <TT>erase</TT>.
+      Presentation of the device's contents to the user in an appropriate form
+      will be handled by the upper layers of the system.
+    </P>
+
+    <HR size=2>
+    <H2>Mailing list</H2>
+    <P>There is a majordomo-managed mailing list: 
+      <B><I>lists-mtd@lists.infradead.org</i></B> - Full archives are available
+      at <A HREF="http://lists.infradead.org/pipermail/linux-mtd/">
+	http://lists.infradead.org/pipermail/linux-mtd/</A>. Now that I've
+      finally managed to get Mailman to display them properly, this includes
+      all the previous messages from before the changeover to Mailman.
+
+      </P><P>
+
+      To subscribe, go <A 
+      HREF="http://lists.infradead.org/mailman/listinfo/linux-mtd/">
+	here</A> or send &quot;<TT>subscribe</TT>&quot; in the body of a 
+      mail to <I><A HREF="mailto:linux-mtd-request@lists.infradead.org">
+	  linux-mtd-request@lists.infradead.org</A></I>
+
+      </P>
+    <P><B>NOTE: DO NOT SEND YOUR SUBSCRIPTION REQUEST TO THE LIST ITSELF.<BR>
+	SEND IT TO <A 
+	  HREF="mailto:linux-mtd-request@lists.infradead.org">
+	  linux-mtd-request@lists.infradead.org</A>
+	AS THE ABOVE SAYS.</B></P>
+    <HR size=2>
+    <H2>Download and CVS</H2>
+
+    <P>Very occasionally, I make snapshot releases. Now that the MTD code
+      is in the 2.4 kernel, it's become even rarer. Your best option is to
+      obtain the latest code from CVS, by following the instructions below.
+      We do break the CVS build occasionally, but we're also fairly good
+      at fixing it quickly when we do so. </P>
+
+    <P>Anonymous CVS access is available, and full CVS access may also be
+      granted to developers on request.
+      <PRE>
+cvs -d :pserver:anoncvs@cvs.infradead.org:/home/cvs login <I>(password: anoncvs)</I>
+cvs -d :pserver:anoncvs@cvs.infradead.org:/home/cvs co mtd
+    </PRE>
+   
+    <P>If you can't access anoncvs for some reason, daily snapshots 
+      are also available at <A 
+      HREF="ftp://ftp.uk.linux.org/pub/people/dwmw2/mtd/cvs/">
+	ftp://ftp.uk.linux.org/pub/people/dwmw2/mtd/cvs/</A>
+      </P>
+    <HR size=2>
+    <H2>Documentation</H2>
+    <P>There is now some <A HREF="tech/">MTD API documentation</A> available.
+      It's a little out of date - the API has been evolving over the last
+      few months as we encounter strange pieces of hardware that we hadn't
+      anticipated, and occasionally when I'd just overlooked something
+      blatantly obvious. Volunteers to update the docs are welcome.
+      <br><br>13th Feb 2001: A <A HREF="ftp://ftp.uk.linux.org/pub/people/dwmw2/mtd/cvs/mtd/mtd-jffs-HOWTO.txt">mtd-jffs-HOWTO</A> is now also available under
+    CVS. Not all topics are covered yet, but it's a start.
+    </P>
+
+    <HR size=2>
+    <h2>Booting</H2>
+    <P>You can now replace the firmware on the DiskOnChip 2000, and possibly 
+    also the DiskOnChip Millennium, with a version of <A 
+      HREF="http://www.gnu.org/software/grub/">GNU Grub</A> which runs directly
+    from the flash.</P>
+
+    <P>The patches to make Grub aware of the DiskOnChip and the NFTL format
+      used on it, along with a first-stage loader to load Grub itself into
+      memory from the DiskOnChip, are in the CVS repository.</P>
+
+    <HR size=2>
+    <H2>TODO</H2>
+    <P>I'm impressed. The TODO list is getting much shorter.</P>
+    <uL>
+      <LI>Add an MTD driver for PCMCIA memory cards</LI>
+      <LI>Make the FFS2 code work on 2.3 kernels.</LI>
+      <LI>Implement XIP support in the 'map' layer and a read-only filesystem to use it.</LI>
+      <LI>Decrease the amount of flash space reserved by JFFS2 garbage collection
+    </uL>
+
+    <HR SIZE=2>
+    <h2>Changelog</H2>
+    <UL>  
+      <LI><B>Latest CVS</B><BR>
+	<UL>
+	  <LI>JFFS v2 -
+	    <UL>
+	      <LI>Compression</LI>
+	      <LI>Improved wear levelling - we deal with individual erase blocks now</LI>
+	      <LI>Improved concurrency - no longer all under one big semaphore</LI>
+	      <LI>Smaller RAM footprint - at least theoretically. And we forget stuff under memory pressure to be nice</LI>
+	      <LI>Hard link support</LI>
+	    </UL>
+	  </LI>
+	      
+	  <LI>New 'mtdblock' driver which allows you to use any normal
+	    filesystem on flash chips, albeit rather non-robust if you're
+	    writing to it. See <A HREF="#mtdblock">below</A> for more 
+	    information.</LI>
+	  <LI>New map drivers, including the Itsy (and iPAQ) driver.</LI>
+	  <LI>Massive NFTL overhaul. ECC, bad block handling, journalling fixes, etc.</LI>
+	  <LI>Verified DiskOnChip 2000 and Millennium support - some wonderful
+	    person seems to have gone through the code and the docs and ensured
+	    that we meet all the timing constraints that I ignored when I 
+	    threw the original code together.</LI>
+	  <LI>Support all sensible geometries for AMD/Fujitsu command set CFI flash</LI>
+	  <LI>Start (most?) of JFFS support for NAND flash</LI>
+	  <LI>Hardware support for a handful of NAND flash chips</LI>
+	  <LI>Beat JFFS up till it actually passes filesystem stress tests</LI>
+	  <LI>Allow CFI reads to suspend in-progress erases.</LI>
+	  <LI>Merged DiskOnChip 2000 and Millennium driver into one</LI>
+	  <LI>Partitioning of flash chips into multiple devices</LI>
+	  <LI>Map area drivers for various SBC boards</LI>
+	  <LI>New DiskOnChip Millennium driver, contributed by Ollie Lho</LI>
+	  <LI>Assorted JFFS fixes</LI>
+	  <LI>CFI code for AMD/Fujitsu Standard command set, mapped in 2x16 mode, contributed by Masami Komiya</LI>
+	</UL>
+	<BR>
+      </LI>
+      <LI><B>mtd-20000704</B><BR>
+	Patch: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-20000704.diff">mtd-20000704.diff</A><BR>
+	Tarball: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-20000704.tar.gz">mtd-20000704.tar.gz</A><BR>
+	<UL>
+	  <LI>Kernel patches for both 2.2.16 and 2.4.0 kernels to add MTD support, and
+	    a script file to move the source files into the right place.</LI>
+	  <LI>New <TT>map</TT> architecture for making mmap'd areas 
+	    available for use by generic chipset drivers</LI>
+	  <LI>Probe code for Common Flash Interface devices</LI>
+	  <LI>Run-time address alias detection for CFI chips</LI>
+	  <LI>Driver code for Intel Extended Command Set devices - connected
+	    any way you like as long as it's in 16-bit mode and not
+	    interleaved</LI>
+	  <LI>JFFS ported to 2.2 kernel</LI>
+	  <LI>Remove the /dev/mtd<I>x</I> character device driver from
+	    <TT>mtd.o</TT> and make it separately configurable as 
+	    <TT>mtdchar.o</TT></LI>
+	  <LI>Rename <TT>mtd.o</TT> to <TT>mtdcore.o</TT> just in case I
+	    didn't confuse enough people with the above</LI>
+	  <LI>Split the DiskOnChip probe routine into a separate file,
+	    allowing DiskOnChip 2000 and DiskOnChip Millennium drivers to
+	    be developed separately.</LI>
+	  <LI>Separate <TT>CONFIG_NFTL_RW</TT> option allowing you to
+	    compile safe read-only drivers (by turning it off)</LI>
+	  <LI>Imported Axis' <A 
+	      HREF="http://www.developer.axis.com/software/jffs/">Journalling
+	      Flash File System (JFFS)</A></LI>
+	  <LI>Updated FTL driver to the latest version from David Hinds' 
+	    <A HREF="http://pcmcia.sourceforge.org/">PCMCIA</A> code. Still
+	    some elusive bugs which cause it to corrupt the FTL - must get
+	    some PCMCIA flash hardware and check it worked <B>before</B> I
+	    started playing with it.</LI>
+	  <LI>Litter FTL driver with cpu_to_le16() et al calls in an 
+	    attempt to make it work on big-endian hardware</LI>
+	  <LI>Some cleanups to make the code conform to the <A HREF="tech/">new
+	      rules</A>.</LI>
+	  <LI>Add <TT>get_mtd_device()</TT> and <TT>put_mtd_device</TT> back
+	    again, having gone over the locking rules with a fine tooth
+	    comb and decided that they were OK if done properly.</LI>
+	  <LI>Added patch to GNU Grub which teaches it about the DiskOnChip.
+	    When it can also decode NFTL, it'll be more useful.</LI>
+	</UL>
+	<BR>
+      </LI>
+      <LI><B>mtd-20000131</B><BR>
+	Patch: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-20000131.diff">mtd-20000131.diff</A><BR>
+	Tarball: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-20000131.tar.gz">mtd-20000131.tar.gz</A><BR>
+	Complete patch against 2.3.41 kernel: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-20000131-against-2.3.41.diff.gz">
+	  mtd-20000131-against-2.3.41.diff.gz</A><BR>
+	<UL>
+	  <LI>Updated to work with 2.3.recent kernel. Apart from the obvious
+	    changes, this also includes turning off the block device request
+	    merging code, which seems to be duplicating requests rather than
+	    just merging them.</LI>
+	  <LI>Remove the byteorder workaround - there's a patch included which
+	    should fix the kernel.</LI>
+	  <LI>Added Grub loader for DiskOnChip - now someone just has to add
+	    DiskOnChip support to Grub itself.</LI>
+	</UL>
+	<BR>
+      </LI>
+      <LI><B>mtd-20000119</B><BR>
+	Patch: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-20000119.diff">mtd-20000119.diff</A><BR>
+	Tarball: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-20000119.tar.gz">mtd-20000119.tar.gz</A><BR>
+	<UL>
+	  <LI>NFTL now registers the block device <I>before</I> asking the 
+	    gendisk code to scan it for partitions - it works better like 
+	    that :)</LI>
+	  <LI>Various code cleanups, fixes for PPC and older kernels - mostly
+	  thanks to Pavel Roskin.</LI>
+	  <LI>No patch against 2.2 or 2.3.current kernels - I'll resume that 
+	    practice as soon as I've got more time to look after it.</LI>
+	</UL>
+	<BR>
+      </LI>
+      <LI><B>mtd-19991025</B><BR>
+	Patch: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-19991025.diff">mtd-19991025.diff</A><BR>
+	Tarball: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-19991025.tar.gz">mtd-19991025.tar.gz</A><BR>
+	Complete patch against 2.3.23 kernel: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-19991025-against-2.3.23.diff.gz">
+	  mtd-19991025-against-2.3.23.diff.gz</A><BR>
+	<UL>
+	  <LI>Ported to 2.3 kernels (still compiles with 2.2)</LI>
+	  <LI>NFTL write support seems fairly reliable and interoperates with
+	    M-Systems' own drivers - more testing required</LI>
+	  <LI>Various bugfixes</LI>
+	</UL>
+	<BR>
+      </LI>
+      <LI><B>mtd-19990820</B><BR>
+	Patch: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-19990820.diff">mtd-19990820.diff</A><BR>
+	Tarball: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-19990820.tar.gz">mtd-19990820.tar.gz</A><BR>
+	<UL>
+	  <LI>Add <TT>nftl_format</TT> program 
+	    <I>(M-Systems' own drivers don't like the resulting NFTL yet)</I></LI>
+	  <LI>First version of write support for NFTL <I>(Likewise)</I></LI>
+	</UL>
+	<BR>
+      </LI>
+      <LI><B>mtd-19990817</B><BR>
+	Patch: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-19990817.diff">mtd-19990817.diff</A><BR>
+	Tarball: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-19990817.tar.gz">mtd-19990817.tar.gz</A><BR>
+	<UL>
+	  <LI>Support ECC for NFTL on DiskOnChip</LI>
+	  <LI>Behave correctly with multiple DiskOnChip</LI>
+	  <LI>Add primitive MAKEDEV script</LI>
+	  <LI>Move include directory to make it easier to compile into kernel</LI>
+	  <LI>Add <TT>/proc/mtd</TT> support</LI>
+      </UL>
+	<BR>
+      </LI>
+      <LI><B>mtd-19990810</B><BR>
+	Patch: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-19990810.diff">mtd-19990810.diff</A><BR>
+	Tarball: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-19990810.tar.gz">mtd-19990810.tar.gz</A><BR>
+	<UL>
+	  <LI>Various endianness and wordsize fixes</LI>
+	  <LI>Compile fixes for Linux/Alpha - DiskOnChip &amp; NFTL now works</LI>
+	  <LI>Sanity checks in NFTL driver to prevent oopsen on certain MTDs</LI>
+      </UL>
+	<BR>
+      </LI>
+      <LI><B>mtd-19990809</B><BR>
+	Tarball: <A HREF="ftp://ftp.linux-mtd.infradead.org/pub/mtd/mtd-19990809.tar.gz">mtd-19990809.tar.gz</A><BR>
+	<B>Large merge, including:</B>
+	<UL>
+	  <LI>Preliminary drivers for DiskOnChip 2000 and NFTL filesystem</LI>
+	  <LI>Microsoft FFS2 filesystem</LI>
+	  <LI>Octagon-5066 and vmax301 drivers for SBC boards</LI>
+	  <LI>Various other improvements from jgg.</LI>
+	  <LI>Boot loader code</LI>
+	</UL>
+      </LI>
+    </UL>
+
+    <HR size=2>
+
+    <h2>MTD <I>User</I> modules</h2>
+    <P>These are the modules which provide interfaces that can be used
+      directly from userspace. The user modules currently planned include:</P>
+    <UL>
+      <LI><B>Raw character access:</B><BR>
+	A character device which allows direct access to the underlying 
+	memory. Useful for creating filesystems on the devices, before 
+	using some of the translation drivers below, or for raw storage 
+	on infrequently-changed flash, or RAM devices.
+      </LI>
+      <LI><B><A NAME="mtdblock">Raw block access</a></B><BR>
+	A block device driver which allows you to pretend that the flash
+	is a normal device with sensible sector size. It actually works
+	by caching a whole flash erase block in RAM, modifying it as
+	requested, then erasing the whole block and writing back the modified
+	data.<BR>
+	This allows you to use normal filesystems on flash parts. Obviously
+	it's not particularly robust when you are writing to it - you lose
+	a whole erase block's worth of data if your read/modify/erase/rewrite
+	cycle actually goes read/modify/erase/poweroff. But for development,
+	and for setting up filesystems which are actually going to be
+	mounted read-only in production units, it should be fine.
+	<BR>
+	There is also a read-only version of this driver which doesn't have
+	the capacity to do the caching and erase/writeback, mainly for use
+	with uCLinux where the extra RAM requirement was considered too
+	large.
+      </LI>
+      <LI><B>Flash Translation Layer (FTL)</B></LI>
+      <LI><B>NFTL</B><BR>
+	Block device drivers which implement an FTL/NFTL filesystem on the 
+	underlying memory device. FTL is fully functional. NFTL is currently
+	working for both reading and writing, but could probably do with 
+	some more field testing before being used on production systems. 
+      </LI>
+      <LI><B>Microsoft Flash Filing System</B><BR>
+	This provides a filesystem directly from the flash, rather than the 
+	less efficient filesystem-on-FTL-on-flash setup. The current driver is
+	in alpha-testing, but should allow read-only access to such 
+	filesystems.
+      </LI>
+      <LI><B>Journalling Flash File System</B><BR>
+	This was developed by <A HREF="http://www.axis.com/">Axis 
+	  Communications</A>, and provides a filesystem directly on the 
+	flash, rather than emulating a block device. For more information,
+	see <A HREF="http://www.developer.axis.com/software/jffs/">Axis'
+	  developer pages</A>.
+      </LI>
+    </UL>
+    <HR SIZE=2>
+    <h2>MTD hardware device drivers</h2>
+    <P>These provide physical access to memory devices, and are not used 
+      directly - they are accessed through the <I>user</I> modules above.</P>
+    <UL>
+      <LI><B>On-board memory</B><BR>
+	Many PC chipsets are incapable of correctly caching system memory
+	above 64M or 512M. A driver exists which allows you to use this
+	memory with the linux-mtd system.
+      </LI>
+      <LI><B>PCMCIA devices</B><BR>
+	There are already a number of PCMCIA memory devices supported by Linux.
+	The MTD device subsystem is being designed with compatibility in mind,
+	so that the <A 
+	  HREF="http://hyper.stanford.edu/~dhinds/pcmcia/home.html">existing 
+	  PCMCIA drivers</A> can cleanly interface to the new MTD
+	subsystem. This work has not yet been undertaken, though.</LI>
+      <LI><B>Common Flash Interface (<A 
+	    HREF="http://www.pentium.com/design/flcomp/technote/cfi_1_1.htm">CFI</A>)
+	  onboard memory</B><BR>
+	This is one of the most interesting options for small embedded systems.
+	With a filesystem directly on the flash, rather than through an extra
+	layer like FTL, we can get execute-in-place (XIP) of programs and 
+	libraries on the flash, without needing to use up valuable system 
+	memory as a cache for the executable code.<BR>
+	A patch to the Linux kernel which supports this is available, and it 
+	should shortly be ported to the generic MTD system as a hardware
+	driver.</LI>
+      <LI><B>M-Systems' ISA Flash cards and DiskOnChip 1000</B><BR>
+	These devices are very simple - they seem to consist of a large array
+	of Intel flash memory, with a simple paging mechanism reminiscent of 
+	EMS, which allows different pages of the flash to be mapped into the 
+	device's 8K memory window. While working for Nortel a couple of years
+	ago, I developed drivers for these devices.<BR>
+	Unfortunately, I don't think the Disk-On-Chip 1000 is available any 
+	more.</LI>
+      <LI><B>M-Systems' DiskOnChip 2000 and Millennium</B><BR>
+	M-Systems have now provided me with full documentation for the 
+	DiskOnChip 2000 and Millennium. The current driver is capable of
+	full operation on a DiskOnChip 2000, and I have received a
+	sample DiskOnChip Millennium from M-Systems, so I should get round to
+	adding Millennium support soon. The write support for NFTL appears
+	to pass my simple tests for interoperability - after I mount it with
+	my drivers, thrash it for a while, and unmount it, the NFTL is still
+	recognised by M-Systems' own drivers. More testing of this would be
+	very much appreciated.
+	<BR>
+	<I>The <A HREF="doc2000.html">Linux and Disk-On-Chip
+	  2000 page</A> is available here. Please note that, now that 
+	M-Systems have provided me with complete specifications with which to
+	write a free driver for the device, there is no longer any reason 
+	to avoid using it with Linux systems.</I>
+	<HR>
+	</LI>
+
+      <LI><B>CompactFlash</B> - <A HREF="http://www.compactflash.org/">http://www.compactflash.org/</A><BR>
+	CompactFlash emulates an IDE disk, either through the PCMCIA-ATA 
+	standard, or by connecting directly to an IDE interface.
+	<BR>As such, it has no business being on this page, as to the best of
+	my knowledge it doesn't have any alternative method of accessing the 
+	flash - you <I>have</I> to use the IDE emulation - I mention it here
+	for completeness.
+      </LI>
+</UL>	
+    <hr>
+    <address><a href="mailto:dwmw2@infradead.org">David Woodhouse</a></address>
+$Id: index.html,v 1.1.1.1 2003/02/28 09:18:55 cmo Exp $
+  </body>
+</html>

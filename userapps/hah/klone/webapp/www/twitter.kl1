@@ -1,0 +1,215 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+#include "utils.h"
+#include <string.h>
+
+#define sizearray(x) (sizeof(x) / sizeof(x[0]))
+static int reboot = 0;
+
+static struct {
+	 char user[64];
+	 char passwd[64];
+	 char ufreq[5];
+	 char uid[5];
+	 char instance[30];
+	 char enable[2];
+} ini;
+
+static void readIni() {
+	 ini_gets("twitter","enable","0",ini.enable,sizeof(ini.enable),con.inifile);
+	 ini_gets("twitter","uid","00D9",ini.uid,sizeof(ini.uid),con.inifile);
+	 ini_gets("twitter","instance","Twitter",ini.instance,sizeof(ini.instance),con.inifile);
+	 ini_gets("twitter","user","",ini.user,sizeof(ini.user),con.inifile);
+	 ini_gets("twitter","passwd","",ini.passwd,sizeof(ini.passwd),con.inifile);
+	 ini_gets("twitter","ufreq","30",ini.ufreq,sizeof(ini.ufreq),con.inifile);
+}
+
+static void submit_form() {
+	 int restart=1;
+
+	 const char *enable = request_get_arg(request,"enable");
+	 if(enable)
+	     {
+		 if((*enable == '1' && ini.enable[0] == '0') ||
+		    (*enable == '0' && ini.enable[0] == '1')) 
+		     {
+			 ini_puts("twitter","enable",enable,con.inifile);
+			 restart=1;
+		     }
+	     }
+
+	 const char *uid = request_get_arg(request,"uid");
+	 const char *instance = request_get_arg(request,"instance");
+	 if(uid && strcmp(uid,ini.uid)) {
+		  upperstr((char *)uid);
+		  ini_puts("twitter","uid",uid,con.inifile);
+		  restart = 1;
+	 }
+	 if(instance && strcmp(instance,ini.instance)) {
+		  ini_puts("twitter","instance",instance,con.inifile);
+		  restart = 1;
+	 }
+
+	 const char *user = request_get_arg(request,"user");
+	 if(user && strcmp(user,ini.user)) {
+		  ini_puts("twitter","user",user,con.inifile);
+		  restart = 1;
+	 }
+	 const char *passwd = request_get_arg(request,"passwd");
+	 if(passwd && strlen(passwd) > 0 && strcmp(passwd,ini.passwd)) {
+		  ini_puts("twitter","passwd",passwd,con.inifile);
+		  restart = 1;
+	 }
+	 const char *ufreq = request_get_arg(request,"ufreq");
+	 if(ufreq && strcmp(ufreq,ini.ufreq)) {
+		  ini_puts("twitter","ufreq",ufreq,con.inifile);
+		  restart = 1;
+	 }
+
+	 if(restart) {
+	     char *argv[] = {"/etc/init.d/xap","restart","twitter", NULL};
+	     subprocess(argv);
+	 }
+}
+/**********************************************************************/
+%>
+<%
+  int i;
+  REQUIRE_AUTH(SCRIPT_NAME);
+  const char *action = request_get_arg(request,"action");
+  readIni();
+  if(action && strcmp(action,"Apply") == 0) {
+      submit_form();
+      readIni();
+  }
+%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1"/>
+<script type="text/javascript" src="common.js"></script>
+<link type="text/css" rel="stylesheet" href="style/current/style.css"/>
+<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css"/><![endif]-->
+<title>Livebox</title>
+
+<script type="text/javascript">
+function to_submit(F) {
+F.save_button.value = "Saving";
+F.action.value="Apply";
+apply(F);
+}
+addEvent(window,"load",function() {
+	 show_layer_ext(document.services.enable, 'idph', 1 == <%= ini.enable %>);
+	 });
+</script>
+</head>
+<body class="gui">
+
+<div id="wrapper">
+<div id="content">
+<div id="header">
+
+<%@include component/heading.kl1%>
+
+<div id="menu">
+ <div id="menuMain">
+  <ul id="menuMainList">
+   <li class="current"><span>Automation</span>
+    <div id="menuSub">
+     <ul id="menuSubList">
+<%
+       MENU_ITEM("automation.kl1","Control");
+       MENU_ITEM("config.kl1","Configure");
+       MENU_ITEM("calendar.kl1","Calendar");
+%>
+       <li><span>Twitter</span></li>
+<%
+       MENU_ITEM("pachube.kl1","Pachube");
+	 if(ini.enable[0] == '1') {
+		  MENU_ITEM("graph.kl1","Graph");
+	 }
+%>
+    </ul>
+    </div>
+   </li>
+<%
+	  MENU_ITEM("setup.kl1","Setup");
+%>
+  </ul>
+ </div>
+</div>
+
+</div>
+
+<div id="main">
+<div id="contents">
+<form name="services" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="submit_button"/>
+<input type="hidden" name="action"/>
+<br/>
+<h2>Twitter Settings</h2><div>
+
+<fieldset>
+  <legend>Twitter</legend>
+  <div class="setting">
+    <div class="label">Start service</div>
+	<input class="spaceradio" type="radio" value="1" name="enable" onclick="show_layer_ext(this, 'idph', true);"<% if(ini.enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+    <input class="spaceradio" type="radio" value="0" name="enable" onclick="show_layer_ext(this, 'idph', false);"<% if(ini.enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+  <div class="setting" id="idph">
+
+<fieldset>
+  <legend>Configuration</legend>
+
+  <div class="setting">
+    <div class="label">xAP UID</div>
+    <input maxlength="4" size="4" name="uid" value="<%= ini.uid %>" onblur="isxdigit(this,'UID')"/>
+    <span class="default">(Default: 00D9, Range: 0000 - FFFF)</span>
+  </div>
+
+  <div class="setting">
+    <div class="label">xAP Instance</div>
+    <input maxlength="30" size="25" name="instance" value="<%= ini.instance %>"/>
+    <span class="default">(Default: Twitter)</span>
+  </div>
+
+  <div class="setting">
+    <div class="label">Username</div>
+    <input maxlength="64" size="40" name="user" value="<%= ini.user %>"/>
+  </div>
+
+  <div class="setting">
+    <div class="label">Password</div>
+    <input maxlength="64" size="40" name="passwd"/>
+  </div>
+  <div class="setting">
+    <div class="label">Update Frequency</div>
+	 <input maxlength="5" size="5" name="ufreq" value="<%= ini.ufreq %>" onblur="valid_range(this,30,300,'Update Frequency')"/>
+	 <span class="default">(Default: 30, 30-300 sec)</span>
+  </div>
+</fieldset>
+<a href="http://www.twitter.com/" target="_blank">Connect to twitter</a>
+</fieldset>
+
+
+</div>
+<br/>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)"/>
+<input type="reset" value="Cancel Changes"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>

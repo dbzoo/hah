@@ -1,0 +1,4 @@
+::sysinit:/etc_ro_fs/rc.d/rc.sysinit
+#::askfirst:-/bin/ash
+::shutdown:/etc_ro_fs/rc.d/rc.shutdown
+::restart:/sbin/init

@@ -1,0 +1,7 @@
+#
+# Tested on GNU/Linux 2.[46]
+#
+# $Id: linux.tc,v 1.8 2008/10/22 07:17:42 tho Exp $
+
+CC = gcc
+MKINSTALLDIRS = mkdir -p

@@ -1,0 +1,15 @@
+fis init -f
+
+fconfig boot_script true
+fconfig boot_script_data
+fis load -b 0x80010000 -m cramfs -f Image user_fs
+exec -c "boot_loader=RedBoot root=1F01 mem=16M" 0x80010000
+
+
+fconfig boot_script_timeout 200
+
+fis create -l 0x000A0000 -f 0xBEB50000 -n jffs_system
+
+fis create -o 0x1000 -s 0x0051b000 -l 0x00720000 -f 0xBE430000 user_fs
+
+reset

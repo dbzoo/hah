@@ -1,0 +1,4 @@
+root:x:0:
+tty:x:5:
+nobody:x:99:
+ntp:x:38:

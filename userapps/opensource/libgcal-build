@@ -1,0 +1,1 @@
+LIBCURL_LIBS="-lcurl -lz" LIBXML_LIBS=-L../libxml2-2.7.6 LIBXML_CFLAGS=-I../libxml2-2.7.6/include/  ./configure --host=mips-linux --disable-check

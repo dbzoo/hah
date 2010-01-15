@@ -1,0 +1,20 @@
+# $Id: qnx-x86.tc,v 1.2 2007/12/09 19:35:56 tat Exp $
+#
+# QNX x86 toolchain
+
+CC = qcc -V gcc_ntox86
+CXX = QCC -V gcc_ntox86
+AR = qcc -V gcc_ntox86 -A
+ARFLAGS = 
+LDFLAGS = -lsocket
+
+RANLIB = ntox86-ranlib
+STRIP = ntox86-strip
+
+# qcc uses -M for map files
+MKDEP_CPP = ntox86-gcc -E
+
+LORDER = echo
+TSORT = cat
+
+

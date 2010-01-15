@@ -1,0 +1,209 @@
+<%!
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+
+static struct {
+	 char ssh_enable[2];
+	 char telnet_enable[2];
+	 char ftp_enable[2];
+	 char ssh_port[6];
+	 char telnet_port[6];
+} ini;
+
+static void readIni() {
+	 ini_gets("network","ssh_enable","1",ini.ssh_enable,sizeof(ini.ssh_enable),con.inifile);
+	 ini_gets("network","telnet_enable","0",ini.telnet_enable,sizeof(ini.telnet_enable),con.inifile);
+	 ini_gets("network","ftp_enable","0",ini.ftp_enable,sizeof(ini.ftp_enable),con.inifile);
+	 ini_gets("network","ssh_port","22",ini.ssh_port,sizeof(ini.ssh_port),con.inifile);
+	 ini_gets("network","telnet_port","23",ini.telnet_port,sizeof(ini.telnet_port),con.inifile);
+}
+
+static void submit_form() {
+   int restart;
+   const char *ssh_enabled = request_get_arg(request,"remote_mgt_ssh");
+   const char *telnet_enabled = request_get_arg(request,"remote_mgt_telnet");
+   const char *ftp_enabled = request_get_arg(request,"remote_mgt_ftp");
+   const char *ssh_port = request_get_arg(request,"ssh_port");
+   const char *telnet_port = request_get_arg(request,"telnet_port");
+
+   signal(SIGCHLD, SIG_IGN); // Avoid creating zombies.
+   if(ssh_enabled) {
+		restart = 0;
+		if(ssh_port && strcmp(ssh_port,ini.ssh_port)) {
+			 ini_puts("network","ssh_port",ssh_port,con.inifile);
+			 restart = 1;
+		}
+		if((*ssh_enabled == '1' && ini.ssh_enable[0] == '0') ||
+		   (*ssh_enabled == '0' && ini.ssh_enable[0] == '1')) {
+			 ini_puts("network","ssh_enable",ssh_enabled,con.inifile);			 
+			 restart = 1;
+		}
+		if (restart) {
+		   // Don't lock up the HTTPD child if the call fails.
+		   if(fork() == 0) {
+		         char *argv[] = {"/etc/init.d/ssh","restart", NULL};
+			 execv("/etc/init.d/ssh", argv);
+			 exit(0);
+		   }
+		}
+   }
+
+   if(telnet_enabled) {
+		restart = 0;
+		if(telnet_port && strcmp(telnet_port,ini.telnet_port)) {
+			 ini_puts("network","telnet_port",telnet_port,con.inifile);
+			 restart = 1;
+		}
+		if((*telnet_enabled == '1' && ini.telnet_enable[0] == '0') ||
+		   (*telnet_enabled == '0' && ini.telnet_enable[0] == '1')) {
+			 ini_puts("network","telnet_enable",telnet_enabled,con.inifile);			 
+			 restart = 1;
+		}
+		if (restart) {
+		   if(fork() == 0) {
+		         char *argv[] = {"/etc/init.d/telnet","restart", NULL};
+			 execv("/etc/init.d/telnet", argv);
+			 exit(0);
+		   }
+		}
+   }
+
+   if(ftp_enabled) {
+		restart = 0;
+		if((*ftp_enabled == '1' && ini.ftp_enable[0] == '0') ||
+		   (*ftp_enabled == '0' && ini.ftp_enable[0] == '1')) {
+			 ini_puts("network","ftp_enable",ftp_enabled,con.inifile);			 
+			 restart = 1;
+		}
+		if (restart) {
+		   if(fork() == 0) {
+		         char *argv[] = {"/etc/init.d/ftp","restart", NULL};
+			 execv("/etc/init.d/ftp", argv);
+			 exit(0);
+		   }
+		}
+   }
+
+}
+/**********************************************************************/
+%>
+<%
+  REQUIRE_AUTH(SCRIPT_NAME);
+  const char *action = request_get_arg(request,"action");
+  readIni();
+  if(action && strcmp(action,"Apply") == 0) {
+	  submit_form();
+      readIni();
+  }
+%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1"/>
+<script type="text/javascript" src="common.js"></script>
+
+<link type="text/css" rel="stylesheet" href="style/current/style.css"/>
+<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css"/><![endif]-->
+<title>Livebox</title>
+
+<script type="text/javascript">
+function to_submit(F) {
+F.save_button.value = "Saving";
+F.action.value="Apply";
+apply(F);
+}
+
+addEvent(window,"load",function() {
+	 show_layer_ext(document.services.remote_mgt_ssh, 'idssh', 1 == <%= ini.ssh_enable %>);
+	 show_layer_ext(document.services.remote_mgt_telnet, 'idtelnet', 1 == <%= ini.telnet_enable %>);
+	 });
+</script>
+</head>
+<body class="gui">
+
+<div id="wrapper">
+<div id="content">
+<div id="header">
+
+<%@include component/heading.kl1%>
+
+<div id="menu">
+ <div id="menuMain">
+  <ul id="menuMainList">
+   <li><a href="automation.kl1">Automation</a></li>
+   <li class="current"><span>Setup</span>
+    <div id="menuSub">
+     <ul id="menuSubList">
+      <li><a href="setup.kl1">Basic Setup</a></li>
+      <li><span>Services</span></li>
+      <li><a href="admin.kl1">Admin</a></li>
+     </ul>
+    </div>
+    </li>
+  </ul>
+ </div>
+</div>
+
+</div>
+
+<div id="main">
+<div id="contents">
+<form name="services" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="submit_button"/>
+<input type="hidden" name="action"/>
+<br/>
+<h2>Service</h2><div>
+<fieldset>
+  <legend>Remote Access</legend>
+
+  <div class="setting">
+  <div class="label">SSH</div>
+	 <input class="spaceradio" type="radio" value="1" name="remote_mgt_ssh" onclick="show_layer_ext(this, 'idssh', true);"<% if(ini.ssh_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+<input class="spaceradio" type="radio" value="0" name="remote_mgt_ssh" onclick="show_layer_ext(this, 'idssh', false);"<% if(ini.ssh_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+ </div>
+
+  <div class="setting" id="idssh">
+    <div class="label">SSH Port</div>
+    <input class="num" maxlength="5" size="5" name="ssh_port" onblur="valid_range(this,1,65535,'SSH Port')" value="<%= ini.ssh_port %>"/>
+    <span class="default">(Default: 22, Range: 1 - 65535)</span>
+  </div>
+
+  <div class="setting">
+  <div class="label">Telnet</div>
+	 <input class="spaceradio" type="radio" value="1" name="remote_mgt_telnet" onclick="show_layer_ext(this, 'idtelnet', true);"<% if(ini.telnet_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+  <input class="spaceradio" type="radio" value="0" name="remote_mgt_telnet" onclick="show_layer_ext(this, 'idtelnet', false);"<% if(ini.telnet_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+
+  <div class="setting" id="idtelnet">
+  <div class="label">Telnet Port</div>
+  <input class="num" maxlength="5" size="5" name="telnet_port" onblur="valid_range(this,1,65535,'Telnet Port')" value="<%= ini.telnet_port %>"/>
+  <span class="default">(Default: 23, Range: 1 - 65535)</span>
+  </div>
+
+  <div class="setting">
+    <div class="label">FTP</div>
+	<input class="spaceradio" type="radio" value="1" name="remote_mgt_ftp" <% if(ini.ftp_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+    <input class="spaceradio" type="radio" value="0" name="remote_mgt_ftp" <% if(ini.ftp_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+
+</fieldset>
+</div>
+<br/>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)"/>
+<input type="reset" value="Cancel Changes"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,32 @@
+#!/bin/sh
+
+. /etc/ini.conf
+
+# Ethernet hardware
+insmod bcm_enet.o
+
+# USB
+CONFIG_USB_ETHER=`iniget $INI network config_usb_ether 0`
+if [ $CONFIG_USB_ETHER -eq 1 ]; then
+  USB_ETHER_0=`iniget $INI network usb_ether_0`
+  USB_ETHER_1=`iniget $INI network usb_ether_1`
+  if [ -n "$USB_ETHER_0" -a -n "$USB_ETHER_1" ]; then
+    insmod bcm_usb.o mac_base_str=$USB_ETHER_0 host_mac_base_str=$USB_ETHER_1
+  else
+    insmod bcm_usb.o
+  fi
+fi
+
+# Wireless
+CONFIG_WLAN=`iniget $INI network config_wlan 0`
+if [ $CONFIG_WLAN -eq 1 ]; then
+  insmod wl.o
+fi 
+
+# Miscellaneous
+insmod switch.o
+
+CONFIG_BLUETOOTH_SIMPLE_BACKLIGHT=`iniget $INI hardware config_bluetooth_simple_backlight 0`
+if [ $CONFIG_BLUETOOTH_SIMPLE_BACKLIGHT -eq 1 ] ;  then 
+  insmod bt_reset.o
+fi

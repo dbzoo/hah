@@ -1,0 +1,11 @@
+prefix=/home/brett/livebox/trunk/targets/fs.src
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libgcal
+Description: Implements google data protocol for calendar and contacts
+Version: 0.9.3
+Libs: -L${libdir} -lgcal
+Cflags: -I${includedir}
+Requires: libcurl libxml-2.0

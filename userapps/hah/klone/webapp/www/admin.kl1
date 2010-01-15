@@ -1,0 +1,149 @@
+<%!
+/* $Id: admin.kl1,v 1.6 2009/05/22 21:29:36 brett Exp brett $
+ */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+
+static void change_passwd(io_t *out) {
+	   char *old = request_get_arg(request, "old");
+	   char *new = request_get_arg(request, "new");
+	   char *confirm = request_get_arg(request, "confirm");
+
+	   if (! (old && new && confirm)) return;
+	   if(strlen(old) == 0 && strlen(new) == 0 && strlen(confirm) == 0) return;
+
+	   // Fetch WEB password
+	   char md5[MD5_DIGEST_BUFSZ];
+	   char passwd[MD5_DIGEST_BUFSZ];
+	   long n;
+	   n = ini_gets("security","admin_passwd", "", passwd, sizeof(passwd), con.inifile);
+	   if(n > 0) { // Something found?
+			// compute MD5 checksum of entered password
+			u_md5(old, strlen(old), md5);
+	   }
+	   
+	   // No previous WEB password OR what was entered matches that saved.
+	   if (n == 0 || strcmp(passwd, md5) == 0) {
+			if(strcmp(new,confirm) == 0) {
+				 // compute MD5 checksum of entered password
+				 u_md5(new, strlen(new), md5);
+				 // Store new password
+				 n = ini_puts("security","admin_passwd", md5, con.inifile);
+				 if(n == 0) {
+					  io_printf(out, "<b>Write error: Failed to update password.</b>");
+				 } else {
+					  io_printf(out, "<b>Password updated.</b>");	
+				 }
+			} else {
+				 io_printf(out, "<b>New password was not confirmed.</b>");
+			}
+	   } else {
+			io_printf(out, "<b>Current password is invalid</b>");	
+	   }
+}
+
+int getInfoProtect() {
+	return ini_getl("security","info_protect", 0, con.inifile);
+}
+
+static void web_access() {
+   char *val = request_get_arg(request, "infoprotect");
+   ini_putl("security","info_protect", val ? 1 : 0, con.inifile);
+}
+
+static void form_action(io_t *out) {
+       change_passwd(out);
+       web_access();
+}
+
+%>
+<%
+  REQUIRE_AUTH(SCRIPT_NAME);
+%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
+<link type="text/css" rel="stylesheet" href="style/current/style.css" />
+
+<title>Livebox</title>
+<body class="gui">
+<div id="wrapper">
+<div id="content">
+<div id="header">
+
+<%@include component/heading.kl1%>
+
+<div id="menu">
+ <div id="menuMain">
+  <ul id="menuMainList">
+   <li><a href="automation.kl1">Automation</a></li>
+   <li class="current"><span>Setup</span>
+    <div id="menuSub">
+     <ul id="menuSubList">
+      <li><a href="setup.kl1">Basic Setup</a></li>
+      <li><a href="services.kl1">Services</a></li>
+      <li><span>Admin</span></li>
+     </ul>
+    </div>
+    </li>
+  </ul>
+ </div>
+</div>
+
+</div>
+
+<div id="main">
+<div id="contents">
+<br/>
+<h2>Admin Panel</h2>
+<form action="<%= SCRIPT_NAME %>" method="post">
+<%
+	 if(vars_get_value_i(request_get_args(request), "action") == 1) {
+		  form_action(out);
+	 }
+%>
+
+<fieldset>
+<legend>Password Management</legend>
+ <div class="setting">
+    <div class="label">Current password</div>
+    <input type="password" name="old" maxlength="32" size="20"/>
+ </div>
+ <div class="setting">
+    <div class="label">New password</div>
+    <input type="password" name="new" maxlength="32" size="20"/>
+ </div>
+ <div class="setting">
+    <div class="label">Confirm</div>
+    <input type="password" name="confirm" maxlength="32" size="20"/>
+ </div>
+</fieldset>
+<br/>
+<fieldset>
+<legend>Web Access</legend>
+ <div class="setting">
+    <div class="label">Password protect info page</div>
+    <input class="spaceradio" type="checkbox" name="infoprotect" value="1" <% if(getInfoProtect()){ %>checked<% } %>/>
+ </div>
+</fieldset>
+<br/>
+  <input type="hidden" name="action" value="1" />
+<div class="submitFooter">
+  <input type="submit" value="Save Settings"/>
+  <input type="reset" value="Cancel Changes"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>
+

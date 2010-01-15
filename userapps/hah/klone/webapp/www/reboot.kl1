@@ -1,0 +1,52 @@
+<%!
+#include "login.h"
+#include <netinet/in.h>
+
+static char *myip(request_t *request) {
+	 kaddr_t *h = request_get_addr(request);
+	 return inet_ntoa(h->sa.sin.sin_addr);
+}
+%>
+<%
+if(REQUIRE_AUTH(SCRIPT_NAME)) { // Only reboot once authenticated
+	 if(fork() == 0) {
+		  sleep(1);
+		  char *argv[] = {"/sbin/reboot", NULL};
+		  execv("/sbin/reboot", argv);
+	 }
+}
+%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
+<meta http-equiv="refresh" content="40;url=http://<%= myip(request) %>/"/>
+<script type="text/javascript" src="common.js"></script>
+<link type="text/css" rel="stylesheet" href="style/current/style.css" />
+<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css" /><![endif]-->
+<title>Livebox</title>
+</head>
+<body class="gui">
+
+<div id="wrapper">
+<div id="content">
+<div id="header">
+
+<%@include component/heading.kl1%>
+
+</div>
+
+<div id="main">
+<div id="contents">
+<div id="reboot"><span>REBOOTING...</span></div>
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>
+

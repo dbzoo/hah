@@ -1,0 +1,238 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "const.h"
+
+/*  
+ * $Id: login.kl1,v 1.7 2009/05/22 21:29:36 brett Exp brett $
+ * Login page.
+ */
+
+// Carve up a string delimited by a comma
+// ex:   hello,world,foobar
+// arg[0] = hello
+// arg[1] = world
+// arg[2] = foobar
+// return 3
+int commaTok(char *arg[], int arglen, char *str)
+{
+	 char *p = str;
+	 int j=0;
+	 arg[j++] = str;
+	 do {
+		  if(*p == ',') {
+			   arg[j++] = p+1;
+			   *p = 0;
+			   if (j == arglen) return j;
+		  }
+		  p++;
+	 } while (*p);
+	 return j;
+}
+
+
+// Check if the CURRENT page is allowed.
+int isPageAllowed(session_t *ss, char *page) {
+	 char *username = session_get(ss, "username");
+
+	 // Hmm no session username guess we will allow access (by default).
+	 if (username == NULL || *username == 0) return 1;
+
+	 // The admin user has no page restrictions
+	 if(strcmp("admin", username) == 0) return 1;
+
+	// The menu system will hide the pages from access
+	// However we still need to handle DIRECT url navigation.
+	char ini_pages[128];
+	int n = ini_gets("security", username, "", ini_pages, sizeof(ini_pages), con.inifile);
+	if (n == 0) return 1; // No defined pages? (allow all access)
+	char *pages[20];
+	int a = commaTok(pages, sizeof(pages), ini_pages);
+
+	// Is the current page allowed for this user?
+	while(a--) {
+		 if(strcmp(pages[a], page) == 0) return 1;
+	}
+	return 0;
+}
+
+// Check if the script/page is allowed to be accessed.
+int isScriptAllowed(session_t *ss, response_t *rp, char *script) {
+	 // Always allow access to this
+	 if (strcmp("index.kl1", script) == 0) return 1;
+
+	// Strip .kl1 from the script
+	char page[20];
+	strncpy(page, script, sizeof(page));
+	char *p = strchr(page, '.');
+	if (p) *p = 0;
+
+	return isPageAllowed(ss, page);
+}
+
+void menu_item(FILE *out, session_t *ss, response_t *rp, char *script, char *label) {
+	 if(isScriptAllowed(ss, rp, script)) {
+		  io_printf(out,"<li><a href=\"%s\">%s</a></li>", script, label);
+	 }
+}
+
+/*
+ * If user not logged, force login.
+ */
+int login_force(session_t *ss, request_t *rq, response_t *rp, const char *script) 
+{
+	char *username;
+	
+	username = session_get(ss, "username");
+	if (!username || strlen(username) == 0) {
+		session_set(ss, "after_login", script);
+		response_redirect(rp, "login.kl1");
+		return 0;
+	}
+
+	// Normally the menu system wouldn't show the page, but check for direct access.
+	// Don't allow access (redirect)
+	if(isScriptAllowed(ss, rp, script)) return 1;
+
+	response_redirect(rp, "index.kl1");
+	return 0;
+} /* force_login() */
+
+int isValidUser(char *user, char *passwd) {
+	 long n;
+	 char md5[MD5_DIGEST_BUFSZ];
+	 // compute MD5 checksum of entered password
+	 u_md5(passwd, strlen(passwd), md5);
+
+	 if(user == NULL || passwd == NULL) return 0;
+
+	 // Admin is special it has its own INI entry.
+	 if(strcmp("admin",user) == 0) {
+		  char ini_passwd[MD5_DIGEST_BUFSZ];
+		  
+		  n = ini_gets("security","admin_passwd", "", ini_passwd, sizeof(ini_passwd), con.inifile);
+		  if(n == 0) {   // No password found?
+			   return 1; // Accept whatever was entered.
+		  }
+		  return strcmp(ini_passwd, md5) == 0;
+	 }
+
+	 // Try one of the NAMED users
+	 char ini_users[128];
+	 char ini_passwd[10*MD5_DIGEST_BUFSZ];
+	 char *users[10];
+	 char *passwds[10];
+	 
+	 n = ini_gets("security","user", "", ini_users, sizeof(ini_users), con.inifile);
+	 if (n == 0) return 0;  // No user ini entry
+	 n = ini_gets("security","passwd", "", ini_passwd, sizeof(ini_passwd), con.inifile);
+	 if (n == 0) return 0;  // No passwd ini entry
+
+	 int a = commaTok(users, sizeof(users), ini_users);
+	 int b = commaTok(passwds, sizeof(passwds), ini_passwd);
+	 if(a != b) { // What the hell?  The arrays are different sizes!
+		  return 0;  // I'm outta here..
+	 }
+
+	 while(a--) {
+		  // Compare ini_passwd to the clear text version (for now).
+		  if(strcmp(users[a], user) == 0 && strcmp(passwds[a], passwd) == 0) {
+			   return 1;
+		  }
+	 }
+	 return 0;
+}
+%><%
+
+struct {
+	char *username;
+	char *password;
+	char *destination;
+} login;
+
+login.username = request_get_arg(request, "username");
+login.destination = session_get(session, "after_login");
+
+if (!login.destination) login.destination = "index.kl1";
+
+%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
+<link type="text/css" rel="stylesheet" href="style/current/style.css" />
+<title>Livebox</title>
+</head>
+<body class="gui" onload="javascript:document.forms[0].username.focus();">
+<div id="wrapper">
+<div id="content">
+<div id="header">
+
+<%@include component/heading.kl1%>
+
+<div id="menu">
+ <div id="menuMain">
+  <ul id="menuMainList">
+   <li><a href="automation.kl1">Automation</a></li>
+   <li><a href="setup.kl1">Setup</a></li>
+    <div id="menuSub">
+     <ul id="menuSubList"></ul>
+    </div>
+    </li>
+  </ul>
+ </div>
+</div>
+
+</div>
+
+<div id="main">
+<div id="contents">
+<br/>
+<h2>Authenticate</h2>
+    This page is protected.
+    <%
+switch (vars_get_value_i(request_get_args(request), "action"))
+{
+case 1:
+    login.username = request_get_arg(request, "username");
+    login.password = request_get_arg(request, "password");
+
+     // authenticate here.
+    if (isValidUser(login.username, login.password)) {
+		 session_set(session, "username", login.username);
+		 response_redirect(response, login.destination);
+		 session_del(session, "after_login");
+	} else {
+		io_printf(out, "<p><b>Login failed, try again ...</b></p>");	
+	}
+}
+%>
+<form action="<%= SCRIPT_NAME %>" method="post">
+  <fieldset>
+  <legend>Login</legend>
+  <div class="setting">
+	 <div class="label">username:</div>
+      <input type="text" name="username"/>
+   </div>
+
+  <div class="setting">
+	 <div class="label">password:</div>
+      <input type="password" name="password"/>
+   </div>
+</fieldset>
+<br/>
+<div class="submitFooter">
+  <input type="submit" value="login"/></td>
+  <input type="hidden" value="1" name="action"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+</body>
+</html>
+

@@ -1,0 +1,9 @@
+#!/bin/sh
+# 
+
+echo "`basename $0` running .."
+
+for ii in /etc/rc1.d/K* ; do
+    $ii stop
+done
+# 

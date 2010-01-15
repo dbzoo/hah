@@ -1,0 +1,384 @@
+.\" $Id: kloned.conf.5,v 1.9 2009/05/31 18:50:27 tho Exp $
+.TH "KLONED.CONF" "5" "03/06/2006" "KoanLogic Srl" "KoanLogic Srl"
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+kloned.conf \- The configuration file for the kloned daemon
+.SH "SYNOPSIS"
+.PP
+\fIkloned.conf\fR
+is the configuration file for the
+\fBkloned\fR(8)
+daemon, i.e. it contains its runtime configuration information. The complete description of the file format and possibile parameters therein, is provided for reference in the following sections.
+.SH "FILE FORMAT"
+.PP
+The file consists of sections and parameters. A section begins with the name of the section, is followed by a '{' and continues until the corresponding '}' is found. Sections can contain subsections or parameter assignements of the form:
+\fIname\fR \fIvalue\fR.
+.PP
+The file is line\-based \- that is, each newline\-terminated line represents either a comment, a section name or a parameter.
+.PP
+Section and parameter names are case sensitive.
+.PP
+Leading, trailing and internal whitespace in section and parameter names is irrelevant. Leading and trailing whitespace in a parameter value is discarded. Internal whitespace within a parameter value is retained verbatim.
+.PP
+Any line beginning with a hash ('#') character is ignored, as well as lines containing only whitespace.
+.PP
+The value in parameters is always a string (no quotes needed) whose case is preserved.
+.PP
+It is also possible to use variable substitution which allows you to define a symbol name to be replaced by an arbitrary text string, with the classic bottom\-up scoping.
+.SH "CONFIGURATION FILE STRUCTURE"
+.PP
+Basically, you have an activation record for each running
+\fBkloned\fR(8)
+instance: each instance implements an access method to the embedded data or to external data (file system) when requested. The two access methods currently implemented are HTTP and HTTPS.
+.PP
+The top level parameter
+\fBserver_list\fR
+lists the klone instances by name. For each name listed here there exist a corresponding activation record labelled with the same name.
+.PP
+For the sake of simplicity, the available options are grouped into four categories: those of general applicability (GENERAL), those common to both HTTP and HTTPS servers (SERVER), those specific to HTTP over SSL/TLS sessions (SSL/TLS) and those concerning activity logging (LOG).
+.SS "GENERAL"
+.TP
+\fBtype\fR
+The access method used by this
+\fBkloned\fR(8)
+instance: at present
+\fIHTTP\fR
+or
+\fIHTTPS\fR. This parameter is
+\fImandatory\fR.
+.TP
+\fBdaemon.name\fR
+Identifier for the service (Windows(TM)
+ONLY).
+.TP
+\fBdaemon.description\fR
+Service description (Windows(TM)
+ONLY).
+.TP
+\fBaddr.type\fR
+The protocol family (\fIIPv4\fR,
+\fIIPv6\fR,
+\fIUNIX\fR) of the interface socket. At present
+\fIIPv4\fR
+is the only value supported.
+.TP
+\fBaddr.ip\fR
+The IPv4 address at which this instance is accepting connections. The default value is
+\fBINADDR_ANY\fR.
+.TP
+\fBaddr.port\fR
+The TCP port at which this instance is accepting connections. The default value is the standard HTTP server port,
+\fI80\fR.
+.TP
+\fBbacklog\fR
+Defines the maximum length the queue of pending connections may grow to, it is passed verbatim to the
+\fBlisten\fR(2)
+call on this instance's socket.
+.TP
+\fBidle_timeout\fR
+Set the maximum number of seconds the server waits for an HTTP request on an already connected socket. The default value is 10 seconds.
+.TP
+\fBpost_timeout\fR
+Set the maximum number of seconds the server waits for an HTTP POST request on an already connected socket. The default value is 10 minutes.
+.TP
+\fBpost_maxsize\fR
+Set the maximum number of bytes the server is willing to accept for a given HTTP POST request. If Content\-Length of a POST request is greater than
+\fBpost_maxsize\fR
+the connection is immediately terminated. The default value is 5 MB.
+.TP
+\fBtemp_dir\fR
+Set the base directory where temporary resources (e.g. uploaded files) are created.  When provided, the system default is overridden.  Currently, this value has per-backend scope.
+.SS "SERVER"
+.PP
+Per server\-type configuration parameters.
+.PP
+Note that we use the URI
+\fIsup://\fR
+convention to specify the location of content that
+\fBkloned\fR
+tries to retreive from its suppliers. By default there is only one active supplier, which is the embedded file system. Anyway, there could be many different suppliers, e.g. the local disk that is enabled by setting the
+\fBENABLE_SUP_FS\fR
+variable during compilation. The embedded file system supplier is
+\fIalways\fR
+searched first. In case the requested resource were not found in the embedded file system, the other suppliers are searched sequentially.
+.TP
+\fBdir_root\fR
+The top level directory under which this server's instance keeps the site data. When a request for the resource
+\fI/dir/page.kl1\fR
+is done, it is mapped to
+\fIsup://${dir_root}/dir/page.kl1\fR. The default value is
+\fI/\fR.
+.TP
+\fBchroot\fR
+Set the directory where the running server resides. It requires no additional files to exist in jail: the chroot call is made after server initialisation (log setup, backend configuration, bind/listen) but before forking and dropping of priviledges.
+.TP
+\fBblind_chroot\fR
+A variant of the
+\fBchroot\fR
+directive which, additionally, unlinks the server root directory, making the chance for a hijacked/malfunctioning server to access the file system very unlikely. It can be useful in combination with in\-memory logging or syslog remote logging to achieve a very high level of bounding.
+.TP
+\fBuid\fR
+Set the real and effective user ID of the running server.
+.TP
+\fBgid\fR
+Set the real, effective group IDs and the saved set\-group\-ID of the running server.
+.TP
+\fBallow_root\fR
+A boolean which specifies if the server is allowed to run with root credentials (i.e. user ID 0).
+.TP
+\fBmax_child\fR
+Set the maximum number of child processes per server (i.e. total number of running backend child processes) available at run\-time. The default value is 300.
+.TP
+\fBerror.\fR\fB\fIhttp_errno\fR\fR
+Select the file which will be displayed on the given HTTP error event (\fIhttp_errno\fR
+can be any of 4XX and 5XX). The value is a URI relative to the site: e.g.
+\fI/a/b/c/d.klone\fR
+is translated into
+\fI(http|https)://sitehost[:port]/a/b/c/d.klone\fR.
+.TP
+\fBdir_alias \fR\fB\fIsrc\fR\fR\fB \fR\fB\fIdst\fR\fR
+Maps
+\fIdst\fR
+to
+\fIsrc\fR
+in the requested URI. For example, when the following is set:
+.sp
+.nf
+dir_alias /img /var/httpd/img
+            
+.fi
+.sp
+a request to
+\fI(http|https)://sitehost[:port]/img/a.gif\fR
+will be mapped to
+\fIsup://var/httpd/img/a.gif\fR.
+.TP
+\fBserver_sig\fR
+Set the server signature string which will be returned in the HTTP head (Server: %s). When setting a custom Product token, the guidelines stated in paragraph 3.7 of RFC 1945 should be followed. The default value is
+"klone/1.0".
+.TP
+\fBmodel\fR
+Set the type of the serving model for this klone instance:
+\fIfork\fR, a child process is spawned for every client request,
+\fIiterative\fR, pending clients are processed one at a time, or
+\fIprefork\fR, a pool of child processes is created on start up and an available process from the pool is chosen to handle each incoming client request. When a request burst happens in
+\fIprefork\fR
+mode, the server reacts adaptively, i.e. it creates other child processes up to a configurable maximum in order to gracefully handle the busy condition. Note that the
+\fB\-F\fR
+command line switch overrides this value, enforcing the iterative model. The default value is inherited from the parent, which by default is
+\fIprefork\fR.
+.TP
+\fBfork.max_child, prefork.max_child\fR
+Set the maximum number of child processes at running time. The default value is 150.
+.TP
+\fBprefork.max_request_per_child\fR
+Set the maximum number of request that a child process can handle before giving up.
+.TP
+\fBindex\fR
+Specify the index page location. This is the page that is returned to the client requesting
+\fI(http|https)://sitehost[:port]/\fR. The default values are (in order):
+\fIindex.klone\fR,
+\fIindex.kl1\fR,
+\fIindex.html\fR,
+\fIindex.htm\fR.
+.PP
+All the session variables are gathered into an ad hoc
+\fBsession\fR
+subsection of an HTTP or HTTPS activation record.
+.TP
+\fBtype\fR
+Specify where to store session data:
+\fImemory\fR
+for the host volatile memory,
+\fIfile\fR
+for the host file system,
+\fIclient\fR
+for storing data on the client. The default value is
+\fIfile\fR.
+.TP
+\fBmax_age\fR
+Set the inactivity threshold timeout for the session. The default value is 60*20 seconds (20 minutes).
+.TP
+\fBsid_name\fR
+Set a custom cookie name.
+.TP
+\fBencrypt\fR
+A boolean specifying whether the session data should be encrypted before being sent to the client. The default is
+\fIyes\fR.
+.TP
+\fBcompress\fR
+A boolean specifying whether the session data should be compressed before being pushed to the client. The default is
+\fIno\fR.
+.TP
+\fBmemory.limit\fR
+Set the maximum size in bytes for the memory used to hold the collection of all sessions' data. The default value is
+\fI0\fR, i.e. unbounded.
+.TP
+\fBmemory.max_count\fR
+Set the maximum number of sessions the server can store in memory. The default value is
+\fI0\fR, i.e. unbounded.
+.PP
+NOTE: in case one of the two latter limits is exceeded, the data of the older inactive session will be discarded.
+.TP
+\fBfile.path\fR
+Specify where to store session data when the
+\fIfile\fR
+driver is in use. The default value depends on the host platform: on
+UNIX(TM)
+it is
+\fI/tmp\fR, on
+Windows(TM)
+the system temporary path.
+.TP
+\fBclient.hash_function\fR
+The hash function that should be used in the HMAC calculation over the cookies. The available values are:
+\fImd5\fR,
+\fIsha1\fR,
+\fIripemd160\fR. The default is
+\fIsha1\fR.
+.SS "SSL/TLS"
+.PP
+All the cryptographic material examined in this section MUST not be password protected. This is because on unattended devices such as appliances or similar, password protection is useless if not harmful.
+.TP
+\fBcert_file\fR
+PEM\-encoded certificate file for the server and optionally also its corresponding RSA or DSA Private Key file (contained in the same file). The certificate should be configured with the Common Name matching the fully qualified domain name of the server. This parameter is
+\fImandatory\fR.
+.TP
+\fBkey_file\fR
+PEM\-encoded private key file for the server. If the private key is not combined with the certificate in the
+\fBcert_file\fR, use this additional directive to point to the file with the stand\-alone private key. When
+\fBcert_file\fR
+is used and the file contains both the certificate and the private key this directive need not be used. However, such practice is strongly discouraged. Instead the certificate should be separated from the private key. By default the value of
+\fBcert_file\fR
+is used.
+.TP
+\fBcertchain_file\fR
+Optional all\-in\-one file where you can assemble the certificates of Certification Authorities (CA) which form the certificate chain of the server certificate. This starts with the issuing CA certificate of the server certificate and can range up to the root CA certificate. Such a file is simply the concatenation of the various PEM\-encoded CA Certificate files, usually in certificate chain order. This is intended for instance for the Verisign Global\-ID situation where one
+\fIhas\fR
+to send the intermediate CA of Verisign with the GID while one wants to avoid that under client authentication all clients issued by this CA are accepted, which would happen when one references the CA cert via
+\fBca_file\fR.
+.TP
+\fBca_file\fR
+All\-in\-one file where you can assemble the certificates of Certification Authorities (CA) for all certificates expected from clients. These are used for Client authentication. Such a file is simply the concatenation of the various PEM\-encoded certificate files, in order of preference. It is mandatory when
+\fBverify_mode\fR
+is
+\fIrequired\fR.
+.TP
+\fBdh_file\fR
+PEM\-encoded file containing Diffie\-Hellman parameters to be used on session data negotiation phase. When missing a default set of 1024\-bit DH parameters is used. Note that RSA ephemeral parameters are always created automatically.
+.TP
+\fBverify_depth\fR
+This directive sets how deeply openssl should verify before deciding that the clients don't have a valid certificate. The depth actually is the maximum number of intermediate certificate issuers, i.e. the max number of CA certificates which are allowed to be followed while verifying the client certificate. A depth of 0 means that only self\-signed client certificates are accepted, the default depth of 1 means the client certificate can be self\-signed or has to be signed by a CA which is directly known to the server, i.e. the CA's certificate is under
+\fBca_file\fR, etc.
+.TP
+\fBcrl_file\fR
+PEM\-encoded file containing CRLs against which certificates supplied by the client (at least its own) will be checked for revocation status.  
+.TP
+\fBcrl_opts\fR
+This directive can be set to the value that follows in order to enforce a stricter check upon the supplied certificate chain: not only the client certificate, but every certificate in chain up to the anchor CA will be tested for its revocation status.
+.RS
+.TP
+\fBCHECK_ALL\fR
+.RE
+.sp
+.TP
+\fBverify_mode\fR
+This directive sets the certificate verification level for the Client authentication. The following values are available:
+.RS
+.TP
+\fBNO\fR
+no client certificate is required at all
+.TP
+\fBOPTIONAL\fR
+the client may present a valid certificate
+.TP
+\fBREQUIRED\fR
+the client has to present a valid certificate
+.RE
+.IP
+.sp
+Note that optional makes sense only in testing scenarios. The default value is
+\fBNO\fR.
+.SS "LOG"
+.PP
+Klone provides three types of log device: memory, syslog and file. The first is especially targeted for ROM appliances, while the second and third need a device with available (and writeable) storage in order to work. The file type is for systems with no available system message logger (RFC 3164 like). Instead, if the host system has syslog, either as a locally running daemon or just as a set of client API interfacing an external device, then the syslog type (which is nothing but a wrapper to the
+\fBsyslog\fR(3)
+family of functions) can be used.
+.PP
+Each klone instance can be given its private log device. Furthermore there may exist a top level log device, associated to the klone dispatcher to which log messages who could not find a suitable sink (i.e. messages sent by klone instances with no configured log device) are forwarded. If no log devices are configured (neither instance specific, nor the top level one), nothing at all is logged.
+.PP
+Each log message is bounded to a severity level. Available levels, starting from the lowest, are:
+\fBKLOG_DEBUG\fR,
+\fBKLOG_INFO\fR,
+\fBKLOG_NOTICE\fR,
+\fBKLOG_WARNING\fR,
+\fBKLOG_ERR\fR,
+\fBKLOG_CRIT\fR,
+\fBKLOG_ALERT\fR,
+\fBKLOG_EMERG\fR.
+.PP
+Each log device has its
+\fBlog\fR
+subsection which gathers all its configuration parameters.
+.TP
+\fBtype\fR
+Specify the type of log device: can be one of
+\fImemory\fR,
+\fIfile\fR
+or
+\fIsyslog\fR. This parameter is
+\fImandatory\fR.
+.TP
+\fBident\fR
+Set a fixed string which will be prepended to each log message.
+.TP
+\fBthreshold\fR
+Specify the threshold severity level for messages that you want to be displayed: log messages with a level lower than this will be discarded. If not specified, the lowest value is set 
+(i.e. \fBKLOG_DEBUG\fR).
+.TP
+\fBmemory.limit\fR
+The memory log device is basically a fixed size array of log strings with a FIFO discard policy. This parameter specifies the array dimension, i.e. the maximum number of resident log messages. If not specified a default value of 250 is set.
+.TP
+\fBsyslog.facility\fR
+Set a default
+\fBsyslog\fR(3)
+facility for log messages. It must be one of
+\fBLOG_LOCAL[0\-7]\fR. If not set the highest value possible is set 
+(i.e. \fBLOG_LOCAL7\fR).
+.TP
+\fBsyslog.options\fR
+Optionally specify a list of blank separated values from the set of the
+\fBsyslog\fR(3)
+log options:
+\fBLOG_CONS\fR,
+\fBLOG_NDELAY\fR,
+\fBLOG_PERROR\fR,
+\fBLOG_PID\fR.
+.PP
+A file log device is physically subdivided into a certain number of files (pages) named
+\fIbasename\fR.\fIpage_id\fR, used as pieces of a sliding circular buffer. A page must be thought as a fixed size array of log lines: each page in a file log has the same dimension, so that each log line can be referenced uniquely. State information is grouped into a
+\fIhead\fR
+file to be preserved between one run and the subsequent. Information in head (i.e. number of page files, page dimension, active page id, offset in page and basename) is used iff it corresponds to actual config parameters, otherwise the past log is discarded.
+.TP
+\fBfile.basename\fR
+The page basename. This parameter is
+\fImandatory\fR.
+.TP
+\fBfile.limit\fR
+Set the number of log lines in each page file. If not set, a default value of 250 is silently assumed.
+.TP
+\fBfile.splits\fR
+Set the number of pages for this log device. If not set, a default value of 4 is silently assumed. The minimal number of pages is 2.
+.SH "SEE ALSO"
+.PP
+\fBklone\fR(1),
+\fBkloned\fR(8).
+.PP
+The standard
+KLone
+software distribution contains a complete and carefully annotated
+\fIkloned\-sample.conf\fR
+file which can be used as a reference.

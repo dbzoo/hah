@@ -1,0 +1,283 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+
+#define ACT_ON 0
+#define ACT_OFF 1
+#define ACT_SETLCD 2
+
+static char *action_s[] = {"on","off","lcd"};
+
+static struct {
+	 char temp_unit[2];
+	 int devices1wire;
+	 int devicesrf;
+	 char ph_enable[2];
+} ini;
+
+
+// Alternative TD class for ODD rows
+char *alt_td(int row) {
+   if (row % 2 == 0)
+     return "<td>";
+   else
+     return "<td class=\"alt\">";    
+}
+
+static void build_action(char *item, int count, char *action, int action_type) {
+	 int i;
+	 char name[10];	 
+	 for(i=1; i<=count; i++) {
+		  sprintf(name,"%s.%d",item, i);
+		  char *key = request_get_arg(request, name);
+		  if(key) {
+			   strcat(action, " ");
+			   strcat(action, name);
+			   strcat(action,",");
+			   switch(action_type) {
+			   case ACT_ON:
+					strcat(action,"on");
+					break;
+			   case ACT_OFF:
+					strcat(action,"off");
+					break;
+			   }
+		  }
+	 }	 
+}
+
+// Process form submission
+static void process_form() {
+  const char *action = request_get_arg(request,"action");
+  char *wait;
+  int i, action_type;
+
+  if(action == NULL || *action == 0) return;
+
+  // What sort of action are we?
+  action_type = -1;
+  for(i=0; i < 4; i++) {
+    if(strcmp(action, action_s[i]) == 0) {
+        action_type = i; 
+		break;
+    }
+  }
+  // if somebody is mangling the URL ths could happen.
+  if(action_type < 0) return;  
+
+  char cmd[100];
+  if (action_type == ACT_SETLCD) {
+	   strcpy(cmd,"lcd ");
+	   char *key = request_get_arg(request, "lcd");
+	   strcat(cmd, key);
+  }
+  else {
+	   strcpy(cmd,"action");
+	   build_action("relay",4,cmd, action_type);
+	   build_action("rf",4,cmd, action_type);
+  }
+  send_cmd(cmd);
+}
+
+static void readIni() {
+   ini.devices1wire = ini_getl("1wire","devices", 0, con.inifile);
+   ini.devicesrf = ini_getl("rf","devices", 0, con.inifile);
+   ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), con.inifile);
+   ini_gets("pachube","enable","0",ini.ph_enable,sizeof(ini.ph_enable),con.inifile);
+}
+%>
+<%
+if(REQUIRE_AUTH(SCRIPT_NAME)) {
+  process_form();
+  /* disable caching */
+  response_set_field(response, "Pragma:", "no-cache");
+  response_set_field(response, "Cache-Control", "no-cache, no-store, must-revalidate");
+  readIni();
+}
+%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
+<link type="text/css" rel="stylesheet" href="style/current/style.css" />
+<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css" /><![endif]-->
+<script type="text/javascript" src="common.js"></script>
+<script type="text/javascript">
+function comboSubmit() {
+    frmControl.submit();
+}
+</script>
+</head>
+<title>Livebox</title>
+<body class="gui">
+<div id="wrapper">
+<div id="content">
+<div id="header">
+
+<%@include component/heading.kl1%>
+
+<div id="menu">
+ <div id="menuMain">
+  <ul id="menuMainList">
+   <li class="current"><span>Automation</span>
+    <div id="menuSub">
+     <ul id="menuSubList">
+        <li><span>Control</span></li>
+	 <%
+	   MENU_ITEM("config.kl1","Configure");
+       MENU_ITEM("calendar.kl1","Calendar");
+       MENU_ITEM("twitter.kl1","Twitter");
+       MENU_ITEM("pachube.kl1","Pachube");
+       if(ini.ph_enable[0] == '1') {
+		  MENU_ITEM("graph.kl1","Graph");
+       }
+     %>
+    </ul>
+    </div>
+   </li>
+	<%
+	  MENU_ITEM("setup.kl1","Setup");
+	%>
+  </ul>
+ </div>
+</div>
+
+</div>
+
+<div id="main">
+<div id="contents">
+<br/>
+<h2>Control Panel</h2>
+
+<%
+  int i,k;
+%>
+<form name=frmControl action="<%= SCRIPT_NAME %>" method="post">
+<table><tr>
+
+<%
+  if(ini.devicesrf > 0) {
+%>
+<td valign="top"><fieldset>
+<legend>RF</legend>
+<table>
+<tr>
+<th>Item</th>
+<th>State</th>
+<%
+  k = 1;
+  for(i=1; i<=ini.devicesrf; i++, k++) {
+	   io_printf(out,"<tr>%s%s</td>", alt_td(k), kv("rf",i));
+     io_printf(out,"%s %s </td>", alt_td(k), query("rf",i));
+     io_printf(out,"%s<input type=checkbox name=\"rf.%d\"></td></tr>", alt_td(k), i);
+  }
+%>
+</table>
+</fieldset></td>
+<%
+}
+%>
+
+<td valign="top"><fieldset>
+<legend>Relay</legend>
+<table>
+<tr>
+<th>Item</th>
+<th>State</th>
+<%
+  k = 1;
+  for(i=1; i<5; i++, k++) {
+	   io_printf(out,"<tr>%s%s</td>", alt_td(k), kv("relay",i));
+	   io_printf(out,"%s %s </td>", alt_td(k), query("relay",i));
+	   io_printf(out,"%s<input type=checkbox name=\"relay.%d\"></td></tr>", alt_td(k), i);
+  }
+%>
+</table>
+</fieldset></td>
+
+<td valign="top"><fieldset>
+<legend>Input</legend>
+<table>
+<tr>
+<th>Item</th>
+<th>State</th>
+<%
+  k = 1;
+  for(i=1; i<5; i++, k++) {
+	   io_printf(out,"<tr>%s%s</td>", alt_td(k), kv("input",i));
+     io_printf(out,"%s %s </td>", alt_td(k), query("input",i));
+     io_printf(out,"%s</td></tr>", alt_td(k));
+  }
+%>
+</table>
+</fieldset></td>
+
+<%
+  if(ini.devices1wire > 0) {
+%>
+<td valign="top"><fieldset>
+<legend>Temperature</legend>
+<table>
+<tr>
+<th>Item</th>
+<th>State</th>
+<%
+  k = 1;
+  for(i=1; i<=ini.devices1wire; i++, k++) {
+	   io_printf(out,"<tr>%s%s</td>", alt_td(k), kv("sensor",i));
+	   char *c  = query("1wire",i);
+	   io_printf(out,"%s ",alt_td(k));
+	   if (*c == '?') {
+			io_printf(out,"%s", c);
+	   } else {
+			if (ini.temp_unit[0] == 'C') {
+				 io_printf(out,"%s&deg;C </td>", c);
+			} else { // Farenheit
+				 int f  = atoi(c) * 9 / 5 + 32;
+				 io_printf(out,"%d&deg;F </td>", f);
+			}
+	   }	   
+	   io_printf(out,"%s</td></tr>", alt_td(k));
+  }
+%>
+</table>
+</fieldset></td>
+<%
+}
+%>
+
+</tr><td colspan=4>
+<fieldset>
+<legend>LCD</legend>
+<%
+	   io_printf(out,"<input name=\"lcd\" value=\"%s\" size=\"40\"/>", send_cmd("query lcd"));
+%>
+</fieldset>
+</td></tr>
+</table>
+
+<br/>
+
+<div class="submitFooter">
+<input type="submit" value="Refresh"/>
+<input type="reset" value="Cancel Changes"/>
+<select name="action" size=1 onChange="comboSubmit()">
+<option value="" selected>Action&nbsp;</option>
+<option value="on">On
+<option value="off">Off
+<option value="lcd">Set LCD
+</select>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>

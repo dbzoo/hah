@@ -1,0 +1,29 @@
+<%!
+    #include <klone/klog.h>
+    #include <klone/context.h>
+    #include <klone/server.h>
+
+    static int print_log_cb(const char* line, void* arg)
+    {
+        io_t *out = (io_t*)arg;
+
+        io_printf(out, "<tr><td>%s</td></tr>", line);
+    }
+
+%>
+<html>
+<head>
+<title>in-memory logging viewer</title>
+</head>
+<body>
+
+log :
+<table width="100%">
+<%  
+    if(server_foreach_memlog_line(ctx->server, print_log_cb, out))
+        io_printf(out, "<tr><td>error retrieving log lines</td></tr>");
+%>
+</table>
+</body>
+</html>
+

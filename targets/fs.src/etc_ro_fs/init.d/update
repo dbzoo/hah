@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# Automatic firmware update
+#
+# Optional commands:
+# force - reflash regardless of build number
+# clean - reset JFFS paritition.  /mnt/jffs2/jffs2_3 (/etc /home /root /tmp)
+
+ramdisk()
+{
+    /etc/init.d/ramdisk $1 16
+}
+
+abort()
+{
+  cd /
+  ramdisk stop
+  echo $1
+  exit 1
+}
+
+wget_wrap()
+{
+    local filename=$1
+    wget "http://hah.dbzoo.com/upgrade/$filename" -O $filename
+    if [ ! -s $filename ]; then
+       abort "Connection to remote server failed"
+    fi
+}
+
+ramdisk start
+cd /mnt/ramdisk/rd1
+
+if [ "$1" != "force" ]; then
+  wget_wrap build
+  if [ "`cat ./build`" = "`cat /etc_ro_fs/build`" ]; then
+     abort "Update not necessary"
+  fi
+  shift
+fi
+
+echo Shuttdown XAP services
+/etc/init.d/xap stop
+
+wget_wrap fcp
+wget_wrap Image.bin
+
+echo "lcd Flashing..." >/dev/ttyS0
+
+if [ "$1" = "clean" ]; then
+  /usr/sbin/eraseall /dev/mtd$(cat /proc/mtd | grep jffs_system | sed -n "s/\(mtd\)\(.*\):\(.\)*/\2/p")
+else
+  cp ./build /etc/build
+fi
+chmod 555 fcp
+./fcp -v -r Image.bin /dev/mtd$(cat /proc/mtd | grep user_fs | sed -n "s/\(mtd\)\(.*\):\(.\)*/\2/p")

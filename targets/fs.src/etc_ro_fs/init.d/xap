@@ -1,0 +1,136 @@
+#!/bin/sh
+#
+# /etc/init.d/xap start [component...]
+# /etc/init.d/xap stop [component...]
+
+. /etc/ini.conf
+
+subsystem="livebox sms pachube googlecal currentcost twitter plugboard"
+
+start_livebox() {
+    /usr/bin/xap-hub $MYDEV &
+    sleep 1
+    /usr/bin/xap-livebox -s /dev/ttyS0 -i $MYDEV &    
+    /usr/bin/kloned    
+}
+stop_livebox() {
+    killall xap-hub
+    killall xap-livebox
+    killall kloned
+}
+
+start_twitter() {
+    if [ `iniget $INI twitter enable 0` -eq 1 ] ;  then 
+	/usr/bin/xap-twitter -i $MYDEV &
+    fi
+}
+stop_twitter() {
+    killall xap-twitter
+}
+
+start_sms() {
+    if [ `iniget $INI sms enable 0` -eq 1 ] ;  then 
+	USBSERIAL=`iniget $INI sms usbserial /dev/ttyUSB0`
+	/usr/bin/xap-sms -s $USBSERIAL -i $MYDEV &
+    fi
+}
+stop_sms() {
+    killall xap-sms
+}
+
+start_pachube() {
+    if [ `iniget $INI pachube enable 0` -eq 1 ] ;  then 
+	/usr/bin/xap-pachube -i $MYDEV &
+    fi
+}
+stop_pachube() {
+    killall xap-pachube
+}
+
+start_currentcost() {
+    if [ `iniget $INI currentcost enable 0` -eq 1 ] ;  then 
+	USBSERIAL=`iniget $INI currentcost usbserial /dev/ttyUSB0`
+	/usr/bin/xap-currentcost -s $USBSERIAL -i $MYDEV &
+    fi
+}
+stop_currentcost() {
+    killall xap-currentcost
+}
+
+start_googlecal() {
+    if [ `iniget $INI googlecal enable 0` -eq 1 ] ;  then 
+	/usr/bin/xap-googlecal -i $MYDEV &
+    fi
+}
+stop_googlecal() {
+    killall xap-googlecal
+}
+
+start_plugboard() {
+    if [ `iniget $INI plugboard enable 0` -eq 1 ] ;  then 
+	/usr/bin/xap-plugboard -i $MYDEV &
+    fi
+}
+stop_plugboard() {
+    killall xap-plugboard
+}
+
+# Param 1: subsystem
+all() {
+    local i cmd
+    IFS=" "
+    for i in $subsystem; do
+	cmd="$1_$i"
+	$cmd 2>/dev/null
+    done
+}
+
+# Param 1: [start|stop]
+# Param 2: subsystem
+subsystem() {
+    local i cmd
+    IFS=" "
+    for i in $subsystem; do
+	if [ "$i" = "$2" ]; then
+	    cmd="$1_$2"
+	    $cmd 2>/dev/null
+	    return
+	fi
+    done
+    echo "Subsystem $2 not found"
+}
+
+if [ `iniget $INI network config_bridge 0` -eq 0 ] ;  then 
+    MYDEV=eth0
+else
+    MYDEV=br0	
+fi
+
+case $1 in
+    start|stop)
+	if [ -z "$2" ]; then
+	    all $1
+	else
+	    action=$1
+	    shift
+	    for i in $*; do
+	      subsystem $action $i
+            done
+	fi
+	;;
+    restart)
+	if [ -z "$2" ]; then
+	    all stop
+	    all start
+	else
+	    shift
+	    for i in $*; do
+	      subsystem stop $i
+	      subsystem start $i
+            done
+	fi
+	;;
+     
+    *)
+	echo "Usage $0 <start|stop|restart> [component...]"
+esac

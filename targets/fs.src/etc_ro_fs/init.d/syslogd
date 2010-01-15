@@ -1,0 +1,32 @@
+#!/bin/ash
+
+# GPL $Id: syslogd,v 1.3 2005/10/09 16:39:04 cvonk Exp $
+# system init for Syslog and Kernel log daemons (syslogd, klogd)
+
+case "$1" in
+    start)
+	if ! pidof syslogd | sed "s/$$\$//" | grep -q [0-9] ; then
+	    syslogd
+	    klogd -c 1
+	fi
+        ;;
+    stop)
+        killall klogd 2>/dev/null
+        killall syslogd 2>/dev/null
+        ;;
+    restart)
+	$0 stop
+	$0 start
+	;;
+    status)
+        if pidof syslogd | sed "s/$$\$//" | grep -q [0-9] ; then
+	    if pidof klogd >/dev/null ; then
+		echo "running"
+	    else
+		echo "stopped"
+	    fi
+	else
+	    echo "stopped"
+        fi
+        ;;
+esac

@@ -1,0 +1,57 @@
+This file is meant to give an overview of the files contained in this
+directory as well as the proper way to patch your kernel to use the
+latest MTD features.
+
+FILE LIST
+---------
+* Configure.help - file containing documentation for all the options in
+                   MTD and JFFS. The first option in the file shows where
+                   to insert it into the main 'Configure.help' file in
+                   your kernel
+
+* byteorder-patch - patch to add byte order macros for some platforms
+
+* grub-*.patch - patches for the GRUB bootloader to work with Disk On
+                 chip devices
+
+* lilo-mtd.tar.gz - patches for LILO to be able to access MTD devices
+                    during boot
+
+* mtd-2.2.*.infra.patch - partial patch file for patching the kernel build
+                          system to bring in the MTD sub-system
+
+* mtd-sparc64-2.4.x.patch - ioctl conversions for sparc64 32-bit userland.
+                            This should be submitted to DaveM after MTD CVS
+                            has been merged into the mainline.
+
+* patchin.sh - handy shell script used to patch in the latest MTD file
+               when the kernel build system has already been patched
+
+* put_module_symbol-2.2.*.patch - patches to add in MTD module specific code
+
+TRYING OUT MTD
+--------------
+There are two ways to use the latest MTD code. The first method is if your
+are starting with a brand new kernel tree with not other patches applied.
+The second method is if you have a kernel you are already making modifications
+to and you simply want to get the latest MTD code.
+
+METHOD #1
+---------
+  1) Grab the latest patch for your kernel revision with the 'mtd-patch-'
+     prefix.
+
+  2) Go to the top-level kernel directory and do 'patch -p1 < [patch-file]'.
+
+
+METHOD #2
+---------
+  1) Edit the 'patchin.sh' script and change the LINUXDIR path if needed.
+
+  2) Do 'source patchin.sh'.
+
+  3) If you want the help text for all the MTD options, merge the
+     'Configure.help' file found in the repository with the one in
+     your kernel.
+
+The patches used in Method #1 are update every Friday morning.

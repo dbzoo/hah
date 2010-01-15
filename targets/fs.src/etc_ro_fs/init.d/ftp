@@ -1,0 +1,27 @@
+#!/bin/sh
+
+. /etc/ini.conf
+
+case "$1" in
+    start)
+	if [ `iniget $INI network ftp_enable 0` -eq 1 ]; then
+		if ! pidof pure-ftpd | sed "s/$$\$//" | grep -q [0-9] ; then
+	    		pure-ftpd -B
+		fi
+	fi
+        ;;
+    stop)
+        killall pure-ftpd 2>/dev/null
+        ;;
+    restart)
+	$0 stop
+	$0 start
+	;;
+    status)
+        if pidof pure-ftpd | sed "s/$$\$//" | grep -q [0-9] ; then
+		echo "running"
+	else
+		echo "stopped"
+        fi
+        ;;
+esac

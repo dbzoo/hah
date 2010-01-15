@@ -1,0 +1,18 @@
+# Example of how to use USB storage
+insmod scsi_mod.o
+insmod sd_mod.o
+insmod usb-storage.o
+
+# Load Filesystem driver
+# - DOS / Windows 95
+insmod fat.o
+insmod vfat.o
+# - NTFS Read only
+insmod ntfs.o
+# - EXT2
+insmod ext2.o
+# - EXT3
+insmod jdb.o
+insmod ext3.0
+
+mount /dev/sda1 /mnt/usb

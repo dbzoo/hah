@@ -1,0 +1,12 @@
+#!/bin/sh
+
+case $1 in
+    start)
+        echo "+++"
+	;;
+    stop)
+	echo "reboot"
+	;;
+    *)
+	echo "Usage $0 <start|stop>"
+esac

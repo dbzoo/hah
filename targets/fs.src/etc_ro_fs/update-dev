@@ -1,0 +1,47 @@
+#!/bin/sh
+#
+# Automatic firmware update
+
+ramdisk()
+{
+    /etc/init.d/ramdisk $1 16
+}
+
+abort()
+{
+  cd /
+  ramdisk stop
+  echo $1
+  exit 1
+}
+
+wget_wrap()
+{
+    local filename=$1
+    wget "http://$devip/$filename" -O $filename
+    if [ ! -s $filename ]; then
+       abort "Connection to remote server failed"
+    fi
+}
+
+if [ $# -lt 1 ]; then
+  echo "$0 <dev-ip>"
+  exit
+fi
+devip=$1
+shift
+
+ramdisk start
+cd /mnt/ramdisk/rd1
+
+wget_wrap fcp
+wget_wrap rootfs.img
+
+/etc/init.d/xap stop
+echo "lcd Flashing..." >/dev/ttyS0
+
+if [ "$1" = "clean" ]; then
+ /usr/sbin/eraseall /dev/mtd$(cat /proc/mtd | grep jffs_system | sed -n "s/\(mtd\)\(.*\):\(.\)*/\2/p")
+fi
+chmod 555 fcp
+./fcp -v -r rootfs.img /dev/mtd$(cat /proc/mtd | grep user_fs | sed -n "s/\(mtd\)\(.*\):\(.\)*/\2/p")

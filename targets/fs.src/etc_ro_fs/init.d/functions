@@ -1,0 +1,60 @@
+#!/bin/ash 
+# 
+
+# GPL $Id: functions,v 1.2 2005/10/09 16:39:04 cvonk Exp $
+# Common functions used in /etc/init.d/ scripts
+
+DIRNAME=`dirname *0`
+PROGRAM=`basename $0`
+LOGGER="/usr/bin/logger"
+
+log() {
+    test -x "$LOGGER" && $LOGGER -p info "$1"
+}
+
+checkExit() {
+    $* || die "ERROR: $*"
+}
+
+    # prints to stdout when the debug level $VERB is >= $1
+verbose() {
+    local LEVEL="$1"
+    [ ! -z "$LEVEL" ] || die "verbose: unspecified LEVEL"
+
+    if [ $VERB -ge $LEVEL ] ; then
+	shift
+	echo "$PROGRAM: $*"
+    fi
+}
+
+getaddr()
+{
+    dev=$1
+    name=$2
+    L=`/bin/ip addr show dev $dev | grep -E "$dev\$"`
+    test -z "$L" && { 
+      eval "$name=''"
+      return
+    }
+    OIFS=$IFS
+    IFS=" /"
+    set $L
+    eval "$name=$2"
+    IFS=$OIFS
+}
+
+getaddrgw()
+{
+    dev=$1
+    name=$2
+    L=`/bin/ip route show | grep ^default | grep "$dev"`
+    test -z "$L" && { 
+      eval "$name=''"
+      return
+    }
+    OIFS=$IFS
+    IFS=" /"
+    set $L
+    eval "$name=$3"
+    IFS=$OIFS
+}

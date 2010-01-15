@@ -1,0 +1,3 @@
+pure_ftpd-fakechroot.o pure_ftpd-fakechroot.o: fakechroot.c ../config.h
+
+../config.h:

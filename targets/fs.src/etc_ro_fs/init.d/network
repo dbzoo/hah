@@ -1,0 +1,117 @@
+#!/bin/sh
+. /etc/ini.conf
+
+case $1 in
+    start)
+	# ip forwarding
+	echo 1 > /proc/sys/net/ipv4/ip_forward
+
+	echo 1 > /proc/sys/net/ipv4/conf/all/forwarding
+	echo 1 > /proc/sys/net/ipv4/conf/all/accept_source_route
+	echo 0 > /proc/sys/net/ipv4/conf/all/proxy_arp
+	echo 1 > /proc/sys/net/ipv4/conf/all/send_redirects
+	echo 0 > /proc/sys/net/ipv4/conf/all/accept_redirects
+
+	echo 1 > /proc/sys/net/ipv4/conf/default/forwarding
+	echo 1 > /proc/sys/net/ipv4/conf/default/accept_source_route
+	echo 0 > /proc/sys/net/ipv4/conf/default/proxy_arp
+	echo 1 > /proc/sys/net/ipv4/conf/default/send_redirects
+	echo 0 > /proc/sys/net/ipv4/conf/default/accept_redirects
+
+	# local network configuration
+	ifconfig lo 127.0.0.1
+	route add 127.0.0.1 lo
+
+	# ethernet configuration
+	ETHER_0="`iniget $INI network ether_0 00:07:3A:11:22:00`"
+	ETHER_1="`iniget $INI network ether_1 00:07:3A:11:22:01`"
+	ifconfig eth0 down
+	ifconfig eth0 hw ether $ETHER_0
+	ifconfig eth0 up 0.0.0.0
+	ifconfig eth1 down 
+	ifconfig eth1 hw ether $ETHER_1
+	ifconfig eth1 0.0.0.0 up 
+
+	# hostname
+	echo "127.0.0.1 localhost" > /etc/hosts
+	HOSTNAME="`iniget $INI network hostname knoxbox`"
+	hostname $HOSTNAME
+
+        CONFIG_BRIDGE=`iniget $INI network config_bridge 1`
+        if [ $CONFIG_BRIDGE -eq 0 ] ;  then 
+	  MYDEV=eth0
+        else
+          MYDEV=br0	
+
+	  # reset bridged devices
+	  CONFIG_USB_ETHER=`iniget $INI network config_usb_ether 0`
+	  if [ $CONFIG_USB_ETHER -eq 1 ]; then
+	    ifconfig usb0 up 0.0.0.0
+          fi 
+
+	  # Bridge configuration 
+	  br_present=""
+	  grep -q br0 /proc/net/dev && br_present=1
+	  if [ -z "$br_present" ] ; then 
+	    brctl addbr br0
+
+	    if [ $CONFIG_USB_ETHER -eq 1 ]; then
+	      brctl addif br0 usb0
+	      sendarp -s br0 -d usb0
+	    fi
+	    brctl stp br0 off
+	    brctl setfd br0 1
+
+
+	    brctl addif br0 eth1
+	    brctl addif br0 eth0
+          fi
+        fi
+
+	if [ "`iniget $INI network lan_proto dhcp`" = "static" ] ; then 
+	    IP="`iniget $INI network ip 192.168.1.50`"
+	    NETMASK="`iniget $INI network netmask 255.255.255.0`"
+	    GATEWAY="`iniget $INI network gateway 192.168.1.1`"
+	    DNS="`iniget $INI network dns 192.168.1.1`"
+	    DOMAIN="`iniget $INI network domain`"
+	    ifconfig $MYDEV $IP netmask $NETMASK
+	    [ ! -z "$GATEWAY" ] && route add default gw $GATEWAY
+		if [ ! -z "$DOMAIN" ]; then
+			echo "search $DOMAIN" >> /etc/resolv.conf
+		fi
+		if [ ! -z "$DNS" ]; then
+			echo "nameserver $DNS" >> /etc/resolv.conf
+		fi
+		echo "$IP $HOSTNAME" >>/etc/hosts
+		NTPHOST="`iniget $INI network ntp_host uk.pool.ntp.org`"
+		[ ! -z "$NTPHOST" ] && ntpclient -s -h $NTPHOST
+	        echo "lcd $IP"
+	else
+	    # DHCP Client (-b fork to background if lease cannot be immediately obtained)
+	    echo "lcd Acquiring IP"
+	    udhcpc -b -i $MYDEV
+	fi
+
+	;;
+    stop)
+	# Setting interfaces down 
+	ifconfig eth0 down
+	ifconfig eth1 down
+	ifconfig usb0 down
+
+	# Setting bridge down 
+	# We do not destruct bridge because it is not necessary
+	ifconfig br0 down
+	;;
+    kill)
+	wlctl down
+	ifconfig br0 down
+	brctl delbr br0
+	ifconfig eth0 down
+	ifconfig eth1 down
+	ifconfig usb0 down
+	ifconfig wl0 down
+	;;
+    *)
+	echo "Usage ..."
+esac

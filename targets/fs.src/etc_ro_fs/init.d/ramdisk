@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# ramdisk
+case $1 in
+    start)
+	umount /mnt/ramdisk/rd1 > /dev/null 2>&1
+	count=10
+	[ -n "$2" ] && count=$2
+	/bin/echo "Ramdisk initialisation ..."
+	/bin/mount -t tmpfs -o size=$((512*$count))k none /mnt/ramdisk/rd1/
+	mkdir /mnt/ramdisk/rd1/lost+found
+	;;
+    stop)
+	
+	umount /mnt/ramdisk/rd1
+	;;
+    *)
+	echo "Usage : $0 [start|stop] [nb of 512k pages (default 10)]"
+	;;
+esac

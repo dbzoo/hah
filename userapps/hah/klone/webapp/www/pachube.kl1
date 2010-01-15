@@ -1,0 +1,314 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+#include "utils.h"
+#include <string.h>
+
+#define sizearray(x) (sizeof(x) / sizeof(x[0]))
+static int reboot = 0;
+
+struct _datastream {
+	 char id[4];
+	 char xapkey[65];
+	 char tag[20];
+} ds[32];
+
+static struct {
+	 char apikey[65];
+	 char feedid[8];
+	 int count;
+	 char ufreq[4];
+	 char ph_uid[5];
+	 char ph_instance[30];
+	 char ph_enable[2];
+} ini;
+
+static void loadDynINI(char *key, int id, char *location, int size) {
+	 char buff[100];
+	 sprintf(buff,"%s%d",key,id);
+	 ini_gets("pachube", buff, "", location, size, con.inifile);
+}
+
+static void saveDynINI(char *key, int id, const char *value) {
+	 char buff[100];
+	 sprintf(buff,"%s%d",key,id);
+	 ini_puts("pachube", buff, value, con.inifile);
+}
+
+static void readIni() {
+	 ini_gets("pachube","enable","0",ini.ph_enable,sizeof(ini.ph_enable),con.inifile);
+	 ini_gets("pachube","uid","00DE",ini.ph_uid,sizeof(ini.ph_uid),con.inifile);
+	 ini_gets("pachube","instance","Pachube",ini.ph_instance,sizeof(ini.ph_instance),con.inifile);
+	 ini_gets("pachube","apikey","",ini.apikey,sizeof(ini.apikey),con.inifile);
+	 ini_gets("pachube","feedid","",ini.feedid,sizeof(ini.feedid),con.inifile);
+	 ini_gets("pachube","ufreq","60",ini.ufreq,sizeof(ini.ufreq),con.inifile);
+
+	 // Comma separated list of ids
+	 ini.count = ini_getl("pachube", "count", 0, con.inifile);
+
+	 if(ini.count > sizearray(ds)) {
+		  ini.count = sizearray(ds);
+	 }
+	 int i;
+	 for(i=0; i < ini.count; i++) {
+		  loadDynINI("id", i, ds[i].id, sizeof(ds[i].id));
+		  loadDynINI("xap", i, ds[i].xapkey, sizeof(ds[i].xapkey));
+		  loadDynINI("tag", i, ds[i].tag, sizeof(ds[i].tag));					 
+	 }
+}
+
+static const char *getdynkey(char *key, int id ) {
+	 char buff[30];
+	 sprintf(buff,"%s%d", key, id);
+	 return request_get_arg(request, buff);
+}
+
+static void submit_form() {
+	 int reboot=0;
+
+	 const char *ph_enable = request_get_arg(request,"ph_enable");
+	 if(ph_enable) {
+		  if((*ph_enable == '1' && ini.ph_enable[0] == '0') ||
+			 (*ph_enable == '0' && ini.ph_enable[0] == '1')) {
+			   ini_puts("pachube","enable",ph_enable,con.inifile);
+			   reboot = 1;
+		  }
+	 }
+
+	 const char *ph_uid = request_get_arg(request,"ph_uid");
+	 const char *ph_instance = request_get_arg(request,"ph_instance");
+	 if(ph_uid && strcmp(ph_uid,ini.ph_uid)) {
+		  upperstr((char *)ph_uid);
+		  ini_puts("pachube","uid",ph_uid,con.inifile);
+		  reboot = 1;
+	 }
+	 if(ph_instance && strcmp(ph_instance,ini.ph_instance)) {
+		  ini_puts("pachube","instance",ph_instance,con.inifile);
+		  reboot = 1;
+	 }
+
+	 const char *apikey = request_get_arg(request,"apikey");
+	 if(apikey && strcmp(apikey,ini.apikey)) {
+		  ini_puts("pachube","apikey",apikey,con.inifile);
+	 }
+	 const char *feedid = request_get_arg(request,"feedid");
+	 if(feedid && strcmp(feedid,ini.feedid)) {
+		  ini_puts("pachube","feedid",feedid,con.inifile);
+	 }
+	 const char *ufreq = request_get_arg(request,"ufreq");
+	 if(ufreq && strcmp(ufreq,ini.ufreq)) {
+		  ini_puts("pachube","ufreq",ufreq,con.inifile);
+	 }
+
+	 int i;
+	 for(i=0; i<ini.count; i++) {
+		  const char *id = getdynkey("id", i);
+		  const char *xapkey = getdynkey("xap", i);
+		  const char *tag = getdynkey("tag", i);
+		  if(id == NULL || xapkey == NULL) continue;
+		  saveDynINI("id", i, id);
+		  saveDynINI("xap", i, xapkey);
+		  saveDynINI("tag", i, tag);
+	 }
+}
+/**********************************************************************/
+%>
+<%
+  int i;
+  REQUIRE_AUTH(SCRIPT_NAME);
+  const char *action = request_get_arg(request,"action");
+  readIni();
+  if(action && strcmp(action,"Apply") == 0) {
+	  submit_form();
+      readIni();
+  }
+  if(action && strcmp(action,"Add") == 0 && ini.count+1 < sizearray(ds)) {
+	   memset( &ds[ini.count], 0, sizeof(ds[i]) );
+	   ini.count++;
+	   ini_putl("pachube","count", ini.count, con.inifile);
+  }
+  if(action && strcmp(action,"Restart") == 0) {
+      char *argv[] = {"/etc/init.d/xap","restart", "pachube", NULL};
+      subprocess(argv);
+  }
+
+  const char *del = request_get_arg(request,"del");
+  if(del) {
+	 int row = atoi(del);
+	 // Bubble the other rows down over this deleted one.
+	 for(i=row; i < ini.count-1; i++) {
+		  memcpy(&ds[row], &ds[row+1], sizeof(ds[i]));
+	 }
+	 // clear our deleted row.
+	 memset( &ds[ini.count-1], 0, sizeof(ds[i]));
+
+	 // Write out the datastreams - including our blank one.
+	 for(i=0; i<ini.count; i++) {
+		  saveDynINI("id", i, ds[i].id);
+		  saveDynINI("xap", i, ds[i].xapkey);
+		  saveDynINI("tag", i, ds[i].tag);
+	 }
+	 // now remove it from the list.
+	 ini.count--;
+	 ini_putl("pachube","count", ini.count, con.inifile);
+  }
+%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1"/>
+<script type="text/javascript" src="common.js"></script>
+<link type="text/css" rel="stylesheet" href="style/current/style.css"/>
+<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css"/><![endif]-->
+<title>Livebox</title>
+
+<script type="text/javascript">
+function to_submit(F) {
+F.save_button.value = "Saving";
+F.action.value="Apply";
+apply(F);
+}
+function add(F) {
+ F.action.value = "Add";
+ apply(F);
+}
+function del(F) {
+ F.action.value = "Del";
+ apply(F);
+}
+function restart(F) {
+ F.action.value = "Restart";
+ apply(F);
+}
+addEvent(window,"load",function() {
+	 show_layer_ext(document.services.ph_enable, 'idph', 1 == <%= ini.ph_enable %>);
+	 });
+</script>
+</head>
+<body class="gui">
+
+<div id="wrapper">
+<div id="content">
+<div id="header">
+
+<%@include component/heading.kl1%>
+
+<div id="menu">
+ <div id="menuMain">
+  <ul id="menuMainList">
+   <li class="current"><span>Automation</span>
+    <div id="menuSub">
+     <ul id="menuSubList">
+<%
+       MENU_ITEM("automation.kl1","Control");
+       MENU_ITEM("config.kl1","Configure");
+       MENU_ITEM("calendar.kl1","Calendar");
+       MENU_ITEM("twitter.kl1","Twitter");
+%>
+       <li><span>Pachube</span></li>
+<%
+	 if(ini.ph_enable[0] == '1') {
+		  MENU_ITEM("graph.kl1","Graph");
+	 }
+%>
+    </ul>
+    </div>
+   </li>
+<%
+	  MENU_ITEM("setup.kl1","Setup");
+%>
+  </ul>
+ </div>
+</div>
+
+</div>
+
+<div id="main">
+<div id="contents">
+<form name="services" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="submit_button"/>
+<input type="hidden" name="action"/>
+<br/>
+<h2>Pachube Settings</h2><div>
+
+<fieldset>
+  <legend>Pachube</legend>
+  <div class="setting">
+    <div class="label">Start service</div>
+	<input class="spaceradio" type="radio" value="1" name="ph_enable" onclick="show_layer_ext(this, 'idph', true);"<% if(ini.ph_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+    <input class="spaceradio" type="radio" value="0" name="ph_enable" onclick="show_layer_ext(this, 'idph', false);"<% if(ini.ph_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+  <div class="setting" id="idph">
+
+<fieldset>
+  <legend>Configuration</legend>
+
+  <div class="setting">
+    <div class="label">xAP UID</div>
+    <input maxlength="4" size="4" name="ph_uid" value="<%= ini.ph_uid %>" onblur="isxdigit(this,'UID')"/>
+    <span class="default">(Default: 00DE, Range: 0000 - FFFF)</span>
+  </div>
+
+  <div class="setting">
+    <div class="label">xAP Instance</div>
+    <input maxlength="30" size="25" name="ph_instance" value="<%= ini.ph_instance %>"/>
+    <span class="default">(Default: Pachube)</span>
+  </div>
+
+  <div class="setting">
+    <div class="label">API Key</div>
+    <input maxlength="65" size="65" name="apikey" value="<%= ini.apikey %>"/>
+  </div>
+
+  <div class="setting">
+    <div class="label">Feed ID</div>
+    <input maxlength="8" size="8" name="feedid" value="<%= ini.feedid %>" onblur="isdigit(this,'Feed ID')"/>
+  </div>
+  <div class="setting">
+    <div class="label">Update Frequency</div>
+	 <input maxlength="4" size="4" name="ufreq" value="<%= ini.ufreq %>" onblur="valid_range(this,6,900,'Update Frequency')"/>
+    <span class="default">(Default: 60 secs, Range: 6 - 900)</span>
+  </div>
+</fieldset>
+<fieldset>
+  <legend>Datastream</legend>
+   <table>
+	   <tr><th>ID</th><th>Tag</th><th>xAP source</th></tr>
+<%
+	   for(i=0; i<ini.count; i++) {
+%>
+	   <tr>
+         <td><input name="id<% io_printf(out,"%d",i); %>" maxlength="4" size="4" value="<%= ds[i].id %>" onblur="isdigit(this,'ID')"/></td>
+         <td><input name="tag<% io_printf(out,"%d",i); %>" maxlength="20" size="20" value="<%= ds[i].tag %>"/></td>
+         <td><input name="xap<% io_printf(out,"%d",i); %>" maxlength="64" size="64" value="<%= ds[i].xapkey %>"/></td>
+		 <td><input type="image" src="/images/bin_bt.gif" name="del" value="<% io_printf(out,"%d",i); %>" onclick="del(this.form)"/></td>
+       </tr>
+<%
+	   }
+%>
+</table>
+<input type="button" name="add_button" value="Add" onclick="add(this.form)"/>
+</fieldset>
+
+</fieldset>
+</div>
+<br/>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)"/>
+<input type="reset" value="Cancel Changes"/>
+<input type="button" value="Restart" onclick="restart(this.form)"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>

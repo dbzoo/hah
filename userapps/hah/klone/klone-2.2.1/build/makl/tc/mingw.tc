@@ -1,0 +1,7 @@
+#
+# MinGW toolchain overrides
+#
+CC = gcc
+LORDER = echo
+TSORT = cat
+MKINSTALLDIRS = mkdir -p

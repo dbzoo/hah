@@ -1,0 +1,77 @@
+#!/bin/sh
+
+ROOTFS=$PROFILE/fs
+
+echo Create FIFO devices
+mknod $ROOTFS/dev/initctl p
+
+echo Create character devices
+mknod $ROOTFS/dev/mem c 1 1
+mknod $ROOTFS/dev/kmem c 1 2
+mknod $ROOTFS/dev/null c 1 3
+mknod $ROOTFS/dev/port c 1 4
+mknod $ROOTFS/dev/zero c 1 5
+for i in 0 1 2 3 4 5; do
+  mknod $ROOTFS/dev/ptyp$i c 2 $i
+  mknod $ROOTFS/dev/ttyp$i c 3 $i
+# dropbear quits when it chmod()'s to 620 we set it up like this.
+  chmod 0620 $ROOTFS/dev/ttyp$i
+done
+mknod $ROOTFS/dev/tty0 c 4 0
+mknod $ROOTFS/dev/tty1 c 4 1
+mknod $ROOTFS/dev/ttyS0 c 4 64
+mknod $ROOTFS/dev/tty c 5 0
+mknod $ROOTFS/dev/console c 5 1
+mknod $ROOTFS/dev/ptmx c 5 2
+chmod 666 $ROOTFS/dev/ptmx
+#mknod $ROOTFS/dev/ppp c 108 0
+mkdir -p $ROOTFS/dev/usb
+mknod $ROOTFS/dev/usb/lp0 c 180 0
+mknod $ROOTFS/dev/urandom c 1 9
+
+echo USB Serial
+for i in 0 1 2 3 4 5 6 7; do
+  mknod $ROOTFS/dev/ttyUSB$i c 188 $i
+done
+
+echo Create Broadcom specific devices
+mknod $ROOTFS/dev/bcmatm0 c 205 0
+mknod $ROOTFS/dev/brcmboard c 206 0
+mknod $ROOTFS/dev/bcmvdsl0 c 207 0
+mknod $ROOTFS/dev/bcmadsl0 c 208 0
+mknod $ROOTFS/dev/bcmendpoint0 c 209 0
+mknod $ROOTFS/dev/bcmaal20 c 210 0
+mknod $ROOTFS/dev/bcmles0 c 211 0
+mknod $ROOTFS/dev/bcm c 212 0
+
+echo Audio support
+mknod $ROOTFS/dev/mixer c 14 0
+mknod $ROOTFS/dev/sequencer c 14 1
+mknod $ROOTFS/dev/midi00 c 14 2
+mknod $ROOTFS/dev/dsp c 14 3
+mknod $ROOTFS/dev/audio c 14 4 
+
+echo Create block devices
+mknod $ROOTFS/dev/ram0 b 1 0
+mknod $ROOTFS/dev/ram1 b 1 1
+mknod $ROOTFS/dev/ram2 b 1 2
+mknod $ROOTFS/dev/ram3 b 1 3
+ln -s /dev/ram1 $ROOTFS/dev/ram
+
+for i in 0 1 2 3 4 5 6 7; do
+  mknod $ROOTFS/dev/loop$i b 7 $i
+  mknod $ROOTFS/dev/mtdblock$i b 31 $i
+  k=`expr $i \* 2`
+  mknod $ROOTFS/dev/mtd$i c 90 $k
+  j=`expr $k + 1`
+  mknod $ROOTFS/dev/mtrd$i c 90 $j
+done
+
+mknod $ROOTFS/dev/sda b 8 0
+mknod $ROOTFS/dev/sda1 b 8 1
+mknod $ROOTFS/dev/sda2 b 8 2
+mknod $ROOTFS/dev/sda3 b 8 3
+mknod $ROOTFS/dev/sda4 b 8 4
+
+ln -s scd0 $ROOTFS/dev/cdrom
+mknod $ROOTFS/dev/scd0 b 11 0

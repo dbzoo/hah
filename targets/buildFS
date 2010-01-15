@@ -1,0 +1,57 @@
+#!/bin/sh
+
+TOP_DIR=`pwd`
+MOD_DIR=$KERNEL_DIR/build_modules
+
+if [ "$FSSRC_DIR" == "" ]; then
+    FSSRC_DIR=./fs.src
+fi
+
+ROOTFS=$PROFILE/fs
+
+rm -rf $ROOTFS
+mkdir $ROOTFS
+chmod 777 $ROOTFS
+# Bump build
+#if [ -e $FSSRC_DIR/etc_ro_fs/build ]; then
+#  build=`cat $FSSRC_DIR/etc_ro_fs/build`
+#  build=`expr ${build} + 1`
+#  echo $build >$FSSRC_DIR/etc_ro_fs/build
+#else
+#  echo 1 >$FSSRC_DIR/etc_ro_fs/build
+#fi
+
+cp -av $FSSRC_DIR/* $ROOTFS
+mkdir -p $ROOTFS/dev/usb
+mkdir -p $ROOTFS/dev/pts
+mkdir -p $ROOTFS/dev/net
+mkdir $ROOTFS/proc
+mkdir $ROOTFS/var
+
+mkdir -p $ROOTFS/mnt/jffs2/jffs2_3
+mkdir $ROOTFS/mnt/usb
+mkdir $ROOTFS/mnt/nfsa
+mkdir $ROOTFS/mnt/nfsb
+mkdir $ROOTFS/mnt/nfsc
+mkdir -p $ROOTFS/mnt/ramdisk/rd1
+
+for i in etc root tmp home; do
+  ln -s /mnt/jffs2/jffs2_3/$i $ROOTFS/$i
+done
+
+./makeDevs
+
+if [ -x $PROFILE/special-buildFS ]; then
+   $PROFILE/special-buildFS
+fi
+
+cd $MOD_DIR
+cp -a lib $TOP_DIR/$ROOTFS/.
+chown -R root:root $TOP_DIR/$ROOTFS/lib
+echo "Kernel modules..."
+find $TOP_DIR/$ROOTFS/lib/modules -name "*.o"
+#Modules that need parameters cannot be stripped
+#MODS_KEEPSYM='! -name "ip_conntrack_pt.o" ! -name "ip_nat_pt.o"'
+#eval "find $TOP_DIR/$ROOTFS/lib/modules -name '*.o' $MODS_KEEPSYM |xargs $STRIP --strip-unneeded"
+
+cd $TOP_DIR

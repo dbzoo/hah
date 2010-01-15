@@ -1,0 +1,38 @@
+The file records what has been patched to add
+H.323/Talk ALG in 2.4.17 kernel.
+The patch is from http://roeder.goe.net/~koepi/
+
+
+$ patch -p1 -E < newnat5-and-helpers-2.4.17.patch
+patching file Documentation/Configure.help
+patching file Makefile
+Hunk #2 succeeded at 74 (offset 3 lines).
+patching file include/linux/netfilter_ipv4/ip_conntrack.h
+patching file include/linux/netfilter_ipv4/ip_conntrack_ftp.h
+patching file include/linux/netfilter_ipv4/ip_conntrack_h323.h
+patching file include/linux/netfilter_ipv4/ip_conntrack_helper.h
+patching file include/linux/netfilter_ipv4/ip_conntrack_irc.h
+patching file include/linux/netfilter_ipv4/ip_conntrack_talk.h
+patching file include/linux/netfilter_ipv4/ip_nat_helper.h
+patching file include/linux/netfilter_ipv4/ip_nat_protocol.h
+patching file include/linux/netfilter_ipv4/ip_nat_rule.h
+patching file net/ipv4/netfilter/Config.in
+patching file net/ipv4/netfilter/Makefile
+patching file net/ipv4/netfilter/ip_conntrack_core.c
+patching file net/ipv4/netfilter/ip_conntrack_ftp.c
+patching file net/ipv4/netfilter/ip_conntrack_h323.c
+patching file net/ipv4/netfilter/ip_conntrack_irc.c
+patching file net/ipv4/netfilter/ip_conntrack_standalone.c
+patching file net/ipv4/netfilter/ip_conntrack_talk.c
+patching file net/ipv4/netfilter/ip_nat_core.c
+patching file net/ipv4/netfilter/ip_nat_ftp.c
+patching file net/ipv4/netfilter/ip_nat_h323.c
+patching file net/ipv4/netfilter/ip_nat_helper.c
+patching file net/ipv4/netfilter/ip_nat_irc.c
+patching file net/ipv4/netfilter/ip_nat_proto_icmp.c
+patching file net/ipv4/netfilter/ip_nat_proto_tcp.c
+patching file net/ipv4/netfilter/ip_nat_proto_udp.c
+patching file net/ipv4/netfilter/ip_nat_rule.c
+patching file net/ipv4/netfilter/ip_nat_standalone.c
+patching file net/ipv4/netfilter/ip_nat_talk.c
+

@@ -1,0 +1,21 @@
+Historique du cramfs inventel : 
+
+- version de base : celle livrée par broadcom (avec lzma), 
+- merge des modifs du cramfs officiel pour pouvoir passer en bigendian. 
+
+
+STATUT ACTUEL : 
+-fonctionne, avec un cramfs little endian sur une machine big endian, compression gzip.
+
+
+
+
+PROBLÈMES à envisager lors du passage à lzma : 
+
+- big endian / little endian ? 
+- place de l'initialisation (memset (0 ...) ) dans le soft bcm différent de celle du soft
+standard.
+
+
+
+

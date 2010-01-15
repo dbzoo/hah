@@ -1,0 +1,24 @@
+#!/bin/sh
+# 
+# system init script
+
+PATH=/bin:/sbin:/usr/bin:/usr/sbin
+export PATH
+
+echo "`basename $0` running .."
+
+echo "Mounting filesystems"
+/bin/mount -t proc /proc /proc
+[ -f /proc/bus/usb/devices ] && mount -t usbdevfs none /proc/bus/usb
+/bin/mount -t tmpfs -o size=256k tmpfs /var
+/bin/mount -t devpts devpts /dev/pts
+
+mkdir -p /var/log /var/run /var/lib /var/tmp
+
+# dump the kernel ring buffer so we can examine it later
+dmesg > /var/log/messages
+
+/etc_ro_fs/rc.d/rc.boot
+# From this point forward we don't need to consult etc_ro_fs as /etc is setup.
+
+/etc/rc.d/rc.runlevel 1

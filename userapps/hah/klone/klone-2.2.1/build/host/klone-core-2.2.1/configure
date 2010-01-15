@@ -1,0 +1,204 @@
+#!/bin/sh
+#
+# $Id: configure,v 1.97 2009/10/27 16:14:43 tat Exp $
+
+export makl_conf_h=klone_conf.h
+export MAKL_DIR=`pwd`/makl
+
+if [ -z "${MAKE}" ]; then
+    MAKE=make
+fi
+
+# will fail using something different then GNU make
+( cd build/makecheck && "${MAKE}" >/dev/null ) || exit 1
+
+# before running configure the toolchain must be present
+if [ ! -r "${MAKL_DIR}"/etc/toolchain.cf ]; then
+    "${MAKE}" -C "${MAKL_DIR}" toolchain
+fi
+
+# MaKL preamble
+. "${MAKL_DIR}"/cf/makl.init
+. build/makl_checkfork
+. build/makl_va_list_by_value
+. build/makl_checkstackp
+
+# Preprocess arguments
+makl_args_init "$@"
+
+# Custom arguments ...
+makl_args_def   "enable_debug"      "" ""   "enables debugging of KLone app"
+makl_args_def   "enable_libu_debug" "" ""   "enables debugging of LibU"
+makl_args_def   "enable_profile"    "" ""   "enables profiling"
+makl_args_def   "enable_sup_fs"     "" ""   "enables filesystem web access"
+makl_args_def   "enable_fs"     "" ""   "--enable_sup_fs alias"
+makl_args_def   "enable_sup_cgi"    "" ""   "enables external CGIs"
+makl_args_def   "enable_cgi"    "" ""   "--enable_sup_cgi alias"
+makl_args_def   "enable_sup_kilt"     "" ""   "enables kilt module"
+makl_args_def   "enable_kilt"     "" ""   "--enable_sup_kilt alias"
+makl_args_def   "enable_warns"      "" ""   "set CFLAGS for extra warnings"
+makl_args_def   "disable_cxx"       "" ""   "disable C++ support"
+makl_args_def   "install_daemon_only"  "" ""  "install just Klone daemon file"
+makl_args_def   "daemon_name"  "=NAME" ""   "set the name of Klone daemon"
+makl_args_def   "enable_hooks"  "" ""   "call user-provided hooks_setup() to register hooks"
+makl_args_def   "disable_stack_protector"      "" ""   "disable stack smashing protection (gcc 4.x)"
+
+
+# ... and their handlers
+__makl_enable_debug ()      { makl_set_var_mk       "KLONE_DEBUG" ;
+                              makl_append_var_mk    "CFLAGS" "-g -DDEBUG" ; }
+__makl_enable_libu_debug () { makl_set_var_mk       "LIBU_DEBUG" ;          }
+__makl_enable_profile ()    { makl_append_var_mk    "CFLAGS" "-pg -a" ;     }
+
+__makl_enable_sup_fs ()     { makl_set_var          "ENABLE_SUP_FS" ;       }
+__makl_enable_fs ()         { __makl_enable_sup_fs ;                        }
+
+__makl_enable_sup_kilt ()     { makl_set_var          "ENABLE_SUP_KILT" ;   }
+__makl_enable_kilt ()         { __makl_enable_sup_kilt ;                    }
+
+__makl_enable_sup_cgi ()    { makl_set_var          "ENABLE_SUP_CGI" ;      }
+__makl_enable_cgi ()        { __makl_enable_sup_cgi;                        }
+
+__makl_disable_cxx ()       { makl_unset_var        "USE_CXX" ;             }
+__makl_install_daemon_only () 
+                            { makl_set_var          "INSTALL_DAEMON_ONLY" ; }
+__makl_daemon_name ()       { makl_set_var_mk       "DAEMON_NAME" $1 ;      }
+__makl_enable_hooks()       { makl_set_var          "ENABLE_HOOKS"  ;       }
+__makl_enable_warns ()        
+{ 
+    makl_append_var_mk "CFLAGS"                                     \
+        "-W -Wall -Wstrict-prototypes -Wmissing-prototypes"         \
+        "-Wpointer-arith -Wno-uninitialized -Wreturn-type"          \
+        "-Wwrite-strings -Wswitch -Wshadow -Wwrite-strings"         \
+        "-Wunreachable-code -Wunused -Wcast-qual"
+        #"-pedantic -std=c99"
+}
+__makl_disable_stack_protector()       { 
+    makl_set_var_mk        "DISABLE_STACK_PROTECTOR"    "1";   
+}
+
+# General settings
+makl_pkg_name           "klone"
+makl_pkg_version
+
+# Source directory 
+makl_set_var_mk         "SRCDIR"    "`pwd`"
+
+# Add local 3rd party flags
+makl_append_var_mk      "CFLAGS"    "-I`pwd`/libu/include"
+
+case `makl_target_name` in
+
+    *mingw*)
+        makl_set_var        "OS_WIN"
+        makl_append_var_mk  "POST_LDADD"      "-lwsock32 -L/c/WINDOWS" 
+        ;;
+
+    *cygwin*)
+        makl_set_var        "OS_UNIX"
+        makl_append_var_mk  "CFLAGS"    "-D__addr_t_defined"
+        ;;
+
+    *qnx*)
+        makl_set_var        "OS_UNIX"
+        makl_append_var_mk  "POST_LDADD"      "-lsocket"
+        ;;
+
+    *darwin*)
+        makl_set_var        "OS_UNIX"
+        # workaround to avoid circular dependency errors on Mac OS X
+        makl_set_var        "PRE_LDADD"       "-ldl"
+        makl_append_var_mk  "POST_LDADD"      "-lc"
+        ;;                                                    
+
+    *)
+        makl_set_var        "OS_UNIX"
+        ;;
+esac
+
+makl_append_var_mk "CFLAGS"   "-I`pwd` -DHAVE_CONF_H"
+
+# these enable .klx pages
+makl_set_var_mk "USE_CXX"  "1"
+makl_append_var_mk "CXXFLAGS" "\${CFLAGS}"
+
+# check for stdint header
+makl_checkheader        0   "stdint"        "<stdint.h>"
+makl_checkheader        0   "getopt"        "<getopt.h>"
+makl_checkheader        0   "unistd"        "<unistd.h>"
+makl_checkheader        0   "sys_select"    "<sys/select.h>"
+makl_checkheader        0   "sys_wait"      "<sys/wait.h>"
+makl_checkheader        0   "sys_dir"       "<sys/dir.h>"
+
+makl_checkheader        0   "sys_socket"    "<sys/socket.h>"
+ 
+makl_checksymbol        0   "SA_RESTART"    "<signal.h>"
+makl_checksymbol        0   "TCP_NODELAY"   "<sys/types.h>" \
+                                             "<netinet/tcp.h>"
+
+# Library dependencies
+makl_optional           1   "lib"   "openssl"       ""  "-lssl -lcrypto"
+makl_optional           1   "lib"   "openssl_psk"   ""  "-lssl -lcrypto"
+makl_optional           1   "lib"   "z"
+
+# Function dependencies
+makl_checktype          0   "pid_t"         "<sys/types.h>" 
+
+makl_checkstructelem    0   "struct tm"     "tm_gmtoff"  "<time.h>" 
+
+# working fork()?
+makl_checkfork          0
+
+# -fstack-protector-all
+makl_checkstackp          0
+
+# check va_list behaviour
+makl_va_list_by_value
+
+makl_checkfunc          0   "syslog" "" ""
+makl_checkfunc          0   "mkstemp" "" ""
+makl_checkfunc          0   "localtime_r" "" ""
+
+makl_checkinline        0
+if [ $? -ne 0 ]; then
+    makl_append_var_mk "CFLAGS" "-Dinline=\"\""
+fi
+
+# Binary dependencies
+makl_optional           1    "featx"   "doxygen"    "PATH_DOXYGEN"
+
+# Handle command-line arguments
+makl_args_handle "$@"
+
+# Add include dirs into top-level CFLAGS
+makl_add_var_mk "CFLAGS" "\$(LIBOPENSSL_CFLAGS)"
+makl_add_var_mk "CFLAGS" "\$(LIBZ_CFLAGS)"
+
+# if debug is not enabled add optimization flags
+if [ -z "`makl_get_var_mk "KLONE_DEBUG"`" ]; then
+    makl_append_var_mk "CFLAGS"   "-O2"
+fi
+
+# adds -fstack-protector-all to the CFLAGS when supported by the compiler
+if [ -z "`makl_get_var_mk "DISABLE_STACK_PROTECTOR"`" ]; then
+    if [ "`makl_get_var_mk "HAVE_STACK_PROTECTOR"`" ]; then
+        makl_append_var_mk "CFLAGS"   "-fstack-protector-all"
+    fi
+fi
+
+if [ "`makl_get_var_mk "ENABLE_SUP_CGI"`" -a "`makl_get_var_mk "OS_WIN"`" ]; 
+then
+    echo ; echo "    ### Error: CGI is not supported on Windows ###"; echo;
+    exit 1;
+fi
+
+if [ -d skin/default ]; then
+    # Perform skin variable substitution on files
+    makl_file_sub "skin/default/Makefile"
+fi
+
+# check if --libs were supplied: in case forward its value to libu build
+__libs=`makl_get "__libs__"`
+[ "${__libs}" ] && makl_set_var_mk "LIBU_LIBS" "${__libs}"
+
+. "${MAKL_DIR}"/cf/makl.term

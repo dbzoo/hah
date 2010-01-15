@@ -1,0 +1,11 @@
+# $Id: linux-arm.tc,v 1.1 2006/03/25 13:14:48 tat Exp $
+#
+# arm-linux GNU toolchain.
+
+CC = arm-linux-gcc
+CXX = arm-linux-g++
+AR = arm-linux-ar
+RANLIB = arm-linux-ranlib
+LD = arm-linux-ld
+NM = arm-linux-nm
+STRIP = arm-linux-strip

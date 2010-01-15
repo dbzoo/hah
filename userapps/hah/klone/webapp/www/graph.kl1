@@ -1,0 +1,179 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+#include <string.h>
+
+#define sizearray(x) (sizeof(x) / sizeof(x[0]))
+static int reboot = 0;
+
+struct _datastream {
+	 char id[4];
+	 char xapkey[65];
+	 char tag[20];
+} ds[32];
+
+static struct {
+	 char apikey[65];
+	 char feedid[8];
+	 int count;
+} ini;
+
+static void loadDynINI(char *key, int id, char *location, int size) {
+	 char buff[100];
+	 sprintf(buff,"%s%d",key,id);
+	 ini_gets("pachube", buff, "", location, size, con.inifile);
+}
+
+static void readIni() {
+	 ini_gets("pachube","apikey","",ini.apikey,sizeof(ini.apikey),con.inifile);
+	 ini_gets("pachube","feedid","",ini.feedid,sizeof(ini.feedid),con.inifile);
+	 // Comma separated list of ids
+	 ini.count = ini_getl("pachube", "count", 0, con.inifile);
+
+	 if(ini.count > sizearray(ds)) {
+		  ini.count = sizearray(ds);
+	 }
+	 int i;
+	 for(i=0; i < ini.count; i++) {
+		  loadDynINI("id", i, ds[i].id, sizeof(ds[i].id));
+		  loadDynINI("xap", i, ds[i].xapkey, sizeof(ds[i].xapkey));
+		  loadDynINI("tag", i, ds[i].tag, sizeof(ds[i].tag));					 
+	 }
+}
+
+/**********************************************************************/
+%>
+<%
+  REQUIRE_AUTH(SCRIPT_NAME);
+  readIni();
+int act = 0;
+const char *action = request_get_arg(request,"action");
+if(action) {
+	 act = atoi(action);
+}
+%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1"/>
+<link type="text/css" rel="stylesheet" href="style/current/style.css"/>
+<title>Livebox</title>
+<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css"/><![endif]-->
+<script type="text/javascript" src="common.js"></script>
+<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+<script type="text/javascript">
+	 google.load('visualization','1',{packages:['annotatedtimeline']});
+function drawVisualization(){
+	var headID = document.getElementsByTagName('head')[0];
+	var newScript = document.createElement('script');
+	newScript.type = 'text/javascript';
+	newScript.src = 'http://apps.pachube.com/history/archive_json.php?f=<%= ini.feedid %>&d=<%= ds[act].id %>&callback=process';
+	headID.appendChild(newScript);
+}
+
+function process(archive){
+	var d; var val;
+	var data = new google.visualization.DataTable();
+	data.addColumn('datetime', 'Date');
+	data.addColumn('number', 'Datastream value');
+	for ( var i in archive['time'] ) {
+		var thisrow = data.addRow();
+		var timestamp = archive['time'][i];
+		var ts_parts = timestamp.split('T');
+		var d_parts = ts_parts[0].split('-');
+		var t_parts = ts_parts[1].split(':');
+		d = new Date(parseInt(d_parts[0],10), parseInt(d_parts[1],10)-1 ,parseInt(d_parts[2],10), parseInt(t_parts[0],10),parseInt(t_parts[1],10), parseInt(t_parts[2],10) );
+		val = parseFloat(archive['value'][i]);
+		data.setValue(thisrow, 0, d);
+		data.setValue(thisrow, 1, val);
+	}
+	var chart = new google.visualization.AnnotatedTimeLine(document.getElementById('visualization'));
+	chart.draw(data, {displayAnnotations:true,thickness:1,displayExactValues:true,fill:20,colors:['#FF0066']}); 
+}
+
+google.setOnLoadCallback(drawVisualization);
+</script>
+</head>
+<body class="gui">
+
+<div id="wrapper">
+<div id="content">
+<div id="header">
+
+<%@include component/heading.kl1%>
+
+<div id="menu">
+ <div id="menuMain">
+  <ul id="menuMainList">
+   <li class="current"><span>Automation</span>
+    <div id="menuSub">
+     <ul id="menuSubList">
+<%
+	   MENU_ITEM("automation.kl1","Control");
+       MENU_ITEM("config.kl1","Configure");
+       MENU_ITEM("calendar.kl1","Calendar");
+       MENU_ITEM("twitter.kl1","Twitter");
+       MENU_ITEM("pachube.kl1","Pachube");
+%>
+	   <li><span>Graph</span></li>
+    </ul>
+    </div>
+   </li>
+	<%
+	  MENU_ITEM("setup.kl1","Setup");
+	%>
+  </ul>
+ </div>
+</div>
+
+</div>
+
+<div id="main">
+<div id="contents">
+<br/>
+<h2>Pachube Graphs</h2><div>
+<%
+	 if(ini.count == 0) {
+%>
+  Pachube datastreams are not configured: <a href="/pachube.kl1">setup</a>
+</div>
+<br/>
+<%
+	 } else {
+%>
+<form name="graph" action="<%= SCRIPT_NAME %>" method="post">
+<p>	 Graph datastream: <select name="action" size="1" onChange="graph.submit()">
+<%
+int i;
+for(i=0;i<ini.count;i++) {
+%><option value="<%= ds[i].id %>" <% if (i == act) { %>selected<% } %>><%= ds[i].id %> - <%= ds[i].tag %></option>
+<%
+ }
+%>
+</select>
+</p>
+<fieldset>
+	<legend>Datastream <%= ds[act].id %> : <%= ds[act].tag %></legend>
+    <div id="visualization" style="width: 550px; height: 340px;"></div>
+</fieldset>
+</div>
+<br/>
+<div class="submitFooter">
+<input type="submit" value="Refresh"/>
+</div>
+</form>
+<%
+ }
+%>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>

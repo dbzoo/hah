@@ -1,0 +1,8 @@
+c-ctype.o c-ctype.o: c-ctype.c ../config.h c-ctype.h \
+  /opt/toolchains/uclibc/lib/gcc-lib/mips-linux/3.2.2/include/stdbool.h
+
+../config.h:
+
+c-ctype.h:
+
+/opt/toolchains/uclibc/lib/gcc-lib/mips-linux/3.2.2/include/stdbool.h:

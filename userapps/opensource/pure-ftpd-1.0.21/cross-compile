@@ -1,0 +1,3 @@
+LDFLAGS=-static CFLAGS="-mips32 -Os" CC=mips-uclibc-gcc ./configure --host=mips
+make
+mips-uclibc-strip src/pure-ftpd

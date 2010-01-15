@@ -1,0 +1,102 @@
+preprocessing command-line arguments
+checking for basic required tools
+setting package name to libu
+setting version to 1.4.1
+adding optional featx dependency doxygen
+checking for type long double
+checking for type long long
+checking for type bool
+checking for type float complex
+checking for type double complex
+checking for type long double complex
+checking for type pid_t
+checking for type ssize_t
+checking for type in_addr_t
+checking for symbol TCP_NODELAY
+checking existence of function: daemon
+checking existence of function: setsockopt
+checking existence of function: getpid
+checking existence of function: link
+checking existence of function: unlink
+checking existence of function: sleep
+checking existence of function: mkstemps
+compilation failed
+[wrn] failed check on optional function mkstemps
+checking existence of function: setenv
+checking existence of function: fnmatch
+checking existence of function: strtok_r
+checking existence of function: strsep
+checking existence of function: strlcpy
+checking existence of function: strlcat
+checking existence of function: gettimeofday
+checking existence of function: timegm
+compilation failed
+[wrn] failed check on optional function timegm
+checking existence of function: syslog
+checking existence of function: strtoumax
+checking for function strerror_r
+compilation failed
+[wrn] failed check on optional function strerror_r
+checking for header complex
+checking for header unistd
+checking for header stdlib
+checking for header paths
+checking for header sysuio
+checking for header strings
+checking for header sys_socket
+checking for header netinet_in
+checking for header netinet_tcp
+checking for tm_zone support
+compilation failed
+[wrn] failed check on optional tm_zone check
+checking for extern variable optarg
+checking for extern variable optind
+checking for inline keyword support
+handling command-line arguments
+checking dependencies
+searching for optional featx feature doxygen
+checking for type struct sockaddr_in
+checking for type struct sockaddr_in6
+checking for type struct sockaddr_un
+processing configuration output from cache
+make[6]: Entering directory `/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu'
+make[7]: Entering directory `/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include'
+make[8]: Entering directory `/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include/u'
+for d in missing toolbox ; do rm -f $d && ln -s ../$d ; done
+make[8]: Leaving directory `/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include/u'
+make[8]: Entering directory `/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include/toolbox'
+make[8]: Nothing to be done for `all'.
+make[8]: Leaving directory `/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include/toolbox'
+make[8]: Entering directory `/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include/missing'
+make[8]: Nothing to be done for `all'.
+make[8]: Leaving directory `/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include/missing'
+make[7]: Leaving directory `/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include'
+make[7]: Entering directory `/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/srcs'
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/memory.c -o toolbox/memory.o
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/misc.c -o toolbox/misc.o
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/str.c -o toolbox/str.o
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/buf.c -o toolbox/buf.o
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/log.c -o toolbox/log.o
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/test.c -o toolbox/test.o
+toolbox/test.c: In function `u_test_run':
+toolbox/test.c:102: warning: assignment from incompatible pointer type
+toolbox/test.c:102: warning: comparison of distinct pointer types lacks a cast
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/hmap.c -o toolbox/hmap.o
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/config.c -o toolbox/config.o
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/config_fs.c -o toolbox/config_fs.o
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/env.c -o toolbox/env.o
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/net.c -o toolbox/net.o
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/uri.c -o toolbox/uri.o
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/fs.c -o toolbox/fs.o
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/pwd.c -o toolbox/pwd.o
+toolbox/pwd.c: In function `u_pwd_retr_mem':
+toolbox/pwd.c:496: warning: passing arg 2 of `u_hmap_get' discards qualifiers from pointer target type
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c toolbox/list.c -o toolbox/list.o
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c missing/timegm.c -o missing/timegm.o
+mips-linux-gcc -pipe -pipe -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1 -DHAVE_CONF_H -I/usr/local/include -O2 -DHAVE_CONF_H -I/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/include -O2 -c missing/mkstemps.c -o missing/mkstemps.o
+===> building standard u library
+rm -f libu.a
+mips-linux-ar cq libu.a `"/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/makl/helpers/lorder" toolbox/memory.o toolbox/misc.o toolbox/str.o toolbox/buf.o toolbox/log.o toolbox/test.o toolbox/hmap.o toolbox/config.o toolbox/config_fs.o toolbox/env.o toolbox/net.o toolbox/uri.o toolbox/fs.o toolbox/pwd.o toolbox/list.o missing/timegm.o missing/mkstemps.o | tsort`
+mips-linux-ranlib libu.a
+make[7]: Leaving directory `/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu/srcs'
+make[6]: Leaving directory `/home/brett/livebox/trunk/userapps/hah/klone/klone-2.2.1/build/target/klone-core-2.2.1/libu'

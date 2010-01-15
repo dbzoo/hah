@@ -1,0 +1,85 @@
+#!/bin/bash
+
+#****************************************************************************
+#
+#  Copyright (c) 2001, 2002  Broadcom Corporation
+#  All Rights Reserved
+#  No portions of this material may be reproduced in any form without the
+#  written permission of:
+#          Broadcom Corporation
+#          16251 Laguna Canyon Road
+#          Irvine, California 92618
+#  All information contained in this document is Broadcom Corporation
+#  company private, proprietary, and trade secret.
+#
+#****************************************************************************
+
+TOP_DIR=`pwd`
+
+if [ "$MOD_DIR" == "" ] ; then
+    MOD_DIR=$PROFILE/modules
+fi
+
+if [ "$FSSRC_DIR" == "" ]; then
+    FSSRC_DIR=./fs.src
+fi
+
+ROOTFS=$PROFILE/fs
+
+rm -rf $ROOTFS
+# Create file system dir
+mkdir $ROOTFS
+chmod 777 $ROOTFS
+# Copy files onto root file system
+cp -av $FSSRC_DIR/* $ROOTFS
+# Create directories as needed
+mkdir $ROOTFS/dev
+mkdir $ROOTFS/mnt
+mkdir $ROOTFS/proc
+mkdir $ROOTFS/var
+mkdir $ROOTFS/etc/adsl
+cp -av $KERNEL_DIR/modulesrc/drivers/char/adsl/bcm9$BRCM_CHIP/*.bin  $ROOTFS/etc/adsl
+DEFAULTCFG=`echo $DEFAULTCFG_DIR/$BRCM_DEFAULTCFG|sed -e 's/\"//g'`
+if [ -f "$DEFAULTCFG" ]; then
+   cp -v $DEFAULTCFG $ROOTFS/etc/default.cfg; chmod a+r $ROOTFS/etc/default.cfg
+elif [ $BRCM_DEFAULTCFG != '""' ]; then
+   echo
+   echo "        No default run-time config file called $BRCM_DEFAULTCFG in $DEFAULTCFG_DIR"
+   echo "        Check your profile setting!"
+   exit 1
+else
+   echo
+fi
+# Create devices
+./makeDevs
+# Create symbolic links
+ln -s /var/log/log $ROOTFS/dev/log
+ln -s /var/sysmsg $ROOTFS/etc/sysmsg
+ln -s /var/passwd $ROOTFS/etc/passwd
+ln -s /var/group $ROOTFS/etc/group
+ln -s /var/ppp/pppmsg $ROOTFS/etc/pppmsg
+ln -s /var/fyi/sys/dns $ROOTFS/etc/resolv.conf
+ln -s /var/fyi/sys/gateway $ROOTFS/etc/gateway.conf
+ln -s /var/udhcpd/udhcpd.conf $ROOTFS/etc/udhcpd.conf
+ln -s /var/udhcpd/udhcpd.leases $ROOTFS/etc/udhcpd.leases
+
+if [ -x $PROFILE/special-buildFS ]; then
+   $PROFILE/special-buildFS
+fi
+
+cd $MOD_DIR
+cp -a lib $TOP_DIR/$ROOTFS/.
+chown -R root:root $TOP_DIR/$ROOTFS/lib
+echo "stripping kernel modules..."
+find $TOP_DIR/$ROOTFS/lib/modules -name "*.o"
+#Modules that need parameters cannot be stripped
+MODS_KEEPSYM='! -name "ip_conntrack_pt.o" ! -name "ip_nat_pt.o"'
+eval "find $TOP_DIR/$ROOTFS/lib/modules -name '*.o' $MODS_KEEPSYM |xargs $STRIP --strip-unneeded"
+
+cd $TOP_DIR
+
+cd $BUSYBOX_DIR
+./busybox.mkll 2> /dev/null > /dev/null
+./install.sh $TOP_DIR/$ROOTFS 2> /dev/null > /dev/null
+cd $TOP_DIR
+

@@ -1,0 +1,5 @@
+# Example of how to NFS mount onto the Livebox
+insmod sunrpc
+insmod lockd
+insmod nfs
+mount -t nfs -o nolock 192.168.1.12:/opt/tools /opt

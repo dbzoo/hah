@@ -1,0 +1,178 @@
+<%!
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+
+static struct {
+	 char temp_unit[2];
+	 int devices1wire;
+	 int devicesrf;
+} ini;
+
+static void readIni() {
+   ini.devices1wire = ini_getl("1wire","devices", 0, con.inifile);
+   ini.devicesrf = ini_getl("rf","devices", 0, con.inifile);
+   ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), con.inifile);
+}
+%>
+<%
+  if(getInfoProtect()) {
+    REQUIRE_AUTH(SCRIPT_NAME);
+  }
+  /* disable caching */
+  response_set_field(response, "Pragma:", "no-cache");
+  response_set_field(response, "Cache-Control", "no-cache, no-store, must-revalidate");
+  readIni();
+%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
+<link type="text/css" rel="stylesheet" href="style/current/style.css" />
+<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css" /><![endif]-->
+<script type="text/javascript" src="common.js"></script>
+<script type="text/javascript">
+function comboSubmit() {
+    frmControl.submit();
+}
+</script>
+<title>Livebox</title>
+</head>
+<body class="gui">
+<div id="wrapper">
+<div id="content">
+<div id="header">
+
+<%@include component/heading.kl1%>
+
+<div id="menu">
+ <div id="menuMain">
+  <ul id="menuMainList">
+<%
+	   MENU_ITEM("automation.kl1","Automation");   
+	   MENU_ITEM("setup.kl1","Setup");   
+%>
+    <div id="menuSub">
+     <ul id="menuSubList">
+     <li><span>Info</span></li></ul>
+    </div>
+  </ul>
+ </div>
+</div>
+
+</div>
+
+<div id="main">
+<div id="contents">
+<br/>
+<h2>Information Panel</h2>
+<%
+  int i,k;
+  if(ini.devicesrf > 0) {
+%>
+<table><tr><td valign="top"><fieldset>
+<legend>RF</legend>
+<table>
+<tr>
+<th>Item</th>
+<th>State</th>
+<%
+  k = 1;
+  for(i=1; i<=ini.devicesrf; i++, k++) {
+	   io_printf(out,"<tr>%s%s</td>", alt_td(k), kv("rf",i));
+     io_printf(out,"%s %s </td>", alt_td(k), query("rf",i));
+  }
+%>
+</table>
+</fieldset></td>
+<%
+}
+%>
+
+<td valign="top"><fieldset>
+<legend>Relay</legend>
+<table>
+<tr>
+<th>Item</th>
+<th>State</th>
+<%
+  k = 1;
+  for(i=1; i<5; i++, k++) {
+	   io_printf(out,"<tr>%s%s</td>", alt_td(k), kv("relay",i));
+	   io_printf(out,"%s %s </td>", alt_td(k), query("relay",i));
+  }
+%>
+</table>
+</fieldset></td>
+
+<td valign="top"><fieldset>
+<legend>Input</legend>
+<table>
+<tr>
+<th>Item</th>
+<th>State</th>
+<%
+  k = 1;
+  for(i=1; i<5; i++, k++) {
+	   io_printf(out,"<tr>%s%s</td>", alt_td(k), kv("input",i));
+     io_printf(out,"%s %s </td>", alt_td(k), query("input",i));
+     io_printf(out,"%s</td></tr>", alt_td(k));
+  }
+%>
+</table>
+</fieldset></td>
+
+<%
+  if(ini.devices1wire > 0) {
+%>
+<td valign="top"><fieldset>
+<legend>Temperature</legend>
+<table>
+<tr>
+<th>Item</th>
+<th>State</th>
+<%
+  k = 1;
+  for(i=1; i<=ini.devices1wire; i++, k++) {
+	   io_printf(out,"<tr>%s%s</td>", alt_td(k), kv("sensor",i));
+	   char *c  = query("1wire",i);
+	   io_printf(out,"%s ",alt_td(k));
+	   if (*c == '?') {
+			io_printf(out,"%s", c);
+	   } else {
+			if (ini.temp_unit[0] == 'C') {
+				 io_printf(out,"%s&deg;C </td>", c);
+			} else { // Farenheit
+				 int f  = atoi(c) * 9 / 5 + 32;
+				 io_printf(out,"%d&deg;F </td>", f);
+			}
+	   }	   
+     io_printf(out,"%s</td></tr>", alt_td(k));
+  }
+%>
+</table>
+</fieldset></td>
+<%
+}
+%>
+</tr><td colspan=4>
+<fieldset>
+<legend>LCD</legend>
+<%
+  io_printf(out,"%s",send_cmd("query lcd"));
+%>
+</fieldset>
+</td></tr>
+</table>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>
+

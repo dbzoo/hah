@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:google="http://base.google.com/ns/1.0" xml:lang="en-US" xmlns:openSearch="http://a9.com/-/spec/opensearch/1.1/" xmlns="http://www.w3.org/2005/Atom" xmlns:twitter="http://api.twitter.com/">
+  <id>tag:search.twitter.com,2005:search/from:dbzoo</id>
+  <link type="text/html" href="http://search.twitter.com/search?q=from%3Adbzoo" rel="alternate"/>
+  <link type="application/atom+xml" href="http://search.twitter.com/search.atom?q=from:dbzoo&amp;rpp=1" rel="self"/>
+  <title>from:dbzoo - Twitter Search</title>
+  <link type="application/opensearchdescription+xml" href="http://search.twitter.com/opensearch.xml" rel="search"/>
+  <link type="application/atom+xml" href="http://search.twitter.com/search.atom?q=from%3Adbzoo&amp;rpp=1&amp;since_id=6629356718" rel="refresh"/>
+  <twitter:warning>since_id removed for pagination.</twitter:warning>
+  <updated>2009-12-13T14:03:43Z</updated>
+  <openSearch:itemsPerPage>1</openSearch:itemsPerPage>
+  <link type="application/atom+xml" href="http://search.twitter.com/search.atom?max_id=6629356718&amp;page=2&amp;q=from%3Adbzoo&amp;rpp=1" rel="next"/>
+  <entry>
+    <id>tag:search.twitter.com,2005:6629356718</id>
+    <published>2009-12-13T14:03:43Z</published>
+    <link type="text/html" href="http://twitter.com/dbzoo/statuses/6629356718" rel="alternate"/>
+    <title>relay 1 on</title>
+    <content type="html">relay 1 on</content>
+    <updated>2009-12-13T14:03:43Z</updated>
+    <link type="image/png" href="http://a1.twimg.com/profile_images/572513452/England_Brett_normal.jpg" rel="image"/>
+    <twitter:geo>
+    </twitter:geo>
+    <twitter:source>&lt;a href=&quot;http://twitter.com/&quot;&gt;web&lt;/a&gt;</twitter:source>
+    <twitter:lang>en</twitter:lang>
+    <author>
+      <name>dbzoo (brett england)</name>
+      <uri>http://twitter.com/dbzoo</uri>
+    </author>
+  </entry>
+
+</feed>

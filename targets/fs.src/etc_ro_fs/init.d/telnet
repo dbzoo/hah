@@ -1,0 +1,28 @@
+#!/bin/sh
+
+. /etc/ini.conf
+
+case "$1" in
+    start)
+	if [ `iniget $INI network telnet_enable 0` -eq 1 ]; then
+		if ! pidof telnetd | sed "s/$$\$//" | grep -q [0-9] ; then
+		        port=`iniget $INI network telnet_port 23`
+	    		telnetd -p $port
+		fi
+	fi
+        ;;
+    stop)
+        killall telnetd 2>/dev/null
+        ;;
+    restart)
+	$0 stop
+	$0 start
+	;;
+    status)
+        if pidof telnetd | sed "s/$$\$//" | grep -q [0-9] ; then
+		echo "running"
+	else
+		echo "stopped"
+        fi
+        ;;
+esac

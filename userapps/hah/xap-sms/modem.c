@@ -1,8 +1,8 @@
-/* $Id: modem.c 3 2009-11-09 12:19:52Z brett $
+/* $Id$
  */
 
 #ifdef IDENT
-#ident "@(#) $Id: modem.c 3 2009-11-09 12:19:52Z brett $"
+#ident "@(#) $Id$"
 #endif
 
 #include <sys/types.h>

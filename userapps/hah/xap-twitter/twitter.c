@@ -1,5 +1,5 @@
 /**
- $Id: twitter.c 66 2009-12-17 09:57:27Z brett $
+ $Id$
  
  XAP Twitter daemon
 
@@ -27,7 +27,7 @@
 */
 
 #ifdef IDENT
-#ident "@(#) $Id: twitter.c 66 2009-12-17 09:57:27Z brett $"
+#ident "@(#) $Id$"
 #endif
 
 #include <stdio.h>

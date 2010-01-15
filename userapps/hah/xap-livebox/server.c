@@ -1,4 +1,4 @@
-/* $Id: server.c 33 2009-11-10 09:56:39Z brett $
+/* $Id$
 
    We act as a server so that external calls can be made from non XAP enabled
    applications to find out the current state of the endpoints.

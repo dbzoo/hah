@@ -1,4 +1,4 @@
-/* $Id: snoop.c 33 2009-11-10 09:56:39Z brett $
+/* $Id$
    xAP snoop
 
   Copyright (c) Brett England, 2009
@@ -9,7 +9,7 @@
   acknowledge the work of the original author.  
 */
 #ifdef IDENT
-#ident "@(#) $Id: snoop.c 33 2009-11-10 09:56:39Z brett $"
+#ident "@(#) $Id$"
 #endif
 
 #include "xapdef.h"

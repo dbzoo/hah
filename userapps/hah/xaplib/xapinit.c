@@ -1,4 +1,4 @@
-/* $Id: xapinit.c 33 2009-11-10 09:56:39Z brett $
+/* $Id$
   Copyright (c) Patrick Lidstone, 2002.
   Modifications Copyright (c) Brett England 2009
    

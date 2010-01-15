@@ -1,4 +1,4 @@
-/* $Id: googlecal.c 59 2009-12-13 11:05:21Z brett $
+/* $Id$
    Copyright (c) Brett England, 2009
 
    Google calendar xap daemon.
@@ -50,7 +50,7 @@
 
 */
 #ifdef IDENT
-#ident "@(#) $Id: googlecal.c 59 2009-12-13 11:05:21Z brett $"
+#ident "@(#) $Id$"
 #endif
 
 #include <stdio.h>

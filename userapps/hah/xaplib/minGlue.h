@@ -21,7 +21,7 @@
  *      misrepresented as being the original software.
  *  3.  This notice may not be removed or altered from any source distribution.
  *
- *  Version: $Id: minGlue.h 3 2009-11-09 12:19:52Z brett $
+ *  Version: $Id$
  */
 
 #define INI_BUFFERSIZE  512       /* maximum line length, maximum path length */

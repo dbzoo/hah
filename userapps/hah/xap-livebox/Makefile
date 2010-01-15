@@ -1,4 +1,4 @@
-# $Id: Makefile 43 2009-11-21 16:42:02Z brett $
+# $Id$
 
 XAP=livebox
 CFLAGS=-g -DLINUX -DIDENT -I$(INSTALL_DIR)/include

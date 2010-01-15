@@ -1,4 +1,4 @@
-/*  $Id: strlcat.c 41 2009-11-15 08:29:55Z brett $
+/*  $Id$
 **
 **  Replacement for a missing strlcat.
 **

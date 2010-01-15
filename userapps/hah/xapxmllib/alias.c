@@ -1,4 +1,4 @@
-/* $Id: alias.c 55 2009-12-06 17:58:41Z brett $
+/* $Id$
  *
  * The alias XML file is very simple so we will use a lightweight
  * SAX parser to turn this into a linked-list of aliases.

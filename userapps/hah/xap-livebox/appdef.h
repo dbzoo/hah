@@ -1,4 +1,4 @@
-/* $Id: appdef.h 33 2009-11-10 09:56:39Z brett $
+/* $Id$
 */
 #ifndef APPDEF_H
 #define APPDEF_H

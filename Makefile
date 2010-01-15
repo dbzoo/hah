@@ -1,4 +1,4 @@
-# $Id: Makefile 66 2009-12-17 09:57:27Z brett $
+# $Id$
 
 BRCM_VERSION=2
 BRCM_RELEASE=14

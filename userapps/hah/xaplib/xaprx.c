@@ -1,4 +1,4 @@
-/* $Id: xaprx.c 33 2009-11-10 09:56:39Z brett $
+/* $Id$
   Copyright (c) Patrick Lidstone, 2002.
    
   No commercial use.

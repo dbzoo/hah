@@ -1,4 +1,4 @@
-/* $Id: alias.h 55 2009-12-06 17:58:41Z brett $
+/* $Id$
  */
 
 #ifndef ALIAS_H

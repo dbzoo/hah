@@ -1,5 +1,5 @@
 <%!
-/* $Id: admin.kl1,v 1.6 2009/05/22 21:29:36 brett Exp brett $
+/* $Id$
  */
 #include "minIni.h"
 #include "login.h"

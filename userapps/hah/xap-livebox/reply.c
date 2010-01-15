@@ -1,4 +1,4 @@
-/* $Id: reply.c 33 2009-11-10 09:56:39Z brett $
+/* $Id$
 */
 
 #include "xapdef.h"
@@ -8,7 +8,7 @@
 #include <string.h>
 
 #ifdef IDENT
-#ident "@(#) $Id: reply.c 33 2009-11-10 09:56:39Z brett $"
+#ident "@(#) $Id$"
 #endif
 
 static void xap_message(endpoint_t *self, char *msgtype, char *io_type, char *body) {

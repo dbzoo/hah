@@ -1,4 +1,4 @@
-/* $Id: endpoint.c 33 2009-11-10 09:56:39Z brett $
+/* $Id$
 */
 #include <stdlib.h>
 #include <string.h>

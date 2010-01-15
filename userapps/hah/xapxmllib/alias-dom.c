@@ -1,4 +1,4 @@
-/* $Id: alias.c 53 2009-12-01 10:22:33Z brett $
+/* $Id$
  */
 
 #include <stdio.h>

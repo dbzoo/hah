@@ -1,4 +1,4 @@
-# $Id: Makefile 55 2009-12-06 17:58:41Z brett $
+# $Id$
 
 XAP=twitter
 CFLAGS=-g -DLINUX -DIDENT -I$(INSTALL_DIR)/include -I$(INSTALL_DIR)/include/libxml2

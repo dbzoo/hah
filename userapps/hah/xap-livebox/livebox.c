@@ -1,4 +1,4 @@
-/* $Id: livebox.c 33 2009-11-10 09:56:39Z brett $
+/* $Id$
 
    Compliant Interface for Livebox AVR board
 
@@ -14,7 +14,7 @@
 */
 
 #ifdef IDENT
-#ident "@(#) $Id: livebox.c 33 2009-11-10 09:56:39Z brett $"
+#ident "@(#) $Id$"
 #endif
 
 #include "xapdef.h"

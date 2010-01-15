@@ -1,5 +1,5 @@
 /**
- $Id: tcurl.c 65 2009-12-14 09:46:22Z brett $
+ $Id$
  
  Minimalist Twitter interface
 
@@ -20,7 +20,7 @@
 #include <libxml/xpath.h>
 
 #ifdef IDENT
-#ident "@(#) $Id: tcurl.c 65 2009-12-14 09:46:22Z brett $"
+#ident "@(#) $Id$"
 #endif
 
 static void clearCallbackBuffers(tcurl *c) {

@@ -1,9 +1,9 @@
-/* $Id: ini.c 33 2009-11-10 09:56:39Z brett $
+/* $Id$
 
    INI file processing
 */
 #ifdef IDENT
-#ident "@(#) $Id: ini.c 33 2009-11-10 09:56:39Z brett $"
+#ident "@(#) $Id$"
 #endif
 
 #include <stdio.h>

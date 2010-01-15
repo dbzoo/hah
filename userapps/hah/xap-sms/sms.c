@@ -1,4 +1,4 @@
-/* $Id: sms.c 33 2009-11-10 09:56:39Z brett $
+/* $Id$
   Copyright (c) Brett England, 2009
    
   No commercial use.
@@ -7,7 +7,7 @@
   acknowledge the work of the original author.  
  */
 #ifdef IDENT
-#ident "@(#) $Id: sms.c 33 2009-11-10 09:56:39Z brett $"
+#ident "@(#) $Id$"
 #endif
 
 #include "xapdef.h"

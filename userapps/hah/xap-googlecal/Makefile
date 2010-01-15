@@ -1,4 +1,4 @@
-# $Id: Makefile 59 2009-12-13 11:05:21Z brett $
+# $Id$
 
 XAP=googlecal
 CFLAGS=-g -DLINUX -DIDENT -I$(INSTALL_DIR)/include -I$(INSTALL_DIR)/include/libxml2

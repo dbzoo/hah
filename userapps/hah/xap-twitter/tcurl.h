@@ -1,5 +1,5 @@
 /**
- $Id: tcurl.h 64 2009-12-13 17:59:12Z brett $
+ $Id$
 
  Brett England
  No commercial use.

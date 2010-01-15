@@ -1,4 +1,4 @@
-/* $Id: modem.h 4 2009-11-09 12:25:17Z brett $
+/* $Id$
 */
 #ifndef _MODEM_H
 #define _MODEM_H

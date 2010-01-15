@@ -1,4 +1,4 @@
-# $Id: Makefile 55 2009-12-06 17:58:41Z brett $
+# $Id$
 OBJECTS=xapinit.o xaprx.o xaptx.o minIni.o strlcpy.o strlcat.o
 CFLAGS=-DLINUX -fPIC
 

@@ -1,4 +1,4 @@
-/* $Id: xaptx.c 59 2009-12-13 11:05:21Z brett $
+/* $Id$
   Copyright (c) Patrick Lidstone, 2002.
    
   No commercial use.

@@ -66,7 +66,7 @@ portConf *parseCfgEntry(const char *str, int *err)
      int token, state = 0;
      portConf *rv;
 
-     syslog(LOG_DEBUG, "parseCfgEntry():Enter");
+     debug(LOG_DEBUG, "parseCfgEntry():Enter");
      
      yy_scan_string(str);
 

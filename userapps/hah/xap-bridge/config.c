@@ -24,7 +24,7 @@ static int baudList[] = {
 
 void showConfig()
 {
-     if (g_debuglevel == 0) return;
+     if (g_debuglevel < LOG_INFO) return;
      portConf *pEntry;
      int x;
    

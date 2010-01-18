@@ -238,6 +238,7 @@ char *unframeSerialMsg(char *buf, int size) {
      char *p;
      int state, i;
      unsigned short msg_crc, calc_crc;
+     int haveChecksum = 0;
      enum {ST_START, ST_COMPILE, ST_END};
 
      // Unframe and calculate the checksum
@@ -271,17 +272,23 @@ char *unframeSerialMsg(char *buf, int size) {
 	       // Last 4 bytes are the checksum
 	       p = xap + strlen(xap) - 4;
 	       debug(LOG_DEBUG,"readSerialMsg(): Serial CRC %s", p);
-	       sscanf(p, "%X", &msg_crc);
+	       if(strcmp("----",p)) {
+		    haveChecksum = 1;
+		    sscanf(p, "%X", &msg_crc);
+	       }
 	       *p = 0; // remove CRC from xAP msg.
 	       i = size;
 	  }
      }
      debug(LOG_DEBUG,"readSerialMsg(): unframed %s", xap);
 
-     calc_crc = CRC16_BlockChecksum(xap, strlen(xap));
-     if(msg_crc != calc_crc) {
-	  debug(LOG_WARNING, "Checksums to not match: msg %h != calc %h", msg_crc, calc_crc);
-	  return NULL;
+     // If the xAP has a Checksum...
+     if(haveChecksum) {
+	  calc_crc = CRC16_BlockChecksum(xap, strlen(xap));
+    	  if(msg_crc != calc_crc) {
+	       debug(LOG_WARNING, "Checksums to not match: msg %h != calc %h", msg_crc, calc_crc);
+	       return NULL;
+	  }
      }
 
      return xap;

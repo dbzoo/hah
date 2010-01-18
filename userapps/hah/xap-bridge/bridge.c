@@ -51,7 +51,7 @@ void xap_handler(char *xap) {
 
      char *serial_msg = frameSerialXAPpacket(xap);
      portConf *pEntry;
-     for (pEntry = pPortList; pEntry; pEntry = pPortList) {
+     for (pEntry = pPortList; pEntry; pEntry = pEntry->pNext) {
 	  if (pEntry->enabled) 
 	       sendSerialMsg(pEntry, serial_msg);
      }
@@ -84,7 +84,7 @@ void serial_handler(portConf *pEntry) {
 
 	  // To serial devices
 	  portConf *entry;
-	  for (entry = pPortList; entry; entry = pPortList) {
+	  for (entry = pPortList; entry; entry = entry->pNext) {
 	       if (entry->enabled && entry != pEntry)
 		    sendSerialMsg(entry, xap_ser);
 	  }
@@ -100,18 +100,23 @@ void packetLoop() {
      struct timeval tv;
      portConf *pEntry;
      int highest_fd = g_xap_receiver_sockfd;
-     int rv;
+     int rv = 0;
      char xap_buff[1500];
 
      // Setup select() FD's and open each serial port.
      FD_ZERO(&m_rdfs);
      FD_SET(g_xap_receiver_sockfd, &m_rdfs);
-     for (pEntry = pPortList; pEntry; pEntry = pPortList) {
+     for (pEntry = pPortList; pEntry; pEntry = pEntry->pNext) {
 	  int fd = openSerialPort(pEntry);
 	  if( fd != -1) {
 	       FD_SET(fd, &m_rdfs);
 	       if (fd > highest_fd) highest_fd = fd;
+	       rv++;
 	  }
+     }
+     if (rv == 0) {
+	  debug(LOG_EMERG, "Quiting!! Failed to open any serial ports");
+	  exit(1);	  
      }
      highest_fd++;
 

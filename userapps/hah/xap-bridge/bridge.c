@@ -64,20 +64,22 @@ void xap_handler(char *xap) {
 */
 void serial_handler(portConf *pEntry) {
      char xap_ser[1500]; // Serial transport framed XAP packet.
+     ssize_t r;
 
-     if (read(pEntry->fd, xap_ser, sizeof(xap_ser)) < 0) {
+     r = read(pEntry->fd, xap_ser, sizeof(xap_ser));
+     if (r < 0) {
 	  debug(LOG_DEBUG,"readSerialMsg(): reading %s:%m", pEntry->devc);
 	  return;
      }
 
-     char *xap = unframeSerialMsg(xap_ser, sizeof(xap_ser));
+     char *xap = unframeSerialMsg(xap_ser, r);
      if (xap) {
 	  // To Ethernet
 	  xap_send_message(xap);
 
 	  // Don't forward a serial devices HEARTBEAT to
 	  // other serial devices.
-	  xap_parse(xap);
+	  xapmsg_parse(xap);
 	  if (xapmsg_gettype() == XAP_MSG_HBEAT) return;
 
 	  // To serial devices
@@ -160,6 +162,7 @@ static void setupXAP() {
      if(n == 0 || !(isxdigit(uid[0]) && isxdigit(uid[1]) &&
 		    isxdigit(uid[2]) && isxdigit(uid[3])))
      {
+	  debug(LOG_INFO,"Missing/Invalid UID %s in .INI file using default", uid);
 	  strlcpy(uid,"00D8",sizeof uid);
      }
      snprintf(guid,sizeof guid,"FF%s00", uid);
@@ -227,7 +230,7 @@ int main(int argc, char *argv[]) {
 
      if (loadConfig() < 1)
      {
-	  debug(LOG_ERR, "Quiting!! Error opening config file %s:%m", inifile);
+	  debug(LOG_EMERG, "Quiting!! Error opening config file %s:%m", inifile);
 	  exit(1);
      }
      packetLoop();

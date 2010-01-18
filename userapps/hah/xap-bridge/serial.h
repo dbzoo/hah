@@ -9,5 +9,6 @@ void enableSerialPorts();
 char *frameSerialXAPpacket(const char* xap);
 int sendSerialMsg(portConf *pDevice, char *msg);
 int openSerialPort(portConf *pDevice);
+char *unframeSerialMsg(char *buf, int size);
 
 #endif

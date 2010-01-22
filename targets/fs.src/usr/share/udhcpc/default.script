@@ -1,6 +1,5 @@
 #!/bin/sh
-
-# udhcpc script edited by Tim Riker <Tim@Rikers.org>
+# $Id$
 
 [ -z "$1" ] && echo "Error: should be called from udhcpc" && exit 1
 
@@ -33,7 +32,15 @@ case "$1" in
 			echo adding dns $i
 			echo nameserver $i >> $RESOLV_CONF
 		done
-		echo "$ip knoxbox" >>/etc/hosts
+		# Update host file with IP for hostname
+		host=`hostname`
+		grep -q $host /etc/hosts
+		if [ $? -eq 0 ]; then
+		    mv /etc/hosts /tmp
+		    grep -v $host /tmp/hosts >/etc/hosts
+		fi
+		echo "$ip $host" >>/etc/hosts
+
 		ntpclient -s -h uk.pool.ntp.org >/dev/null
 		# This will be picked up by the Serial PCB
 		echo "lcd $ip"

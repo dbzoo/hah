@@ -102,6 +102,7 @@ SUBDIRS_HAH = \
 	$(HAH_DIR)/xap-googlecal \
 	$(HAH_DIR)/xap-twitter \
 	$(HAH_DIR)/xap-plugboard \
+	$(HAH_DIR)/xap-bridge \
 	$(HAH_DIR)/luarex \
 	$(HAH_DIR)/klone
 
@@ -109,7 +110,7 @@ SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIR
 
 OPENSOURCE_APPS = brctl dropbear ftpd msmtp iptables busybox ntpclient ini mtd lua
 INVENTEL_APPS = inventelbin sendarp ledctrl
-HAH_APPS = xaplib xap-hub xap-livebox xap-snoop xap-pachube xap-sms \
+HAH_APPS = xaplib xap-hub xap-livebox xap-snoop xap-pachube xap-sms xap-bridge \
 	xap-currentcost xap-googlecal xap-twitter xap-plugboard luarex klone
 
 BUSYBOX_DIR = $(OPENSOURCE_DIR)/busybox
@@ -209,6 +210,12 @@ xap-currentcost: xaplib libxml2
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/xap-currentcost/xap-currentcost $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-currentcost
+
+xap-bridge: xaplib
+	$(MAKE) -C $(HAH_DIR)/xap-bridge
+	install -m 755 -d $(INSTALL_DIR)/usr/bin
+	install -m 755 $(HAH_DIR)/xap-bridge/xap-bridge $(INSTALL_DIR)/usr/bin
+	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-bridge
 
 libopenssl:
 	@if [ ! -d $(OPENSOURCE_DIR)/openssl-0.9.8l ]; then \

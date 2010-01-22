@@ -153,13 +153,14 @@ int openSerialPort(portConf *pDevice) {
 	       */
 	       struct termios tios;
 	       tcgetattr(fd, &tios);
-	       tios.c_cflag = CREAD | CLOCAL | CS8 | B38400 | CRTSCTS;;
+	       tios.c_cflag = B38400 | CRTSCTS | CS8 | CREAD | CLOCAL ;
 	       tios.c_lflag = 0;
 	       tios.c_oflag = 0;
 	       tios.c_iflag |= IGNBRK;
 	       tios.c_cc[VMIN] = 0;
 	       tios.c_cc[VTIME] = 0;
 	       tcsetattr(fd, TCSANOW, &tios);
+	       tcflush(fd, TCIFLUSH);
 	       cfsetispeed(&pDevice->tios, pDevice->speed);
 	       cfsetospeed(&pDevice->tios, pDevice->speed);
 	       tcsetattr(fd, TCSANOW, &pDevice->tios);
@@ -233,16 +234,19 @@ int sendSerialMsg(portConf *pDevice, char *msg) {
 
 // Recieve a serial xap frame package and unframe it returning
 // a pointer to the unframe payload.
+// If a frame has not been received according to the state machine
+// keep accumulating data.
+// We do this as the select()/read() calls made be made many
+// times if the serial read buffer is fragmented.
+
 char *unframeSerialMsg(char *buf, int size) {
-     static char xap[1500];
-     char *p;
-     int state, i;
-     unsigned short msg_crc, calc_crc;
-     int haveChecksum = 0;
      enum {ST_START, ST_COMPILE, ST_END};
+     static char xap[1500];
+     static int state = ST_START;
+     static char *p = xap;
+     int i;
 
      // Unframe and calculate the checksum
-     state = ST_START;
      for(i=0; i < size;) {
 	  switch(state) {
 	  case ST_START:
@@ -266,30 +270,37 @@ char *unframeSerialMsg(char *buf, int size) {
 		    i++;
 	       default:
 		    *p++ = buf[i++];
+		    if (p > xap + sizeof(xap) - 1) {
+			 debug(LOG_CRIT, "Buffer overrun - message too large");
+			 state = ST_START;
+		    }
 	       }
 	       break;
 	  case ST_END:
-	       // Last 4 bytes are the checksum
-	       p = xap + strlen(xap) - 4;
+	       state = ST_START;
+	       *p = 0;  // NULL terminate our frame
+	       p -= 4;  // Last 4 bytes are the checksum
 	       debug(LOG_DEBUG,"readSerialMsg(): Serial CRC %s", p);
-	       if(strcmp("----",p)) {
-		    haveChecksum = 1;
-		    sscanf(p, "%X", &msg_crc);
+
+	       if(strcmp("----",p)) {  // We have a checksum.
+		    unsigned short msg_crc, calc_crc;
+		    sscanf(p, "%X", &msg_crc);		    
+		    calc_crc = CRC16_BlockChecksum(xap, strlen(xap));
+		    if(msg_crc != calc_crc) {
+			 debug(LOG_WARNING, "Checksums to not match: msg %h != calc %h", msg_crc, calc_crc);
+			 return NULL;
+		    }
 	       }
 	       *p = 0; // remove CRC from xAP msg.
-	       i = size;
-	  }
-     }
-     debug(LOG_DEBUG,"readSerialMsg(): unframed %s", xap);
-
-     // If the xAP has a Checksum...
-     if(haveChecksum) {
-	  calc_crc = CRC16_BlockChecksum(xap, strlen(xap));
-    	  if(msg_crc != calc_crc) {
-	       debug(LOG_WARNING, "Checksums to not match: msg %h != calc %h", msg_crc, calc_crc);
-	       return NULL;
+	       if(g_debuglevel >= LOG_INFO) {
+		    debug(LOG_INFO,"unframeSerialMsg(): Unframed packet");
+		    dump(xap, p-xap);
+	       }
+	       return xap;
 	  }
      }
 
-     return xap;
+     // Not a complete message yet.
+     // Continue to accumulate.
+     return NULL;
 }

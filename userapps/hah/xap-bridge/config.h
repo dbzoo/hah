@@ -25,8 +25,10 @@ struct _portConf
 
 typedef struct _portConf portConf;
 
+void showConfig();
 int loadConfig();
 portConf *parseCfgEntry(const char *str, int *err);
 void setBaudStr(portConf *pDevice, const char *pBaudStr);
+void setPortStr(portConf *pDevice, const char *pPortStr);
 
 #endif

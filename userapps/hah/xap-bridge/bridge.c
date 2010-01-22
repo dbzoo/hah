@@ -18,11 +18,11 @@
 #include "bridge.h"
 
 const char* XAP_ME = "dbzoo";
-const char* XAP_SOURCE = "livebox";
+const char* XAP_SOURCE = "Bridge";
 const char* XAP_GUID;
 const char* XAP_DEFAULT_INSTANCE;
 
-#define MAX_HOP_COUNT 5
+int maxHopCount=5;
 
 /*
 ** Adjust message HOP count and forward to the serial ports.
@@ -39,8 +39,8 @@ void xap_handler(char *xap) {
      // Ordinary class of xAP message
      xapmsg_getvalue("xap-header:hop", hop_count_str);
      hop_count = atoi(hop_count_str);
-     if (hop_count > MAX_HOP_COUNT) {
-	  debug(LOG_INFO, "Relay refused, hop count %d exceeded\n", MAX_HOP_COUNT);
+     if (hop_count > maxHopCount) {
+	  debug(LOG_INFO, "Relay refused, hop count %d exceeded\n", maxHopCount);
 	  return;
      }
      sprintf(hop_count_str,"%d",hop_count+1);
@@ -71,7 +71,13 @@ void serial_handler(portConf *pEntry) {
 	  debug(LOG_DEBUG,"readSerialMsg(): reading %s:%m", pEntry->devc);
 	  return;
      }
-
+/*
+     if(g_debuglevel >= LOG_DEBUG ) {
+	  printf("serial_handler(): read ");
+	  xap_ser[r] = 0; // teminate for printing
+	  ldump(xap_ser, r);
+     }
+*/
      char *xap = unframeSerialMsg(xap_ser, r);
      if (xap) {
 	  // To Ethernet
@@ -106,9 +112,11 @@ void packetLoop() {
      // Setup select() FD's and open each serial port.
      FD_ZERO(&m_rdfs);
      FD_SET(g_xap_receiver_sockfd, &m_rdfs);
+     debug(LOG_DEBUG, "packetLoop(): UDP fd %d", g_xap_receiver_sockfd);
      for (pEntry = pPortList; pEntry; pEntry = pEntry->pNext) {
 	  int fd = openSerialPort(pEntry);
 	  if( fd != -1) {
+	       debug(LOG_DEBUG, "packetLoop(): serial fd %d", fd);
 	       FD_SET(fd, &m_rdfs);
 	       if (fd > highest_fd) highest_fd = fd;
 	       rv++;
@@ -141,7 +149,7 @@ void packetLoop() {
 	       }
 	       else  // A serial device input
 	       {
-		    for (pEntry = pPortList; pEntry; pEntry = pPortList) {
+		    for (pEntry = pPortList; pEntry; pEntry = pEntry->pNext) {
 			 if(FD_ISSET(pEntry->fd, &rdfs)) {
 			      serial_handler(pEntry);
 			      break;
@@ -174,10 +182,15 @@ static void setupXAP() {
      XAP_GUID = strdup(guid);
 
      char control[30];
-     n = ini_gets("bridge","instance","Bridge",control,sizeof(control),inifile);
+     n = ini_gets("bridge","instance","",control,sizeof(control),inifile);
      if(n == 0 || strlen(control) == 0)
      {
-	  strlcpy(control,"Bridge",sizeof control);
+	  char buf[80];
+	  if(gethostname(buf, sizeof(buf)) == 0) {
+	       strlcpy(control, buf, sizeof(control));
+	  } else {
+	       strlcpy(control, "one",sizeof control);
+	  }
      }
      XAP_DEFAULT_INSTANCE = strdup(control);
 

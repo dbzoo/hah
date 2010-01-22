@@ -1,124 +1,126 @@
 /* $Id$
 
-   Copyright (c) Brett England, 2010
-   Portions Copyright (C) 1996  Joseph Croft <joe@croftj.net>  
+Copyright (c) Brett England, 2010
+Portions Copyright (C) 1996  Joseph Croft <joe@croftj.net>  
    
-   No commercial use.
-   No redistribution at profit.
-   All derivative work must retain this message and
-   acknowledge the work of the original author.  
+No commercial use.
+No redistribution at profit.
+All derivative work must retain this message and
+acknowledge the work of the original author.  
 */
 
+#include "serial.h"
 #include "bridge.h"
 #include "crc16.h"
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <stdlib.h>
 
 void buildDeviceSettingStr(int mfd, portConf *pDevice)
 {
-   struct termios tios;
-   speed_t mspeed;
-   char buf[256];
-   int x;
+     struct termios tios;
+     speed_t mspeed;
+     char buf[256];
+     int x;
 
-   strcpy(buf, "");
-   tcgetattr(mfd, &tios);
-   switch (tios.c_cflag & CSIZE)
-   {
-      case CS8:
-         strcat(buf, "8");
-         break;
-      case CS7:
-         strcat(buf, "7");
-         break;
-      case CS6:
-         strcat(buf, "6");
-         break;
-      case CS5:
-         strcat(buf, "5");
-         break;
-      default:
-         strcat(buf, "8");
-         break;
-   }
-   switch (tios.c_cflag & (PARENB | PARODD))
-   {
-      case PARENB | PARODD:
-         strcat(buf, "O");
-         break;
-      case PARENB:
-         strcat(buf, "E");
-         break;
-      default:
-         strcat(buf, "N");
-   }
+     strcpy(buf, "");
+     tcgetattr(mfd, &tios);
+     switch (tios.c_cflag & CSIZE)
+     {
+     case CS8:
+	  strcat(buf, "8");
+	  break;
+     case CS7:
+	  strcat(buf, "7");
+	  break;
+     case CS6:
+	  strcat(buf, "6");
+	  break;
+     case CS5:
+	  strcat(buf, "5");
+	  break;
+     default:
+	  strcat(buf, "8");
+	  break;
+     }
+     switch (tios.c_cflag & (PARENB | PARODD))
+     {
+     case PARENB | PARODD:
+	  strcat(buf, "O");
+	  break;
+     case PARENB:
+	  strcat(buf, "E");
+	  break;
+     default:
+	  strcat(buf, "N");
+     }
 
-   if ((x = tios.c_cflag) & CRTSCTS)
-      strcat(buf, "C1");
-   else
-      strcat(buf, "C0");
+     if ((x = tios.c_cflag) & CRTSCTS)
+	  strcat(buf, "C1");
+     else
+	  strcat(buf, "C0");
 
-   if (tios.c_iflag & IXON)
-      strcat(buf, "S1");
-   else
-      strcat(buf, "S0");
+     if (tios.c_iflag & IXON)
+	  strcat(buf, "S1");
+     else
+	  strcat(buf, "S0");
 
-   setPortStr(pDevice, buf);
+     setPortStr(pDevice, buf);
 
-   mspeed = cfgetospeed(&tios);
-   switch (mspeed)
-   {
-      case B300:
-         strcpy(buf, "300");
-         break;
+     mspeed = cfgetospeed(&tios);
+     switch (mspeed)
+     {
+     case B300:
+	  strcpy(buf, "300");
+	  break;
 
-      case B600:
-         strcpy(buf, "600");
-         break;
+     case B600:
+	  strcpy(buf, "600");
+	  break;
 
-      case B1200:
-         strcpy(buf, "1200");
-         break;
+     case B1200:
+	  strcpy(buf, "1200");
+	  break;
 
-      case B2400:
-         strcpy(buf, "2400");
-         break;
+     case B2400:
+	  strcpy(buf, "2400");
+	  break;
 
-      case B4800:
-         strcpy(buf, "4800");
-         break;
+     case B4800:
+	  strcpy(buf, "4800");
+	  break;
 
-      case B9600:
-         strcpy(buf, "9600");
-         break;
+     case B9600:
+	  strcpy(buf, "9600");
+	  break;
 
-      case B19200:
-         strcpy(buf, "19200");
-         break;
+     case B19200:
+	  strcpy(buf, "19200");
+	  break;
 
-      case B38400:
-         strcpy(buf, "38400");
-         break;
+     case B38400:
+	  strcpy(buf, "38400");
+	  break;
 
-      case B57600:
-         strcpy(buf, "57600");
-         break;
+     case B57600:
+	  strcpy(buf, "57600");
+	  break;
 
-      case B115200:
-         strcpy(buf, "115200");
-         break;
+     case B115200:
+	  strcpy(buf, "115200");
+	  break;
 
-      case B230400:
-         strcpy(buf, "230400");
-         break;
+     case B230400:
+	  strcpy(buf, "230400");
+	  break;
 
-      default:
-         strcpy(buf, "38400");
-         break;
-   }
-   setBaudStr(pDevice, buf);
+     default:
+	  strcpy(buf, "38400");
+	  break;
+     }
+     setBaudStr(pDevice, buf);
 }
 
 /*
@@ -131,46 +133,49 @@ int openSerialPort(portConf *pDevice) {
      debug(LOG_DEBUG,"openSerial: Opening device |%s|", pDevice->devc);
      if ((fd = open(pDevice->devc, O_RDWR | O_NDELAY)) < 0)
      {
-	  debug(LOG_ERR, "Error opening Device %s:%m", pDevice->devc);
-	  fd = -1;
+          debug(LOG_ERR, "Error opening Device %s:%m", pDevice->devc);
+          fd = -1;
      }
      else
      {
-	  if (((mflgs = fcntl(fd, F_GETFL, 0)) == -1) ||
-	      (fcntl(fd, F_SETFL, mflgs & ~O_NDELAY) == -1))
-	  {
-	       debug(LOG_ERR, "Error Resetting O_NODELAY on device %s:%m",
-		     pDevice->devc);
-	       close(fd);
-	       fd = -1;
-	  }
-	  else
-	  {
-	       /*
-	       ** Get the current termios structure for the device
-	       ** and set up the initial defaults. Then configure
-	       ** it as was specified in the configuration file.
-	       */
-	       struct termios tios;
-	       tcgetattr(fd, &tios);
-	       tios.c_cflag = B38400 | CRTSCTS | CS8 | CREAD | CLOCAL ;
-	       tios.c_lflag = 0;
-	       tios.c_oflag = 0;
-	       tios.c_iflag |= IGNBRK;
-	       tios.c_cc[VMIN] = 0;
-	       tios.c_cc[VTIME] = 0;
-	       tcsetattr(fd, TCSANOW, &tios);
-	       tcflush(fd, TCIFLUSH);
-	       cfsetispeed(&pDevice->tios, pDevice->speed);
-	       cfsetospeed(&pDevice->tios, pDevice->speed);
-	       tcsetattr(fd, TCSANOW, &pDevice->tios);
-	       buildDeviceSettingStr(fd, pDevice);
-	  }
+          if (((mflgs = fcntl(fd, F_GETFL, 0)) == -1) ||
+              (fcntl(fd, F_SETFL, mflgs & ~O_NDELAY) == -1))
+          {
+               debug(LOG_ERR, "Error Resetting O_NODELAY on device %s:%m",
+                     pDevice->devc);
+               close(fd);
+               fd = -1;
+          }
+          else
+          {
+               /*
+               ** Get the current termios structure for the device
+               ** and set up the initial defaults. Then configure
+               ** it as was specified in the configuration file.
+               */
+               struct termios tios;
+               tcgetattr(fd, &tios);
+               tios.c_cflag = B38400 | CRTSCTS | CS8 | CREAD | CLOCAL ;
+               tios.c_lflag = 0;
+               tios.c_oflag = 0;
+               tios.c_iflag |= IGNBRK;
+               tios.c_cc[VMIN] = 0;
+               tios.c_cc[VTIME] = 0;
+               tcsetattr(fd, TCSANOW, &tios);
+               tcflush(fd, TCIFLUSH);
+               cfsetispeed(&pDevice->tios, pDevice->speed);
+               cfsetospeed(&pDevice->tios, pDevice->speed);
+               tcsetattr(fd, TCSANOW, &pDevice->tios);
+               buildDeviceSettingStr(fd, pDevice);
+          }
      }
 
      pDevice->fd = fd;
      pDevice->enabled = fd != -1;
 
+     if(pDevice->enabled) {
+          pDevice->serialST = (serialState *)malloc(sizeof(serialState));
+     }
      return(fd);
 }
 
@@ -196,15 +201,15 @@ char *frameSerialXAPpacket(const char* xap)
      // as part of a xAP message.
      CRC16_InitChecksum(&crc);
      while(*xap) {
-	  switch(*xap) {
-	  case 2:
-	  case 3:
-	  case 27:
-	       *p = 27;
-	       CRC16_Update(&crc, *p++);
-	  }
-	  *p = *xap++;
-	  CRC16_Update(&crc, *p++);
+          switch(*xap) {
+          case 2:
+          case 3:
+          case 27:
+               *p = 27;
+               CRC16_Update(&crc, *p++);
+          }
+          *p = *xap++;
+          CRC16_Update(&crc, *p++);
      }
      CRC16_FinishChecksum(&crc);
 
@@ -227,7 +232,7 @@ char *frameSerialXAPpacket(const char* xap)
 int sendSerialMsg(portConf *pDevice, char *msg) {
      int rv = write(pDevice->fd, msg, strlen(msg));
      if(rv == -1) {
-	  debug(LOG_DEBUG,"Failed serial write %s:%m", pDevice->devc);
+          debug(LOG_DEBUG,"Failed serial write %s:%m", pDevice->devc);
      }
      return rv;
 }
@@ -239,65 +244,73 @@ int sendSerialMsg(portConf *pDevice, char *msg) {
 // We do this as the select()/read() calls made be made many
 // times if the serial read buffer is fragmented.
 
-char *unframeSerialMsg(char *buf, int size) {
-     enum {ST_START, ST_COMPILE, ST_END};
-     static char xap[1500];
-     static int state = ST_START;
-     static char *p = xap;
+char *unframeSerialMsg(serialState *ss, char *buf, int size) {
      int i;
+     // Last address in the accumulate buffer.
+     char *endaddr = ss->xap + sizeof(ss->xap) - 1;
 
      // Unframe and calculate the checksum
      for(i=0; i < size;) {
-	  switch(state) {
-	  case ST_START:
-	       if(buf[i] == 2) {
-		    state = ST_COMPILE;
-		    // Setup output ptr and CRC
-		    p = xap;
-	       }
-	       i++;
-	       break;
-	  case ST_COMPILE:
-	       switch(buf[i]) {
-	       case 2: // Spurious STX.
-		    state = ST_START;
-		    break;
-	       case 3:
-		    state = ST_END;
-		    *p = 0;
-		    break;
-	       case 27:
-		    i++;
-	       default:
-		    *p++ = buf[i++];
-		    if (p > xap + sizeof(xap) - 1) {
-			 debug(LOG_CRIT, "Buffer overrun - message too large");
-			 state = ST_START;
-		    }
-	       }
-	       break;
-	  case ST_END:
-	       state = ST_START;
-	       *p = 0;  // NULL terminate our frame
-	       p -= 4;  // Last 4 bytes are the checksum
-	       debug(LOG_DEBUG,"readSerialMsg(): Serial CRC %s", p);
+          switch(ss->state) {
+          case ST_START:
+               if(buf[i] == 2) {
+                    ss->state = ST_COMPILE;
+                    ss->p = ss->xap;   // init Accumulation ptr.
+               }
+               i++;
+               break;
 
-	       if(strcmp("----",p)) {  // We have a checksum.
-		    unsigned short msg_crc, calc_crc;
-		    sscanf(p, "%X", &msg_crc);		    
-		    calc_crc = CRC16_BlockChecksum(xap, strlen(xap));
-		    if(msg_crc != calc_crc) {
-			 debug(LOG_WARNING, "Checksums to not match: msg %h != calc %h", msg_crc, calc_crc);
-			 return NULL;
-		    }
-	       }
-	       *p = 0; // remove CRC from xAP msg.
-	       if(g_debuglevel >= LOG_INFO) {
-		    debug(LOG_INFO,"unframeSerialMsg(): Unframed packet");
-		    dump(xap, p-xap);
-	       }
-	       return xap;
+          case ST_COMPILE:
+               switch(buf[i]) {
+               case 2: // Spurious STX.
+                    ss->state = ST_START;
+                    break;
+               case 3: // ETX
+                    ss->state = ST_END;
+                    break;
+               case 27: // ESC
+                    i++;
+		    ss->state = ST_COMPILE_ESC; // Consume next char its escaped.
+               default:
+                    *ss->p++ = buf[i++];  // Accumulate char.
+               }
+               break;
+
+	  case ST_COMPILE_ESC:
+	       *ss->p++ = buf[i++];  // Accumulate char.
+	       ss->state = ST_COMPILE;
+	       break;
+	       
+          case ST_END:
+               ss->state = ST_START;
+               *ss->p = 0;  // NULL terminate our frame
+               ss->p -= 4;  // Last 4 bytes are the checksum
+               debug(LOG_DEBUG,"readSerialMsg(): Serial CRC %s", ss->p);
+               int buflen = ss->p - ss->xap;
+
+               if(strcmp("----",ss->p)) {  // We have a checksum.
+                    unsigned short msg_crc, calc_crc;
+                    sscanf(ss->p, "%X", &msg_crc);
+                    calc_crc = CRC16_BlockChecksum(ss->xap, buflen);
+                    if(msg_crc != calc_crc) {
+                         debug(LOG_WARNING, "Checksums to not match: msg %h != calc %h", msg_crc, calc_crc);
+                         return NULL;
+                    }
+               }
+               if(g_debuglevel >= LOG_INFO) {
+                    debug(LOG_INFO,"unframeSerialMsg(): Unframed packet");
+                    dump(ss->xap, buflen);
+               }
+               *ss->p = 0; // return a ZERO terminated string (minus CRC).
+               return ss->xap;
+          }
+
+	  // Check for buffer overrun.
+	  if (ss->p > endaddr) {
+	       debug(LOG_CRIT, "Buffer overrun - message too large");
+	       ss->state = ST_START;
 	  }
+	  
      }
 
      // Not a complete message yet.

@@ -11,16 +11,19 @@
 #define PC_MAXFIELD  16
 #define PC_MAXDEVC   80
 
+struct _serialState;
+
 struct _portConf
 {
-   int                  enabled;
-   struct termios       tios;
-   char                 devc[PC_MAXDEVC];
-   char                 baud[PC_MAXFIELD];
-   char                 port[PC_MAXFIELD];
-   speed_t              speed;
-   int fd;
-   struct _portConf     *pNext;
+     int                  enabled;
+     struct termios       tios;
+     char                 devc[PC_MAXDEVC];
+     char                 baud[PC_MAXFIELD];
+     char                 port[PC_MAXFIELD];
+     speed_t              speed;
+     int fd;
+     struct _serialState   *serialST;
+     struct _portConf     *pNext;
 };
 
 typedef struct _portConf portConf;

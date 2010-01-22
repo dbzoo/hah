@@ -78,7 +78,7 @@ void serial_handler(portConf *pEntry) {
 	  ldump(xap_ser, r);
      }
 */
-     char *xap = unframeSerialMsg(xap_ser, r);
+     char *xap = unframeSerialMsg(pEntry->serialST, xap_ser, r);
      if (xap) {
 	  // To Ethernet
 	  xap_send_message(xap);

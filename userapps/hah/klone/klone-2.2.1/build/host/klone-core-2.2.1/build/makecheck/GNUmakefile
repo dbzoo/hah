@@ -1,3 +1,0 @@
-# if in this makefile then it's gnu make calling...
-all:
-

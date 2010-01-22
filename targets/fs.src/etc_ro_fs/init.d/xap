@@ -5,7 +5,7 @@
 
 . /etc/ini.conf
 
-subsystem="livebox sms pachube googlecal currentcost twitter plugboard"
+subsystem="livebox sms pachube googlecal currentcost twitter plugboard bridge"
 
 start_livebox() {
     /usr/bin/xap-hub $MYDEV &
@@ -73,6 +73,15 @@ start_plugboard() {
 }
 stop_plugboard() {
     killall xap-plugboard
+}
+
+start_bridge() {
+    if [ `iniget $INI bridge enable 0` -eq 1 ] ;  then 
+	/usr/bin/xap-bridge -i $MYDEV &
+    fi
+}
+stop_bridge() {
+    killall xap-bridge
 }
 
 # Param 1: subsystem

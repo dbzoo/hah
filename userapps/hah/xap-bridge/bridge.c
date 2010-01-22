@@ -24,30 +24,39 @@ const char* XAP_DEFAULT_INSTANCE;
 
 int maxHopCount=5;
 
-/*
-** Adjust message HOP count and forward to the serial ports.
-*/
-void xap_handler(char *xap) {
+/* Assuming an xAP message has already been parsed, examine the HOP,
+ * increment and return the new XAP message.
+ */
+static int incrementHop(char *xap) {
      int hop_count;
      char hop_count_str[3];
-
-     xapmsg_parse(xap);
-
-     // We never forward HEARTBEATS.
-     if (xapmsg_gettype() == XAP_MSG_HBEAT) return;
 
      // Ordinary class of xAP message
      xapmsg_getvalue("xap-header:hop", hop_count_str);
      hop_count = atoi(hop_count_str);
      if (hop_count > maxHopCount) {
 	  debug(LOG_INFO, "Relay refused, hop count %d exceeded\n", maxHopCount);
-	  return;
+	  return 0;
      }
      sprintf(hop_count_str,"%d",hop_count+1);
      xapmsg_updatevalue("xap-header:hop",hop_count_str);
 
      // After the HOP count is bumped update the mesg
      xapmsg_toraw(xap);
+
+     return 1;
+}
+
+/*
+** Adjust message HOP count and forward to the serial ports.
+*/
+void xap_handler(char *xap) {
+     xapmsg_parse(xap);
+
+     // We never forward HEARTBEATS to the serial devices.
+     if (xapmsg_gettype() == XAP_MSG_HBEAT) return;
+
+     if(incrementHop(xap) == 0) return;
 
      char *serial_msg = frameSerialXAPpacket(xap);
      portConf *pEntry;
@@ -80,12 +89,13 @@ void serial_handler(portConf *pEntry) {
 */
      char *xap = unframeSerialMsg(pEntry->serialST, xap_ser, r);
      if (xap) {
-	  // To Ethernet
+	  xapmsg_parse(xap);
+	  if(incrementHop(xap) == 0) return;
+
 	  xap_send_message(xap);
 
 	  // Don't forward a serial devices HEARTBEAT to
 	  // other serial devices.
-	  xapmsg_parse(xap);
 	  if (xapmsg_gettype() == XAP_MSG_HBEAT) return;
 
 	  // To serial devices

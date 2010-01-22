@@ -194,6 +194,10 @@ static void setupXAP() {
      }
      XAP_DEFAULT_INSTANCE = strdup(control);
 
+     maxHopCount = ini_getl("bridge", "hopCount", 5, inifile);
+     // HopCount of 1 could mean the bridge would drop every packet. -ve don't sense either.
+     if (maxHopCount < 2) maxHopCount = 5;
+
      strlcpy(g_uid, XAP_GUID, sizeof g_uid);
 
      xap_discover_broadcast_network(&g_xap_sender_sockfd, &g_xap_sender_address);

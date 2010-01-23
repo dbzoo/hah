@@ -93,7 +93,7 @@ portConf *parseCfgEntry(const char *str, int *err)
 	       {
 		    debug(LOG_DEBUG, "parseCfgEntry():Found end of state %d", 
 			  state);
-		    if (++state > 1)
+		    if (++state > 2)
 		    {
 			 *err = ECFG_SYNTAX;
 			 free (rv);

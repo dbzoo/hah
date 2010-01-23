@@ -61,8 +61,7 @@ void xap_handler(char *xap) {
      char *serial_msg = frameSerialXAPpacket(xap);
      portConf *pEntry;
      for (pEntry = pPortList; pEntry; pEntry = pEntry->pNext) {
-	  if (pEntry->enabled) 
-	       sendSerialMsg(pEntry, serial_msg);
+	  sendSerialMsg(pEntry, serial_msg);
      }
 }
 
@@ -80,13 +79,12 @@ void serial_handler(portConf *pEntry) {
 	  debug(LOG_DEBUG,"readSerialMsg(): reading %s:%m", pEntry->devc);
 	  return;
      }
-/*
+
      if(g_debuglevel >= LOG_DEBUG ) {
-	  printf("serial_handler(): read ");
-	  xap_ser[r] = 0; // teminate for printing
+	  printf("serial_handler(): reading %s", pEntry->devc);
 	  ldump(xap_ser, r);
      }
-*/
+
      char *xap = unframeSerialMsg(pEntry->serialST, xap_ser, r);
      if (xap) {
 	  xapmsg_parse(xap);
@@ -101,7 +99,7 @@ void serial_handler(portConf *pEntry) {
 	  // To serial devices
 	  portConf *entry;
 	  for (entry = pPortList; entry; entry = entry->pNext) {
-	       if (entry->enabled && entry != pEntry)
+	       if (entry != pEntry) // Not to the device we just got the data from.
 		    sendSerialMsg(entry, xap_ser);
 	  }
      }
@@ -122,11 +120,10 @@ void packetLoop() {
      // Setup select() FD's and open each serial port.
      FD_ZERO(&m_rdfs);
      FD_SET(g_xap_receiver_sockfd, &m_rdfs);
-     debug(LOG_DEBUG, "packetLoop(): UDP fd %d", g_xap_receiver_sockfd);
      for (pEntry = pPortList; pEntry; pEntry = pEntry->pNext) {
 	  int fd = openSerialPort(pEntry);
-	  if( fd != -1) {
-	       debug(LOG_DEBUG, "packetLoop(): serial fd %d", fd);
+	  if( fd != -1 && pEntry->xmit.rx) {
+	       debug(LOG_DEBUG, "packetLoop(): serial Rx %s", pEntry->devc);
 	       FD_SET(fd, &m_rdfs);
 	       if (fd > highest_fd) highest_fd = fd;
 	       rv++;

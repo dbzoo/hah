@@ -7,4 +7,4 @@
 #include "xapGlobals.h"
 
 portConf *pPortList = NULL;
-char inifile[32] = "xap-livebox.ini";
+char inifile[32] = "/etc/xap-livebox.ini";

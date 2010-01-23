@@ -230,11 +230,15 @@ char *frameSerialXAPpacket(const char* xap)
 }
 
 int sendSerialMsg(portConf *pDevice, char *msg) {
-     int rv = write(pDevice->fd, msg, strlen(msg));
-     if(rv == -1) {
-          debug(LOG_DEBUG,"Failed serial write %s:%m", pDevice->devc);
+     // Send if enabled and serial port configured for TX.
+     if (pDevice->enabled && pDevice->xmit.tx) {
+	  int rv = write(pDevice->fd, msg, strlen(msg));
+	  if(rv == -1) {
+	       debug(LOG_DEBUG,"Failed serial write %s:%m", pDevice->devc);
+	  }
+	  return rv;
      }
-     return rv;
+     return -1;
 }
 
 // Recieve a serial xap frame package and unframe it returning

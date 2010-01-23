@@ -101,8 +101,8 @@
 #define  YY_INT            300
 #define  YY_IDENT          301
 #define  YY_DEVICE         302
-#define  YY_ON             1
-#define  YY_OFF            2
+#define  YY_TX             1
+#define  YY_RX             2
 
 #define ECFG_SYNTAX        1
 #define ECFG_MEMORY        2

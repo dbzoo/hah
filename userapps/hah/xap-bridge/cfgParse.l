@@ -116,6 +116,9 @@ B57600         { return(YY_B57600); }
 B115200        { return(YY_B115200); }
 B230400        { return(YY_B230400); }
 
+[Tt][Xx]      { return(YY_TX); }
+[Rr][Xx]      { return(YY_RX); }
+
 "/dev/"[.A-Za-z][.A-Za-z0-9_-]* { strcpy(yylval.s, yytext); return(YY_DEVICE); }
 [0-9A-Za-z_-]+ { strcpy(yylval.s, yytext); return(YY_IDENT); }
 .              { return(yytext[0]); }

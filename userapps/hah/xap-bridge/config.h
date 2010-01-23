@@ -22,6 +22,10 @@ struct _portConf
      char                 port[PC_MAXFIELD];
      speed_t              speed;
      int fd;
+     struct {
+	  unsigned tx:1;
+	  unsigned rx:1;
+     } xmit;
      struct _serialState   *serialST;
      struct _portConf     *pNext;
 };

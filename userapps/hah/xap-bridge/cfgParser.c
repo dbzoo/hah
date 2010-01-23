@@ -146,6 +146,21 @@ portConf *parseCfgEntry(const char *str, int *err)
 			 continue;
 		    }
 		    break;
+	       case 2:
+		    if (token == YY_TX)
+			 rv->xmit.tx = 1;
+		    else if (token == YY_RX)
+			 rv->xmit.rx = 1;
+		    else
+		    {
+			 debug(LOG_DEBUG, "parseCfgEntry():Syntax Error");
+			 *err = ECFG_SYNTAX;
+			 free (rv);
+			 rv = NULL;
+			 continue;
+		    }
+		    break;
+
 	       }
 	  }
      }

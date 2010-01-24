@@ -18,7 +18,7 @@
 #include "bridge.h"
 
 const char* XAP_ME = "dbzoo";
-const char* XAP_SOURCE = "Bridge";
+const char* XAP_SOURCE = "livebox";
 const char* XAP_GUID;
 const char* XAP_DEFAULT_INSTANCE;
 
@@ -81,7 +81,7 @@ void serial_handler(portConf *pEntry) {
      }
 
      if(g_debuglevel >= LOG_DEBUG ) {
-	  printf("serial_handler(): reading %s", pEntry->devc);
+	  printf("serial_handler(): %s ", pEntry->devc);
 	  ldump(xap_ser, r);
      }
 
@@ -188,18 +188,14 @@ static void setupXAP() {
      snprintf(guid,sizeof guid,"FF%s00", uid);
      XAP_GUID = strdup(guid);
 
-     char control[30];
-     n = ini_gets("bridge","instance","",control,sizeof(control),inifile);
+     char control[30] = "\0";
+     n = ini_gets("bridge","instance","Bridge",control,sizeof(control),inifile);
      if(n == 0 || strlen(control) == 0)
      {
-	  char buf[80];
-	  if(gethostname(buf, sizeof(buf)) == 0) {
-	       strlcpy(control, buf, sizeof(control));
-	  } else {
-	       strlcpy(control, "one",sizeof control);
-	  }
+	  strlcpy(control, "Bridge",sizeof control);
      }
      XAP_DEFAULT_INSTANCE = strdup(control);
+     strlcpy(g_instance, control, sizeof g_instance); // default instance name
 
      maxHopCount = ini_getl("bridge", "hopCount", 5, inifile);
      // HopCount of 1 could mean the bridge would drop every packet. -ve don't sense either.

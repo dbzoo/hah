@@ -12,6 +12,7 @@ acknowledge the work of the original author.
 #include "serial.h"
 #include "bridge.h"
 #include "crc16.h"
+#include "mem.h"
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
@@ -174,7 +175,7 @@ int openSerialPort(portConf *pDevice) {
      pDevice->enabled = fd != -1;
 
      if(pDevice->enabled) {
-          pDevice->serialST = (serialState *)malloc(sizeof(serialState));
+          pDevice->serialST = (serialState *)mem_malloc(sizeof(serialState), M_ZERO);
      }
      return(fd);
 }
@@ -230,15 +231,11 @@ char *frameSerialXAPpacket(const char* xap)
 }
 
 int sendSerialMsg(portConf *pDevice, char *msg) {
-     // Send if enabled and serial port configured for TX.
-     if (pDevice->enabled && pDevice->xmit.tx) {
-	  int rv = write(pDevice->fd, msg, strlen(msg));
-	  if(rv == -1) {
-	       debug(LOG_DEBUG,"Failed serial write %s:%m", pDevice->devc);
-	  }
-	  return rv;
+     int rv = write(pDevice->fd, msg, strlen(msg));
+     if(rv == -1) {
+	  debug(LOG_DEBUG,"Failed serial write %s:%m", pDevice->devc);
      }
-     return -1;
+     return rv;
 }
 
 // Recieve a serial xap frame package and unframe it returning

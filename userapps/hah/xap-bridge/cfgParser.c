@@ -17,7 +17,7 @@
 #include <termios.h>
 #include "cfgParse.h"
 #include "bridge.h"
-
+#include "mem.h"
 
 extern FILE *yyin;
 extern char *yytext;
@@ -71,10 +71,9 @@ portConf *parseCfgEntry(const char *str, int *err)
      yy_scan_string(str);
 
      *err = 0;
-     if ((rv = (portConf *)malloc(sizeof(portConf))) != NULL)
+     if ((rv = (portConf *)mem_malloc(sizeof(portConf), M_ZERO)) != NULL)
      {
 	  debug(LOG_DEBUG, "parseCfgEntry():Starting to Parse");
-	  memset(rv, 0, sizeof(portConf));
 	  while (rv != NULL && state >= 0)
 	  {
 	       if ((token = yylex()) == ';' || token == 0)

@@ -10,30 +10,96 @@
 #ident "@(#) $Id$"
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "xapdef.h"
 #include "serial.h"
 #include "bridge.h"
+#include "queue.h"
+#include "mem.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+#include <errno.h>
 
 const char* XAP_ME = "dbzoo";
 const char* XAP_SOURCE = "livebox";
 const char* XAP_GUID;
 const char* XAP_DEFAULT_INSTANCE;
 
-int maxHopCount=5;
+static int maxHopCount=5;
+static struct queue *tx_queue;
+static pthread_mutex_t tx_udp = PTHREAD_MUTEX_INITIALIZER;
 
-/* Assuming an xAP message has already been parsed, examine the HOP,
- * increment and return the new XAP message.
- */
+struct xapPacket {
+     char *xap;         // xAP message (serial unframed).
+     portConf *pDevice; // NULL for ethernet.
+};
+
+/* Store a XAP packet to the FIFO queue for processing in the txLoop()
+*/
+void pushPacket(char *xap, portConf *pEntry) {
+     struct xapPacket *r;
+
+     r = mem_malloc(sizeof(struct xapPacket), M_ZERO);
+     r->xap = mem_strdup(xap, M_NONE);
+     r->pDevice = pEntry;
+     
+     queue_push(tx_queue, r);
+}
+
+/* Push an inbound UDP packet to the FIFO Tx queue.
+*/
+static inline void rx_udp_handler(char *xap) {
+     debug(LOG_DEBUG,"rx_udp_handler(): queue UDP packet %x", xap);
+     pushPacket(xap, NULL);     
+}
+
+/* Push an inbound serial packet to the FIFO Tx queue.
+*/
+static void rx_serial_handler(portConf *pEntry) {
+     char xap_in[1500]; // Serial transport framed XAP packet.
+     ssize_t r;
+
+     r = read(pEntry->fd, xap_in, sizeof(xap_in));
+     if (r < 0) {
+	  debug(LOG_DEBUG,"readSerialMsg(): reading %s:%m", pEntry->devc);
+	  return;
+     }
+
+     if(g_debuglevel >= LOG_DEBUG ) {
+	  printf("serial_handler(): %s ", pEntry->devc);
+	  ldump(xap_in, r);
+     }
+
+     char *rawxap = unframeSerialMsg(pEntry->serialST, xap_in, r);
+     if (rawxap) { // Do we have a complete message yet?
+	  debug(LOG_DEBUG,"rx_serial_handler(): queue Serial packet");
+	  pushPacket(rawxap, pEntry);
+     }
+}
+
+
+/** Examine the HOP increment and return the new XAP message
+    into the message area passed in.
+*/
 static int incrementHop(char *xap) {
      int hop_count;
      char hop_count_str[3];
 
      // Ordinary class of xAP message
+     xapmsg_parse(xap);
      xapmsg_getvalue("xap-header:hop", hop_count_str);
      hop_count = atoi(hop_count_str);
+
+     // NOTE: If the hop is greater the 9 we can't push the message
+     // back into the same memory location otherwise we may exceed the
+     // char *xap memory bounds: xapmsg_raw() may segv.
+     // We can live with a 9 hop limit.
+     if(hop_count > 9) {
+	  debug(LOG_ERR, "Cannot exceed more then 9 hops");
+	  return 0;
+     }
+
      if (hop_count > maxHopCount) {
 	  debug(LOG_INFO, "Relay refused, hop count %d exceeded\n", maxHopCount);
 	  return 0;
@@ -47,69 +113,63 @@ static int incrementHop(char *xap) {
      return 1;
 }
 
-/*
-** Adjust message HOP count and forward to the serial ports.
-*/
-void xap_handler(char *xap) {
-     xapmsg_parse(xap);
+static void *txLoop() {
+     struct xapPacket *d;
 
-     // We never forward HEARTBEATS to the serial devices.
-     if (xapmsg_gettype() == XAP_MSG_HBEAT) return;
+     for(;;) {
+	  // Read data from Tx QUEUE - blocking.
+	  d = queue_pop(tx_queue);
+	  debug(LOG_INFO, "txLoop(): Read from queue %x", d->xap);
 
-     if(incrementHop(xap) == 0) return;
+	  // d->xap is altered with bumped hop as side-effect.
+	  if(incrementHop(d->xap) == 0) continue;
 
-     char *serial_msg = frameSerialXAPpacket(xap);
-     portConf *pEntry;
-     for (pEntry = pPortList; pEntry; pEntry = pEntry->pNext) {
-	  sendSerialMsg(pEntry, serial_msg);
-     }
-}
+	  // If serial originated send to Ethernet.
+	  if(d->pDevice) {
+	       // *** Now here is the strange thing *** 
+	       // When this packet goes out the wire the rxLoop()
+	       // could be blocking on select() it notices this packet
+	       // and reads it back in?!  WTF.. We don't want this
+	       // behaviour!  So we put a mutex on the send
+	       // and attempt to also lock after select() if this
+	       // fails we know to ignore the packet being sent.
+	       debug(LOG_DEBUG,"txLoop(): send to Ethernet");
+	       pthread_mutex_lock(&tx_udp); 
+	       xap_send_message(d->xap);
+	       usleep(1);  // 1ms.
+	       pthread_mutex_unlock(&tx_udp); 
+	  }
 
-
-/*
-** Handle an inbound xAP serial packet.  Sending to the Ethernet and
-** relaying to other (non originator) serial devices.
-*/
-void serial_handler(portConf *pEntry) {
-     char xap_ser[1500]; // Serial transport framed XAP packet.
-     ssize_t r;
-
-     r = read(pEntry->fd, xap_ser, sizeof(xap_ser));
-     if (r < 0) {
-	  debug(LOG_DEBUG,"readSerialMsg(): reading %s:%m", pEntry->devc);
-	  return;
-     }
-
-     if(g_debuglevel >= LOG_DEBUG ) {
-	  printf("serial_handler(): %s ", pEntry->devc);
-	  ldump(xap_ser, r);
-     }
-
-     char *xap = unframeSerialMsg(pEntry->serialST, xap_ser, r);
-     if (xap) {
-	  xapmsg_parse(xap);
-	  if(incrementHop(xap) == 0) return;
-
-	  xap_send_message(xap);
-
-	  // Don't forward a serial devices HEARTBEAT to
-	  // other serial devices.
-	  if (xapmsg_gettype() == XAP_MSG_HBEAT) return;
+	  // Don't forward a serial devices HEARTBEAT to other serial devices.
+	  // Do we really want this restriction?  Perhaps a conf item?
+	  if (xapmsg_gettype() == XAP_MSG_HBEAT) continue;
 
 	  // To serial devices
 	  portConf *entry;
+	  int unframed = 1;
+	  char *xap; // Framed XAP payload for serial transmission
 	  for (entry = pPortList; entry; entry = entry->pNext) {
-	       if (entry != pEntry) // Not to the device we just got the data from.
-		    sendSerialMsg(entry, xap_ser);
-	  }
+	       if(entry == d->pDevice) continue; // Exclude the originator
+	       if (entry->enabled && entry->xmit.tx) { 
+		    if (unframed) { // Lazily frame packet for serial Xmit.
+			 xap = frameSerialXAPpacket(d->xap);
+			 unframed = 0;
+		    }
+		    debug(LOG_DEBUG,"txLoop(): send to %s", entry->devc);
+		    sendSerialMsg(entry, xap);
+	       }
+	  }	  
+	  
+	  mem_free(d->xap);
+	  mem_free(d);
      }
-
+     pthread_exit(NULL); /* never reached */
 }
 
 /*
-** Receive/Send message loop.
+** Receive message loop.
 */
-void packetLoop() {
+void rxLoop() {
      fd_set rdfs, m_rdfs;
      struct timeval tv;
      portConf *pEntry;
@@ -135,30 +195,37 @@ void packetLoop() {
      }
      highest_fd++;
 
-
-     // MAIN LOOP.
-     while(1) {
+     for(;;) {
 	  rdfs = m_rdfs;
 	  tv.tv_sec = HBEAT_INTERVAL;
 	  tv.tv_usec = 0;
-	
+
+	  debug(LOG_DEBUG,"rxLoop(): select");
 	  rv = select(highest_fd, &rdfs, NULL, NULL, &tv);
 
-	  if(rv == -1) {
+	  // If we can't get a lock then select() fired due to txLoop() send
+	  if(pthread_mutex_trylock(&tx_udp) == EBUSY) {
+	       // Slurp data we just sent in the txLoop() thread.
+	       recvfrom(g_xap_receiver_sockfd, xap_buff, sizeof(xap_buff)-1, 0,0,0);
+	       continue;
+	  }
+	  pthread_mutex_unlock(&tx_udp);
+
+	  
+	  if(rv < 0) {
 	       debug(LOG_DEBUG,"packetLoop() select error: %m");
 	  } else if (rv) {
-
 	       // Inbound UDP XAP packet
 	       if (FD_ISSET(g_xap_receiver_sockfd, &rdfs)) {	
 		    if (xap_poll_incoming(g_xap_receiver_sockfd, xap_buff, sizeof(xap_buff))>0) {
-			 xap_handler(xap_buff);
+			 rx_udp_handler(xap_buff);
 		    }
 	       }
 	       else  // A serial device input
 	       {
 		    for (pEntry = pPortList; pEntry; pEntry = pEntry->pNext) {
 			 if(FD_ISSET(pEntry->fd, &rdfs)) {
-			      serial_handler(pEntry);
+			      rx_serial_handler(pEntry);
 			      break;
 			 }
 		    }
@@ -219,7 +286,6 @@ static void usage() {
      printf("      -i          Interface, def: %s\n", g_interfacename);
 }
 
-
 int main(int argc, char *argv[]) {
      int opt;
 
@@ -258,5 +324,17 @@ int main(int argc, char *argv[]) {
 	  debug(LOG_EMERG, "Quiting!! Error opening config file %s:%m", inifile);
 	  exit(1);
      }
-     packetLoop();
+
+     pthread_t tx_thread;
+
+     tx_queue = queue_new();
+     int rv = pthread_create(&tx_thread, NULL, txLoop, NULL);
+     if(rv) {
+	  debug(LOG_EMERG, "main(): pthread_create() ret %d:%m", rv);
+	  exit(1);
+     }
+
+     rxLoop();
+    
+     exit(0);  /* never reached */
 }

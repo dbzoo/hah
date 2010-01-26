@@ -50,7 +50,7 @@ void pushPacket(char *xap, portConf *pEntry) {
 /* Push an inbound UDP packet to the FIFO Tx queue.
 */
 static inline void rx_udp_handler(char *xap) {
-     debug(LOG_DEBUG,"rx_udp_handler(): queue UDP packet %x", xap);
+     debug(LOG_INFO,"rx_udp_handler(): queue UDP packet");
      pushPacket(xap, NULL);     
 }
 
@@ -66,14 +66,14 @@ static void rx_serial_handler(portConf *pEntry) {
 	  return;
      }
 
-     if(g_debuglevel >= LOG_DEBUG ) {
+     if(g_debuglevel == LOG_DEBUG ) {
 	  printf("serial_handler(): %s ", pEntry->devc);
 	  ldump(xap_in, r);
      }
 
      char *rawxap = unframeSerialMsg(pEntry->serialST, xap_in, r);
      if (rawxap) { // Do we have a complete message yet?
-	  debug(LOG_DEBUG,"rx_serial_handler(): queue Serial packet");
+	  debug(LOG_INFO,"rx_serial_handler(): queue SERIAL packet from %s", pEntry->devc);
 	  pushPacket(rawxap, pEntry);
      }
 }
@@ -101,7 +101,7 @@ static int incrementHop(char *xap) {
      }
 
      if (hop_count > maxHopCount) {
-	  debug(LOG_INFO, "Relay refused, hop count %d exceeded\n", maxHopCount);
+	  debug(LOG_NOTICE, "Relay refused, hop count %d exceeded\n", maxHopCount);
 	  return 0;
      }
      sprintf(hop_count_str,"%d",hop_count+1);
@@ -122,44 +122,32 @@ static void *txLoop() {
 	  debug(LOG_INFO, "txLoop(): Read from queue %x", d->xap);
 
 	  // d->xap is altered with bumped hop as side-effect.
-	  if(incrementHop(d->xap) == 0) continue;
+	  if(incrementHop(d->xap) == 0) goto exit;
 
 	  // If serial originated send to Ethernet.
 	  if(d->pDevice) {
-	       // *** Now here is the strange thing *** 
-	       // When this packet goes out the wire the rxLoop()
-	       // could be blocking on select() it notices this packet
-	       // and reads it back in?!  WTF.. We don't want this
-	       // behaviour!  So we put a mutex on the send
-	       // and attempt to also lock after select() if this
-	       // fails we know to ignore the packet being sent.
-	       debug(LOG_DEBUG,"txLoop(): send to Ethernet");
-	       pthread_mutex_lock(&tx_udp); 
+	       debug(LOG_INFO,"txLoop(): send to Ethernet");
 	       xap_send_message(d->xap);
-	       usleep(1);  // 1ms.
-	       pthread_mutex_unlock(&tx_udp); 
 	  }
 
 	  // Don't forward a serial devices HEARTBEAT to other serial devices.
 	  // Do we really want this restriction?  Perhaps a conf item?
-	  if (xapmsg_gettype() == XAP_MSG_HBEAT) continue;
+	  if (xapmsg_gettype() == XAP_MSG_HBEAT) goto exit;
 
 	  // To serial devices
 	  portConf *entry;
-	  int unframed = 1;
-	  char *xap; // Framed XAP payload for serial transmission
+	  char *xap = NULL; // Framed XAP payload for serial transmission
 	  for (entry = pPortList; entry; entry = entry->pNext) {
 	       if(entry == d->pDevice) continue; // Exclude the originator
 	       if (entry->enabled && entry->xmit.tx) { 
-		    if (unframed) { // Lazily frame packet for serial Xmit.
+		    if (xap == NULL) { // Lazily frame packet for serial Xmit.
 			 xap = frameSerialXAPpacket(d->xap);
-			 unframed = 0;
 		    }
-		    debug(LOG_DEBUG,"txLoop(): send to %s", entry->devc);
+		    debug(LOG_INFO,"txLoop(): send to %s", entry->devc);
 		    sendSerialMsg(entry, xap);
 	       }
 	  }	  
-	  
+     exit:
 	  mem_free(d->xap);
 	  mem_free(d);
      }
@@ -202,16 +190,7 @@ void rxLoop() {
 
 	  debug(LOG_DEBUG,"rxLoop(): select");
 	  rv = select(highest_fd, &rdfs, NULL, NULL, &tv);
-
-	  // If we can't get a lock then select() fired due to txLoop() send
-	  if(pthread_mutex_trylock(&tx_udp) == EBUSY) {
-	       // Slurp data we just sent in the txLoop() thread.
-	       recvfrom(g_xap_receiver_sockfd, xap_buff, sizeof(xap_buff)-1, 0,0,0);
-	       continue;
-	  }
-	  pthread_mutex_unlock(&tx_udp);
-
-	  
+  
 	  if(rv < 0) {
 	       debug(LOG_DEBUG,"packetLoop() select error: %m");
 	  } else if (rv) {
@@ -321,13 +300,16 @@ int main(int argc, char *argv[]) {
 
      if (loadConfig() < 1)
      {
-	  debug(LOG_EMERG, "Quiting!! Error opening config file %s:%m", inifile);
+	  debug(LOG_EMERG, "Quiting! Config file %s:%m", inifile);
 	  exit(1);
      }
 
-     pthread_t tx_thread;
+     if ((tx_queue = queue_new()) == NULL) {
+	  debug(LOG_EMERG, "main(): Fail to init FIFO queue");
+	  exit(1);	  
+     }
 
-     tx_queue = queue_new();
+     pthread_t tx_thread;     
      int rv = pthread_create(&tx_thread, NULL, txLoop, NULL);
      if(rv) {
 	  debug(LOG_EMERG, "main(): pthread_create() ret %d:%m", rv);

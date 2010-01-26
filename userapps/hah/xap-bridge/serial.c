@@ -298,8 +298,8 @@ char *unframeSerialMsg(serialState *ss, char *buf, int size) {
                          return NULL;
                     }
                }
-               if(g_debuglevel >= LOG_INFO) {
-                    debug(LOG_INFO,"unframeSerialMsg(): Unframed packet");
+               if(g_debuglevel == LOG_DEBUG) {
+                    debug(LOG_DEBUG,"unframeSerialMsg(): Unframed packet");
                     dump(ss->xap, buflen);
                }
                *ss->p = 0; // return a ZERO terminated string (minus CRC).

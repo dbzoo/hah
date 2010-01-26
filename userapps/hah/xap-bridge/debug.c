@@ -11,7 +11,7 @@
 #include "bridge.h"
 
 void debug( const int level, const char * format, ... ) {
-     if(g_debuglevel > level || level == 0) {
+     if(g_debuglevel >= level || level == 0) {
 	  va_list ap;
 	  va_start(ap, format);
 	  vprintf( format, ap );

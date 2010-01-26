@@ -132,7 +132,7 @@ int openSerialPort(portConf *pDevice) {
      int mflgs, fd = -1;
 
      debug(LOG_DEBUG,"openSerial: Opening device |%s|", pDevice->devc);
-     if ((fd = open(pDevice->devc, O_RDWR | O_NDELAY)) < 0)
+     if ((fd = open(pDevice->devc, O_RDWR | O_NONBLOCK )) < 0)
      {
           debug(LOG_ERR, "Error opening Device %s:%m", pDevice->devc);
           fd = -1;
@@ -140,9 +140,9 @@ int openSerialPort(portConf *pDevice) {
      else
      {
           if (((mflgs = fcntl(fd, F_GETFL, 0)) == -1) ||
-              (fcntl(fd, F_SETFL, mflgs & ~O_NDELAY) == -1))
+              (fcntl(fd, F_SETFL, mflgs | O_NONBLOCK ) == -1))
           {
-               debug(LOG_ERR, "Error Resetting O_NODELAY on device %s:%m",
+               debug(LOG_ERR, "Error Setting O_NONBLOCK on device %s:%m",
                      pDevice->devc);
                close(fd);
                fd = -1;
@@ -233,7 +233,7 @@ char *frameSerialXAPpacket(const char* xap)
 int sendSerialMsg(portConf *pDevice, char *msg) {
      int rv = write(pDevice->fd, msg, strlen(msg));
      if(rv == -1) {
-	  debug(LOG_DEBUG,"Failed serial write %s:%m", pDevice->devc);
+	  debug(LOG_NOTICE,"Failed serial write %s:%m", pDevice->devc);
      }
      return rv;
 }

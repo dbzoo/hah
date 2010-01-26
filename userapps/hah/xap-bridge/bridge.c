@@ -27,6 +27,7 @@ const char* XAP_GUID;
 const char* XAP_DEFAULT_INSTANCE;
 
 static int maxHopCount=5;
+static int forwardHeartbeats=0;  // forward heart-beats to serial networks.
 static struct queue *tx_queue;
 static pthread_mutex_t tx_udp = PTHREAD_MUTEX_INITIALIZER;
 
@@ -130,9 +131,8 @@ static void *txLoop() {
 	       xap_send_message(d->xap);
 	  }
 
-	  // Don't forward a serial devices HEARTBEAT to other serial devices.
-	  // Do we really want this restriction?  Perhaps a conf item?
-	  if (xapmsg_gettype() == XAP_MSG_HBEAT) goto exit;
+	  // Forward a HEARTBEAT to serial devices?
+	  if (forwardHeartbeats == 0 && xapmsg_gettype() == XAP_MSG_HBEAT) goto exit;
 
 	  // To serial devices
 	  portConf *entry;
@@ -246,6 +246,8 @@ static void setupXAP() {
      maxHopCount = ini_getl("bridge", "hopCount", 5, inifile);
      // HopCount of 1 could mean the bridge would drop every packet. -ve don't sense either.
      if (maxHopCount < 2) maxHopCount = 5;
+
+     forwardHeartbeats = ini_getl("bridge", "forwardHeartbeats", 0, inifile);
 
      strlcpy(g_uid, XAP_GUID, sizeof g_uid);
 

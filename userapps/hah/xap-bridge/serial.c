@@ -18,6 +18,7 @@ acknowledge the work of the original author.
 #include <fcntl.h>
 #include <termios.h>
 #include <stdlib.h>
+#include <errno.h>
 
 void buildDeviceSettingStr(int mfd, portConf *pDevice)
 {
@@ -230,12 +231,28 @@ char *frameSerialXAPpacket(const char* xap)
      return buff;
 }
 
+/* Send a packet down the serial port.  As the port is NON-BLOCKING a
+ * write() failure will return EAGAIN; we increasing back-off until
+ * the retry count is expired then port tranmissions are disabled.
+ */
 int sendSerialMsg(portConf *pDevice, char *msg) {
-     int rv = write(pDevice->fd, msg, strlen(msg));
-     if(rv == -1) {
-	  debug(LOG_NOTICE,"Failed serial write %s:%m", pDevice->devc);
+     const int retries = 6;  // sum(1..5)*300ms = 4.5sec
+     int i, rv, size;
+     for(i=1; i<retries; i++) {
+	  size = strlen(msg);
+	  rv = write(pDevice->fd, msg, size);
+	  if(rv == -1) {
+	       debug(LOG_NOTICE,"Failed serial write %s '%m' retry %d", pDevice->devc, i);
+	       if (errno == EAGAIN) { // would block..
+		    usleep(300*1000*i);  // 300ms * i
+		    continue;
+	       }
+	  }
+	  return rv;
      }
-     return rv;
+
+     debug(LOG_WARNING,"Too many retries on %s transmission disabled.", pDevice->devc);
+     pDevice->xmit.tx = 0;
 }
 
 // Recieve a serial xap frame package and unframe it returning

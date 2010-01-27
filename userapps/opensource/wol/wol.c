@@ -40,20 +40,27 @@ static int	read_file (char *macfile);
 static int	in_ether (char *bufp, unsigned char *addr);
 static int	send_wol (char *mac, char *host);
 
-char		*Program;
+char *Program;
 
+void usage() {
+     printf("usage: %s <MAC address>\n", Program);
+     printf("\twhere <MAC address> is in xx:xx:xx:xx:xx:xx format.\n");
+     printf("or: %s -f <File name>  \n", Program);
+     printf("\twhere <File name> is a file containing one MAC address per line,\n");
+     printf("\toptional followed by a hostname or ip separated by a blank.\n");
+}
 
 int main (int argc, char *argv[])
 {
     Program = argv[0];
 
     if (argc < 2) {
-    	fprintf (stderr, "\r%s: need hardware address or file option\n", Program);
+	 usage();
     	return (-1);
     }
     if (!strcmp (argv[1], "-f")) {
   	if (!argv[2])
-    	    fprintf (stderr, "\r%s: need argument for file option\n", Program);
+	     usage();
         else
     	    read_file (argv[2]);
     } else

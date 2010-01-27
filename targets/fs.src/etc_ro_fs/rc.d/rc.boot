@@ -25,18 +25,21 @@ POPULATE_JFFS2()
 {
     echo "Restore - Populate JFFS2"
     # PUT FACTORY PARAMETERS IN JFFS2
-    /bin/cp -a /etc_ro_fs /mnt/jffs2/jffs2_3/etc
+    mkdir /mnt/jffs2/jffs2_3/etc
+    for i in inetd.conf issue.net fstab build group hosts passwd resolv.conf xap-livebox.ini plugboard; do
+      /bin/cp -a /etc_ro_fs/$i /mnt/jffs2/jffs2_3/etc
+    done
     mkdir /mnt/jffs2/jffs2_3/tmp
     mkdir /mnt/jffs2/jffs2_3/home
     mkdir /mnt/jffs2/jffs2_3/root
 
-    rm -rf /mnt/jffs2/jffs2_3/etc/init.d
-    mkdir /mnt/jffs2/jffs2_3/etc/init.d
-    ln -sf /etc_ro_fs/init.d/* /mnt/jffs2/jffs2_3/etc/init.d/
+    for i in init.d rc1.d rc.d; do
+      mkdir /mnt/jffs2/jffs2_3/etc/$i
+      ln -sf /etc_ro_fs/$i/* /mnt/jffs2/jffs2_3/etc/$i/
+    done
 
-    # swap static files for links to RO filesystem
-    for i in services ethertypes curl-ca-bundle.crt; do
-      rm -f /etc/$i
+    # Links to RO filesystem
+    for i in ini.conf inittab shells services ethertypes curl-ca-bundle.crt dropbear; do
       ln -sf /etc_ro_fs/$i /etc/$i
     done
 

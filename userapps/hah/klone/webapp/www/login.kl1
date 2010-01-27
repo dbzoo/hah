@@ -34,6 +34,8 @@ int commaTok(char *arg[], int arglen, char *str)
 int isPageAllowed(session_t *ss, char *page) {
 	 char *username = session_get(ss, "username");
 
+	 dbg("username %s page %s", username, page);
+
 	 // Hmm no session username guess we will allow access (by default).
 	 if (username == NULL || *username == 0) return 1;
 
@@ -69,20 +71,28 @@ int isScriptAllowed(session_t *ss, response_t *rp, char *script) {
 	return isPageAllowed(ss, page);
 }
 
-void menu_item(FILE *out, session_t *ss, response_t *rp, char *script, char *label) {
+// MENU_ITEM
+void menu_item(FILE *out, session_t *ss, response_t *rp, char *script, char *label, int linked) {
 	 if(isScriptAllowed(ss, rp, script)) {
+	      if (linked) {
 		  io_printf(out,"<li><a href=\"%s\">%s</a></li>", script, label);
+	      } else {
+		  io_printf(out,"<li><span>%s</span></li>", label);
+	      }
 	 }
 }
 
 /*
  * If user not logged, force login.
+ * aka: REQUIRE_AUTH
  */
 int login_force(session_t *ss, request_t *rq, response_t *rp, const char *script) 
 {
 	char *username;
 	
 	username = session_get(ss, "username");
+	dbg("username %s", username);
+
 	if (!username || strlen(username) == 0) {
 		session_set(ss, "after_login", script);
 		response_redirect(rp, "login.kl1");
@@ -100,10 +110,12 @@ int login_force(session_t *ss, request_t *rq, response_t *rp, const char *script
 int isValidUser(char *user, char *passwd) {
 	 long n;
 	 char md5[MD5_DIGEST_BUFSZ];
+
+	 dbg("user %s passwd %s", user, passwd);
+	 if(user == NULL || passwd == NULL) return 0;
+
 	 // compute MD5 checksum of entered password
 	 u_md5(passwd, strlen(passwd), md5);
-
-	 if(user == NULL || passwd == NULL) return 0;
 
 	 // Admin is special it has its own INI entry.
 	 if(strcmp("admin",user) == 0) {
@@ -172,7 +184,7 @@ if (!login.destination) login.destination = "index.kl1";
  <div id="menuMain">
   <ul id="menuMainList">
    <li><a href="automation.kl1">Automation</a></li>
-   <li><a href="setup.kl1">Setup</a></li>
+   <li><a href="setup.kl1">Admin</a></li>
     <div id="menuSub">
      <ul id="menuSubList"></ul>
     </div>

@@ -119,22 +119,20 @@ addEvent(window,"load",function() {
     <div id="menuSub">
      <ul id="menuSubList">
 <%
-       MENU_ITEM("automation.kl1","Control");
-       MENU_ITEM("config.kl1","Configure");
-       MENU_ITEM("calendar.kl1","Calendar");
+MENU_ITEM("automation.kl1","Control",1);
+MENU_ITEM("config.kl1","Configure",1);
+MENU_ITEM("calendar.kl1","Calendar",1);
+MENU_ITEM("twitter.kl1","Twitter",0);
+MENU_ITEM("pachube.kl1","Pachube",1);
+if(ini.enable[0] == '1') {
+     MENU_ITEM("graph.kl1","Graph",1);
+}
 %>
-       <li><span>Twitter</span></li>
-<%
-       MENU_ITEM("pachube.kl1","Pachube");
-	 if(ini.enable[0] == '1') {
-		  MENU_ITEM("graph.kl1","Graph");
-	 }
-%>
-    </ul>
+</ul>
     </div>
    </li>
 <%
-	  MENU_ITEM("setup.kl1","Setup");
+MENU_ITEM("setup.kl1","Admin",1);
 %>
   </ul>
  </div>

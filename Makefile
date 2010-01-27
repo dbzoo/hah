@@ -77,6 +77,7 @@ SUBDIRS_OPENSOURCE = \
         $(OPENSOURCE_DIR)/ini \
         $(OPENSOURCE_DIR)/mtd \
         $(OPENSOURCE_DIR)/msmtp \
+        $(OPENSOURCE_DIR)/wol \
 	$(OPENSOURCE_DIR)/lua
 
 export BROADCOM_DIR=$(USERAPPS_DIR)/broadcom
@@ -108,7 +109,7 @@ SUBDIRS_HAH = \
 
 SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIRS_HAH)
 
-OPENSOURCE_APPS = brctl dropbear ftpd msmtp iptables busybox ntpclient ini mtd lua
+OPENSOURCE_APPS = brctl dropbear ftpd msmtp iptables busybox ntpclient ini mtd lua wol
 INVENTEL_APPS = inventelbin sendarp ledctrl
 HAH_APPS = xaplib xap-hub xap-livebox xap-snoop xap-pachube xap-sms xap-bridge \
 	xap-currentcost xap-googlecal xap-twitter xap-plugboard luarex klone
@@ -385,6 +386,9 @@ mtd:
 
 ini:
 	$(MAKE) -C $(OPENSOURCE_DIR)/ini install
+
+wol:
+	$(MAKE) -C $(OPENSOURCE_DIR)/wol install
 
 sendarp:
 	$(MAKE) -C $(INVENTEL_DIR)/sendarp install

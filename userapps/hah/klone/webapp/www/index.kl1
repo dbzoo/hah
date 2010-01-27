@@ -48,8 +48,8 @@ function comboSubmit() {
  <div id="menuMain">
   <ul id="menuMainList">
 <%
-	   MENU_ITEM("automation.kl1","Automation");   
-	   MENU_ITEM("setup.kl1","Setup");   
+	   MENU_ITEM("automation.kl1","Automation",1);
+	   MENU_ITEM("setup.kl1","Admin",1);
 %>
     <div id="menuSub">
      <ul id="menuSubList">

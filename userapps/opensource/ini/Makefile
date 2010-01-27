@@ -1,8 +1,4 @@
-# Livebox
-#
-# $Author: brett $ : $RCSfile: Makefile,v $
-# $Source: /home/brett/xap/xap-livebox/Makefile,v $
-# $Revision: 1.3 $, $Date: 2008/10/24 11:01:50 $
+# $Id$
 
 CFLAGS=
 LDFLAGS=

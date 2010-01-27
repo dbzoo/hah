@@ -109,18 +109,18 @@ google.setOnLoadCallback(drawVisualization);
     <div id="menuSub">
      <ul id="menuSubList">
 <%
-	   MENU_ITEM("automation.kl1","Control");
-       MENU_ITEM("config.kl1","Configure");
-       MENU_ITEM("calendar.kl1","Calendar");
-       MENU_ITEM("twitter.kl1","Twitter");
-       MENU_ITEM("pachube.kl1","Pachube");
+    MENU_ITEM("automation.kl1","Control",1);
+    MENU_ITEM("config.kl1","Configure",1);
+    MENU_ITEM("calendar.kl1","Calendar",1);
+    MENU_ITEM("twitter.kl1","Twitter",1);
+    MENU_ITEM("pachube.kl1","Pachube",1);
+    MENU_ITEM("graph.kl1","Graph",0);
 %>
-	   <li><span>Graph</span></li>
     </ul>
     </div>
    </li>
 	<%
-	  MENU_ITEM("setup.kl1","Setup");
+    MENU_ITEM("setup.kl1","Admin",1);
 	%>
   </ul>
  </div>

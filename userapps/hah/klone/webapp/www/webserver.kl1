@@ -78,12 +78,15 @@ static void form_action(io_t *out) {
  <div id="menuMain">
   <ul id="menuMainList">
    <li><a href="automation.kl1">Automation</a></li>
-   <li class="current"><span>Setup</span>
+   <li class="current"><span>Admin</span>
     <div id="menuSub">
      <ul id="menuSubList">
-      <li><a href="setup.kl1">Basic Setup</a></li>
-      <li><a href="services.kl1">Services</a></li>
-      <li><span>Admin</span></li>
+<%
+	 MENU_ITEM("setup.kl1","Basic Setup", 1);
+	 MENU_ITEM("services.kl1","Services", 1);
+	 MENU_ITEM("webserver.kl1","Webserver", 0);
+	 MENU_ITEM("wol.kl1","WOL", 1);
+%>
      </ul>
     </div>
     </li>

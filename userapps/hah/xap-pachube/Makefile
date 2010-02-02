@@ -1,10 +1,10 @@
-XAP=pachube
+XAP=xap-pachube
 CFLAGS=-DIDENT -DLINUX -I$(INSTALL_DIR)/include
 LDFLAGS=-L$(INSTALL_DIR)/lib -lxap -lcurl
-OBJECTS=$(XAP).o
+OBJECTS=main.o pachube.o mem.o debug.o dscache.o
 
-xap-$(XAP): $(OBJECTS)
-	$(CC) -o xap-$(XAP) $(OBJECTS) $(LDFLAGS)
+$(XAP): $(OBJECTS)
+	$(CC) -o $(XAP) $(OBJECTS) $(LDFLAGS)
 
 clean:
 	$(RM) -f *.o xap-$(XAP)

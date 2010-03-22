@@ -255,7 +255,7 @@ if(ini.ph_enable[0] == '1') {
 
   <div class="setting">
     <div class="label">API Key</div>
-    <input maxlength="65" size="65" name="apikey" value="<%= ini.apikey %>"/>
+    <input maxlength="65" size="60" name="apikey" value="<%= ini.apikey %>"/>
   </div>
 
   <div class="setting">
@@ -278,7 +278,7 @@ if(ini.ph_enable[0] == '1') {
 	   <tr>
          <td><input name="id<% io_printf(out,"%d",i); %>" maxlength="4" size="4" value="<%= ds[i].id %>" onblur="isdigit(this,'ID')"/></td>
          <td><input name="tag<% io_printf(out,"%d",i); %>" maxlength="20" size="20" value="<%= ds[i].tag %>"/></td>
-         <td><input name="xap<% io_printf(out,"%d",i); %>" maxlength="64" size="64" value="<%= ds[i].xapkey %>"/></td>
+         <td><input name="xap<% io_printf(out,"%d",i); %>" maxlength="65" size="60" value="<%= ds[i].xapkey %>"/></td>
 		 <td><input type="image" src="/images/bin_bt.gif" name="del" value="<% io_printf(out,"%d",i); %>" onclick="del(this.form)"/></td>
        </tr>
 <%
@@ -287,7 +287,7 @@ if(ini.ph_enable[0] == '1') {
 </table>
 <input type="button" name="add_button" value="Add" onclick="add(this.form)"/>
 </fieldset>
-
+</div>
 </fieldset>
 </div>
 <br/>

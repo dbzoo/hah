@@ -188,6 +188,7 @@ if(ini.enable[0] == '1') {
   </div>
 </fieldset>
 <a href="http://www.google.com/calendar/render" target="_blank">Edit your calendar</a>
+</div>
 </fieldset>
 
 

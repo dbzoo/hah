@@ -130,8 +130,10 @@ void parseini() {
 			   char rf[20];
 			   char serialrf[30];
 			   int devices;
+			   int waitms; // eeprom write delay (milliseconds)
 
 			   devices = ini_getl(section, "devices", -1, inifile);
+			   waitms = ini_getl(section, "eedelay", 100, inifile);
 			   if (devices > MAXCHANNEL-4) n = MAXCHANNEL-4;
 			   for(i = 1; i <= devices; i++) {
 					add_relay("rf", i, 4);
@@ -147,7 +149,7 @@ void parseini() {
 							  // Internally we start at CHANNEL 5 so offset I by 4.
 							  snprintf(serialrf,sizeof serialrf,"%02X%d%s",i+4,j,rf);
 							  serial_cmd_msg("rf", serialrf);
-							  usleep(50*1000); // Wait 50ms to allow the eeprom to write 6 bytes.
+							  usleep(waitms*1000); // Wait to allow the eeprom to write 6 bytes.
 						 }
 					}
 			   }

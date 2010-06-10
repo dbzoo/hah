@@ -15,9 +15,11 @@ static struct {
 	 char uid[5];
 	 char instance[30];
 	 char enable[2];
+	 char ph_enable[2]       
 } ini;
 
 static void readIni() {
+	 ini_gets("pachube","enable","0",ini.ph_enable,sizeof(ini.ph_enable),con.inifile);
 	 ini_gets("googlecal","enable","0",ini.enable,sizeof(ini.enable),con.inifile);
 	 ini_gets("googlecal","uid","00DA",ini.uid,sizeof(ini.uid),con.inifile);
 	 ini_gets("googlecal","instance","Googlecal",ini.instance,sizeof(ini.instance),con.inifile);
@@ -124,7 +126,7 @@ MENU_ITEM("config.kl1","Configure",1);
 MENU_ITEM("calendar.kl1","Calendar",0);
 MENU_ITEM("twitter.kl1","Twitter",1);
 MENU_ITEM("pachube.kl1","Pachube",1);
-if(ini.enable[0] == '1') {
+if(ini.ph_enable[0] == '1') {
      MENU_ITEM("graph.kl1","Graph",1);
 }
 %>

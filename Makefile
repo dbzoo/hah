@@ -406,10 +406,11 @@ buildimage: $(KERNEL_DIR)/Image tool
 	cp $(KERNEL_DIR)/Image $(TARGET_FS)
 	mkdir -p $(IMAGES_DIR)
 	$(HOSTTOOLS_DIR)/mkcramfs $(TARGET_FS) $(IMAGES_DIR)/Image.bin
-	$(HOSTTOOLS_DIR)/dwbtool -c $(IMAGES_DIR)/firmware.dwb $(PROFILE_DIR)/image.script $(IMAGES_DIR)/Image.bin
+	$(HOSTTOOLS_DIR)/dwbtool -c $(IMAGES_DIR)/hah-firmware.dwb $(PROFILE_DIR)/image.script $(IMAGES_DIR)/Image.bin
+	cp $(TARGETS_DIR)/fs.src/etc_ro_fs/build $(IMAGES_DIR)
 	@if [ -d /tftpboot/inventel/blue_5g ]; then \
 	echo Setup for TFTP; \
-	cp $(IMAGES_DIR)/firmware.dwb /tftpboot/inventel/blue_5g; \
+	cp $(IMAGES_DIR)/hah-firmware.dwb /tftpboot/inventel/blue_5g; \
 	fi
 	@echo
 	@echo -e "Done! Firmware has been built in $(IMAGES_DIR)"

@@ -44,7 +44,10 @@ static void event_binary(endpoint_t *self, char *io_type) {
 }
 
 static void event_level(endpoint_t *self, char *io_type) {
-	 char body[6+EP_STATE_SIZE] = "level=";
+// in BSC the level parameter may only be a whole number and must include
+// a demoninator representing the max value.  This is awkward for temperature
+// values a as decimal/negative value violate this rule.
+	 char body[16+EP_STATE_SIZE] = "state=on\nlevel=";
 	 strlcat(body, self->state, sizeof(body));
 	 event(self, io_type, body);
 }
@@ -58,7 +61,7 @@ inline void event_binary_output(endpoint_t *self) {
 }
 
 inline void event_level_input(endpoint_t *self) {
-	 event_binary(self, "input");
+	 event_level(self, "input");
 }
 
 static inline void info(endpoint_t *self, char *io_type, char *body) {
@@ -72,7 +75,7 @@ static void info_binary(endpoint_t *self, char *io_type) {
 }
 
 static void info_level(endpoint_t *self, char *io_type) {
-	 char body[6+EP_STATE_SIZE] = "level=";
+	 char body[16+EP_STATE_SIZE] = "state=on\nlevel=";
 	 strlcat(body, self->state, sizeof(body));
 	 info(self, io_type, body);
 }

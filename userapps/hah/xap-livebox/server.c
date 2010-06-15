@@ -10,7 +10,6 @@
 #include "appdef.h"
 #include "server.h"
 #include "debug.h"
-
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/un.h>

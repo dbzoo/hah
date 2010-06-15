@@ -4,12 +4,7 @@
 #ifndef INI_H
 #define INI_H
 
-#ifdef DEBUG
-const char inifile[] = "./xap-livebox.ini";
-#else
-const char inifile[] = "/etc/xap-livebox.ini";
-#endif
-
+extern const char inifile[];
 void setupXAPini();
 void parseini();
 

@@ -115,7 +115,7 @@ static void serin_1wire(cmd_t *s, char *argv[]) {
 	 endpoint_t *endpoint = find_endpoint(buff);
 	 if(endpoint) {
 		  strlcpy(endpoint->state, argv[1], EP_STATE_SIZE);
-		  event_level_input(endpoint);
+		  event_1wire(endpoint);
 	 }
 	 out("serin_1wire");
 }
@@ -204,6 +204,7 @@ int serial_cmd_msg(const char *cmd, const char *arg) {
 }
 
 static int serial_lcd_msg(char *msg) {
+	 strlcpy(g_lcd_text, msg, sizeof(g_lcd_text));
 	 return serial_cmd_msg("lcd", msg);
 }
 
@@ -262,10 +263,10 @@ void xap_cmd_relay(endpoint_t *self, char *section) {
 }
 
 
-// Send a message to the LCD
-int cmd_lcd(char *msg) {
-	 strlcpy(g_lcd_text, msg, sizeof(g_lcd_text));
-	 return serial_lcd_msg(msg);
+// Send a message to the LCD (internally and from web-server)
+void cmd_lcd(char *msg) {
+	 serial_lcd_msg(msg);
+	 event_lcd(find_endpoint("lcd"));     
 }
 
 // Decode an XAP message for the LCD
@@ -275,7 +276,7 @@ void xap_cmd_lcd(endpoint_t *self, char *section) {
 
 	 snprintf(key, sizeof(key), "%s:text",section);
 	 if(xapmsg_getvalue(key, i_msg)) {
-		  cmd_lcd(i_msg);
+		  serial_lcd_msg(i_msg);
 	 }
 }
 

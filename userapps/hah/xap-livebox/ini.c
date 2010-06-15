@@ -19,6 +19,12 @@
 // *** DO NOT CHANGE UNLESS YOU ALIGN WITH THE FIRMWARE ***
 #define MAXCHANNEL 16     
 
+#ifdef DEBUG
+const char inifile[] = "./xap-livebox.ini";
+#else
+const char inifile[] = "/etc/xap-livebox.ini";
+#endif
+
 #define sizearray(a)  (sizeof(a) / sizeof((a)[0]))
 
 static void iniError(char *section, char *err) {
@@ -121,7 +127,7 @@ void parseini() {
 			   if (n > 15) n = 15;
 			   while(n > 0) {
 					snprintf(buff,sizeof buff,"1wire.%d", n);
-					add_endpoint(buff, n, NULL, &info_level_input);					
+					add_endpoint(buff, n, NULL, &info_1wire);					
 					n--;
 			   }
 		  } 

@@ -28,11 +28,12 @@ static int g_serial_fd;
 struct {
 	 int channel[3];
 	 float temp;
+         char unit;
 	 float hrs[13];
 	 int days[31];
 	 int months[12];
 	 int years[4];
-	 int sensor;
+	 int sensor;    
 } cc, prevcc;
 
 enum {NONE,HRS,DAYS,MTHS,YRS,CHANNEL1,CHANNEL2,CHANNEL3,TEMP,SENSOR};
@@ -66,8 +67,10 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
      } else if (strcmp(name,"ch3") == 0) {
 	  state = CHANNEL3;
      } else if (strcmp(name,"tmpr") == 0) {
+	  cc.unit = 'C';
 	  state = TEMP;
      } else if (strcmp(name,"tmprF") == 0) {  // For the US model
+	  cc.unit = 'F';
 	  state = TEMP;
      } else if (strcmp(name,"sensor") == 0) { // cc128 model
 	  state = SENSOR;
@@ -161,16 +164,17 @@ static void xap_message(char *body, char *subtype, int id) {
 }
 
 static void xap_watt_info(int ch) {
-	 char body[16] = "level=";
-	 sprintf(body,"level=%d", cc.channel[ch]);
+	 char body[32];
+	 snprintf(body,sizeof(body),"state=on\nlevel=%d", cc.channel[ch]);
 	 char subtype[10];
-	 sprintf(subtype, "ch%d", ch+1);  // Convert ZERO index to base 1.
+	 snprintf(subtype, sizeof(subtype),"ch%d", ch+1);  // Convert ZERO index to base 1.
 	 xap_message(body, subtype, 1);
 }
 
 static void xap_temp_info() {
-	 char body[16];
-	 sprintf(body,"level=%3.1f", cc.temp);
+	 char body[64];
+	 snprintf(body,sizeof(body),"state=on\ndisplaytext=temp %3.1f %c\ntext=%3.1f", 
+		  cc.temp, cc.unit, cc.temp);
 	 xap_message(body, "temp", 2);
 }
 

@@ -82,7 +82,7 @@ void load_endpoints() {
 	 for(i = 1; i < 5; i++) {
 		  add_relay("relay",i,0);
 	 }
-	 add_endpoint("lcd", 0, &xap_cmd_lcd, &info_stream_output);
+	 add_endpoint("lcd", 0, &xap_cmd_lcd, &info_lcd);
 	 add_endpoint("input.1", 1, CMD_IGNORE, &info_binary_input);
 	 add_endpoint("input.2", 2, CMD_IGNORE, &info_binary_input);
 	 add_endpoint("input.3", 3, CMD_IGNORE, &info_binary_input);

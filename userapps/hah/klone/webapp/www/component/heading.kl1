@@ -1,1 +1,4 @@
+<div id="header">
 <div id="logo"><h1>Automation Hub</h1></div>
+<%@include menu.kl1%>
+</div>

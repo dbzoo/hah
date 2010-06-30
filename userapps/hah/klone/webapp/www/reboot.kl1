@@ -29,11 +29,8 @@ if(REQUIRE_AUTH(SCRIPT_NAME)) { // Only reboot once authenticated
 
 <div id="wrapper">
 <div id="content">
-<div id="header">
 
 <%@include component/heading.kl1%>
-
-</div>
 
 <div id="main">
 <div id="contents">

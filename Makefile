@@ -401,7 +401,7 @@ tool:
 
 buildimage: $(KERNEL_DIR)/Image tool
 	rm -f $(INSTALL_DIR)/lib/*.a
-	$(STRIP) $(INSTALL_DIR)/lib/*.so
+	find $(INSTALL_DIR)/lib -name '*so*' -type f | xargs $(STRIP)
 	su --command="cd $(TARGETS_DIR); ./buildFS"
 	cp $(KERNEL_DIR)/Image $(TARGET_FS)
 	mkdir -p $(IMAGES_DIR)

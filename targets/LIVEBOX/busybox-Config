@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Busybox version: 1.12.1
-# Fri Apr  3 13:49:50 2009
+# Fri Jun 25 20:02:23 2010
 #
 CONFIG_HAVE_DOT_CONFIG=y
 
@@ -848,6 +848,6 @@ CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE=
 #
 # Print Utilities
 #
-CONFIG_LPD=y
-CONFIG_LPR=y
-CONFIG_LPQ=y
+# CONFIG_LPD is not set
+# CONFIG_LPR is not set
+# CONFIG_LPQ is not set

@@ -20,3 +20,4 @@ clean:
 
 dynamic: all
 	install -m 755 ntpclient $(INSTALL_DIR)/bin
+	$(STRIP) $(INSTALL_DIR)/bin/ntpclient

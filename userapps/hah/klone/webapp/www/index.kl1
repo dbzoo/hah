@@ -40,26 +40,8 @@ function comboSubmit() {
 <body class="gui">
 <div id="wrapper">
 <div id="content">
-<div id="header">
 
 <%@include component/heading.kl1%>
-
-<div id="menu">
- <div id="menuMain">
-  <ul id="menuMainList">
-<%
-	   MENU_ITEM("automation.kl1","Automation",1);
-	   MENU_ITEM("setup.kl1","Admin",1);
-%>
-    <div id="menuSub">
-     <ul id="menuSubList">
-     <li><span>Info</span></li></ul>
-    </div>
-  </ul>
- </div>
-</div>
-
-</div>
 
 <div id="main">
 <div id="contents">

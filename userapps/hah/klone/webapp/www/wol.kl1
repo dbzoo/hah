@@ -240,31 +240,8 @@ function wake(F,i) {
 <body class="gui">
 <div id="wrapper">
 <div id="content">
-<div id="header">
 
 <%@include component/heading.kl1%>
-
-<div id="menu">
- <div id="menuMain">
-  <ul id="menuMainList">
-   <li><a href="automation.kl1">Automation</a></li>
-   <li class="current"><span>Admin</span>
-    <div id="menuSub">
-     <ul id="menuSubList">
-<%
-	 MENU_ITEM("setup.kl1","Basic Setup", 1);
-	 MENU_ITEM("services.kl1","Services", 1);
-	 MENU_ITEM("webserver.kl1","Webserver", 1);
-	 MENU_ITEM("wol.kl1","WOL", 0);
-%>
-     </ul>
-    </div>
-    </li>
-  </ul>
- </div>
-</div>
-
-</div>
 
 <div id="main">
 <div id="contents">

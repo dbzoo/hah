@@ -1,34 +1,8 @@
 <%! /* -*- mode:c;coding:utf-8; -*- */
 #include "minIni.h"
 #include "const.h"
-
-/*  
- * $Id$
- * Login page.
- */
-
-// Carve up a string delimited by a comma
-// ex:   hello,world,foobar
-// arg[0] = hello
-// arg[1] = world
-// arg[2] = foobar
-// return 3
-int commaTok(char *arg[], int arglen, char *str)
-{
-	 char *p = str;
-	 int j=0;
-	 arg[j++] = str;
-	 do {
-		  if(*p == ',') {
-			   arg[j++] = p+1;
-			   *p = 0;
-			   if (j == arglen) return j;
-		  }
-		  p++;
-	 } while (*p);
-	 return j;
-}
-
+#include "utils.h"
+#include "login.h"
 
 // Check if the CURRENT page is allowed.
 int isPageAllowed(session_t *ss, char *page) {
@@ -58,9 +32,11 @@ int isPageAllowed(session_t *ss, char *page) {
 }
 
 // Check if the script/page is allowed to be accessed.
+// ALSO called from:  login.kl1
 int isScriptAllowed(session_t *ss, response_t *rp, char *script) {
 	 // Always allow access to this
-	 if (strcmp("index.kl1", script) == 0) return 1;
+	 if (strcmp("index.kl1", script) == 0 ||
+	     strcmp(SCRIPT_NAME, script) == 0) return 1;
 
 	// Strip .kl1 from the script
 	char page[20];
@@ -69,17 +45,6 @@ int isScriptAllowed(session_t *ss, response_t *rp, char *script) {
 	if (p) *p = 0;
 
 	return isPageAllowed(ss, page);
-}
-
-// MENU_ITEM
-void menu_item(FILE *out, session_t *ss, response_t *rp, char *script, char *label, int linked) {
-	 if(isScriptAllowed(ss, rp, script)) {
-	      if (linked) {
-		  io_printf(out,"<li><a href=\"%s\">%s</a></li>", script, label);
-	      } else {
-		  io_printf(out,"<li><span>%s</span></li>", label);
-	      }
-	 }
 }
 
 /*
@@ -176,24 +141,8 @@ if (!login.destination) login.destination = "index.kl1";
 <body class="gui" onload="javascript:document.forms[0].username.focus();">
 <div id="wrapper">
 <div id="content">
-<div id="header">
 
 <%@include component/heading.kl1%>
-
-<div id="menu">
- <div id="menuMain">
-  <ul id="menuMainList">
-   <li><a href="automation.kl1">Automation</a></li>
-   <li><a href="setup.kl1">Admin</a></li>
-    <div id="menuSub">
-     <ul id="menuSubList"></ul>
-    </div>
-    </li>
-  </ul>
- </div>
-</div>
-
-</div>
 
 <div id="main">
 <div id="contents">

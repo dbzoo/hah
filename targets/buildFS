@@ -12,14 +12,6 @@ ROOTFS=$PROFILE/fs
 rm -rf $ROOTFS
 mkdir $ROOTFS
 chmod 777 $ROOTFS
-# Bump build
-#if [ -e $FSSRC_DIR/etc_ro_fs/build ]; then
-#  build=`cat $FSSRC_DIR/etc_ro_fs/build`
-#  build=`expr ${build} + 1`
-#  echo $build >$FSSRC_DIR/etc_ro_fs/build
-#else
-#  echo 1 >$FSSRC_DIR/etc_ro_fs/build
-#fi
 
 cp -av $FSSRC_DIR/* $ROOTFS
 mkdir -p $ROOTFS/dev/usb
@@ -55,3 +47,5 @@ find $TOP_DIR/$ROOTFS/lib/modules -name "*.o"
 #eval "find $TOP_DIR/$ROOTFS/lib/modules -name '*.o' $MODS_KEEPSYM |xargs $STRIP --strip-unneeded"
 
 cd $TOP_DIR
+
+find $ROOTFS -name .svn | xargs rm -rf

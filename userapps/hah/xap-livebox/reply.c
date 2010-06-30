@@ -112,5 +112,5 @@ inline void info_binary_output(endpoint_t *self) {
 }
 
 inline void info_lcd(endpoint_t *self) {
-	bsc_text("info", self, "output", g_lcd_text, NULL);
+	bsc_text("info", self, "input", g_lcd_text, NULL);
 }

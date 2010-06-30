@@ -1,4 +1,5 @@
-
+# $Id$
+#
 KLONE_VERSION = 2.2.1
 
 # webapp content is in webapp/ the current dir

@@ -45,3 +45,25 @@ int subprocess(char **arg) {
 
     execv(arg[0], arg);
 }
+
+// Carve up a string delimited by a comma
+// ex:   hello,world,foobar
+//xo arg[0] = hello
+// arg[1] = world
+// arg[2] = foobar
+// return 3
+int commaTok(char *arg[], int arglen, char *str)
+{
+	 char *p = str;
+	 int j=0;
+	 arg[j++] = str;
+	 do {
+		  if(*p == ',') {
+			   arg[j++] = p+1;
+			   *p = 0;
+			   if (j == arglen) return j;
+		  }
+		  p++;
+	 } while (*p);
+	 return j;
+}

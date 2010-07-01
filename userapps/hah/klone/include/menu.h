@@ -14,7 +14,7 @@ typedef struct _menu {
 
 
 // Defined in menu.kl1
-void menu_item(FILE *out, session_t *ss, response_t *rp, char *script, char *label, int linked);
+void menu_item(FILE *out, session_t *ss, response_t *rp, char *script, char *label, int linked, int (*cond)(session_t *s));
 extern MENU mymenu[];
 
 #endif

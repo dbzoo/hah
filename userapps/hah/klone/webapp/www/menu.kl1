@@ -1,15 +1,24 @@
 <%! /* -*- mode:c;coding:utf-8; -*- */
-// Global MENU functions used by the component/menu.kl1
+/*
+ * $Id$
+ *
+ * Global MENU functions used by the component/menu.kl1
+ */
 #include "minIni.h"
 #include "const.h"
 #include "menu.h"
 #include "login.h"
 
 // Use to conditionally enable the GRAPH L2-Tab only when pachube is also enabled.
-int isPachubeEnabled() {
+int isPachubeEnabled(session_t *s) {
   char ph_enable[2];
   ini_gets("pachube","enable","0",ph_enable,sizeof(ph_enable),con.inifile);
   return ph_enable[0] == '1';
+}
+
+int isAuthenticated(session_t *s) {
+	char *username = session_get(s, "username");
+	return(username && strlen(username));
 }
 
 MENU mymenu[] =
@@ -19,21 +28,23 @@ MENU mymenu[] =
   {"Automation","Twitter","twitter.kl1", NULL},
   {"Automation","Pachube","pachube.kl1", NULL},
   {"Automation","Graph","graph.kl1", isPachubeEnabled},
-  {"Admin","Info","index.kl1",NULL},
-  {"Admin","Basic Setup","setup.kl1",NULL},
-  {"Admin","Services","services.kl1",NULL},
-  {"Admin","Webserver","webserver.kl1",NULL},
-  {"Admin","WOL","wol.kl1",NULL},
+  {"Admin","Info","index.kl1", NULL},
+  {"Admin","Basic Setup","setup.kl1", isAuthenticated},
+  {"Admin","Services","services.kl1", isAuthenticated},
+  {"Admin","Webserver","webserver.kl1", isAuthenticated},
+  {"Admin","WOL","wol.kl1", isAuthenticated},
   {NULL,NULL,NULL,NULL}
 };
 
-void menu_item(FILE *out, session_t *ss, response_t *rp, char *script, char *label, int linked) {
-	 if(isScriptAllowed(ss, rp, script)) {
-	      if (linked) {
-		  io_printf(out,"<li><a href=\"%s\">%s</a></li>", script, label);
-	      } else {
-		  io_printf(out,"<li><span>%s</span></li>", label);
-	      }
-	 }
+void menu_item(FILE *out, session_t *ss, response_t *rp, char *script, char *label, 
+	       int linked, int (*cond)(session_t *s)) 
+{
+  if((cond == NULL || (*cond)(ss)) && isScriptAllowed(ss, rp, script)) {
+    if (linked) {
+      io_printf(out,"<li><a href=\"%s\">%s</a></li>", script, label);
+    } else {
+      io_printf(out,"<li><span>%s</span></li>", label);
+    }
+  }
 }
 %>

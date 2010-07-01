@@ -9,7 +9,7 @@ const_init() {
 
 	 int size;
 	 char *file;
-	 if(u_load_file("/etc_ro_fs/build", 8, &file, &size)) {
+	 if(u_load_file("/etc_ro_fs/build", 15, &file, &size)) {
 		  con.build = strdup("?");
 	 } else {
 		  con.build = u_strndup(file, size);

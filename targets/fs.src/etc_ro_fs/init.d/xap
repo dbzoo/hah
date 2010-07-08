@@ -10,7 +10,8 @@ subsystem="livebox sms pachube googlecal currentcost twitter plugboard bridge"
 start_livebox() {
     /usr/bin/xap-hub $MYDEV &
     sleep 1
-    /usr/bin/xap-livebox -s /dev/ttyS0 -i $MYDEV &    
+    /usr/bin/xap-livebox -s /dev/ttyS0 -i $MYDEV &
+    rm -f /tmp/klone_sess*
     /usr/bin/kloned    
 }
 stop_livebox() {

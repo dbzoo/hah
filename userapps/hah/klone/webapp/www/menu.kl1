@@ -29,7 +29,7 @@ MENU mymenu[] =
   {"Automation","Pachube","pachube.kl1", NULL},
   {"Automation","Graph","graph.kl1", isPachubeEnabled},
   {"Admin","Info","index.kl1", NULL},
-  {"Admin","Basic Setup","setup.kl1", isAuthenticated},
+  {"Admin","Management","setup.kl1", isAuthenticated},
   {"Admin","Services","services.kl1", isAuthenticated},
   {"Admin","Webserver","webserver.kl1", isAuthenticated},
   {"Admin","WOL","wol.kl1", isAuthenticated},

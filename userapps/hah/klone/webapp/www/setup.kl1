@@ -253,7 +253,7 @@ addEvent(window,"load",function() {
 <div class="submitFooter">
 <input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)" />
 <input type="reset" value="Cancel Changes"/>
-<% if(reboot) { %><input type="button" name="reboot_button" value="Reboot" onclick="reboot(this.form)" /><% } %>
+<input type="button" name="reboot_button" value="Reboot" onclick="reboot(this.form)" />
 </div>
 
 </form>

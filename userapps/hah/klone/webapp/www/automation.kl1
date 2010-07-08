@@ -74,7 +74,7 @@ static void process_form() {
   else {
 	   strcpy(cmd,"action");
 	   build_action("relay",4,cmd, action_type);
-	   build_action("rf",4,cmd, action_type);
+	   build_action("rf",ini.devicesrf,cmd, action_type);
   }
   send_cmd(cmd);
 }

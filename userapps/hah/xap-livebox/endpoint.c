@@ -68,7 +68,7 @@ void add_relay(char *name, int id, int offset) {
 	 in("add_relay");
 	 snprintf(buff, sizeof buff, "%s.%d", name, id);
 	 endpoint_t *relay = add_endpoint(buff, id+offset, 
-									  &xap_cmd_relay, &info_binary_output);
+					  &xap_cmd_relay, &info_rf_relay_output);
 	 strcpy(relay->state,"off");
 	 out("add_relay");
 }

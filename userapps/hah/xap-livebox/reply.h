@@ -13,3 +13,6 @@ void event_binary_output(endpoint_t *self);
 void event_level_input(endpoint_t *self);
 void event_1wire(endpoint_t *self);
 void event_lcd(endpoint_t *self);
+
+void event_rf_relay_output(endpoint_t *self);
+void info_rf_relay_output(endpoint_t *self);

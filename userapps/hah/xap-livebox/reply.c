@@ -1,5 +1,5 @@
 /* $Id$
-  */
+ */
 
 #include "xapdef.h"
 #include "appdef.h"
@@ -57,10 +57,16 @@ static void bsc_1wire_text(char *type, endpoint_t *self) {
 	out("bsc_1wire_text");
 }
 
-static void bsc_state(char *type, endpoint_t *self, char *io_type) {
+static void bsc_state(char *type, endpoint_t *self, char *io_type, char *displaytext) {
 	in("bsc_state");
 	char body[64] = "state=";
 	strlcat(body, self->state, sizeof(body));
+	if(displaytext && *displaytext) {
+		strlcat(body, "\ndisplaytext=", sizeof(body));
+		strlcat(body, displaytext, sizeof(body));
+		strlcat(body, " ", sizeof(body));
+		strlcat(body, self->state, sizeof(body));
+	}
 	xap_message(self, type, io_type, body);
 	out("bsc_state");
 }
@@ -79,11 +85,44 @@ inline void event_1wire(endpoint_t *self) {
 }
 
 inline void event_binary_input(endpoint_t *self) {
-	bsc_state("event", self, "input");
+	bsc_state("event", self, "input", NULL);
+}
+
+static void bsc_rf_relay_output(endpoint_t *self, char *type) {
+	in("bsc_rf_relay_output");
+	char buf[64];
+	buf[0] = '\0';
+	// This is a bit of a hack.  self->name will contain something like
+	// rf.1 or relay.2 as the endpoint, however each is in it own section.
+	// [rf]
+	// rf1.label=
+	// [relay]
+	// relay2.label=
+	// 
+	// So we carve up the endpoint name so we can look up the corresponding label.
+	char *section = strdup(self->name);
+	char *dot = strchr(section,'.');
+	if (dot) {
+		*dot = '\0';
+		char key[32];
+		snprintf(key, sizeof(key), "%s%s.label", section, dot+1);
+		ini_gets(section, key, "", buf, sizeof(buf), inifile);
+	}
+	bsc_state(type, self, "output", buf);
+	out("bsc_rf_relay_output");
+
+}
+
+inline void event_rf_relay_output(endpoint_t *self) {
+	bsc_rf_relay_output(self, "event");
+}
+
+inline void info_rf_relay_output(endpoint_t *self) {
+	bsc_rf_relay_output(self, "info");
 }
 
 inline void event_binary_output(endpoint_t *self) {
-	bsc_state("event", self, "output");
+	bsc_state("event", self, "output",NULL);
 }
 
 inline void event_level_input(endpoint_t *self) {
@@ -104,11 +143,11 @@ inline void info_level_output(endpoint_t *self) {
 }
 
 inline void info_binary_input(endpoint_t *self) {
-	bsc_state("info", self, "input");
+	bsc_state("info", self, "input",NULL);
 }
 
 inline void info_binary_output(endpoint_t *self) {
-	bsc_state("info", self, "output");
+	bsc_state("info", self, "output",NULL);
 }
 
 inline void info_lcd(endpoint_t *self) {

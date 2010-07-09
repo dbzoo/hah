@@ -247,7 +247,7 @@ int cmd_relay(endpoint_t *self, char *stateStr) {
 		  strcpy(self->state, state ? "on" : "off");
 		  snprintf(arg, sizeof(arg), "%d", self->subid);
 		  // The state is also the AVR command.
-		  event_binary_output(self);
+		  event_rf_relay_output(self);
 		  return serial_cmd_msg(self->state, arg);
 	 }
 	 return -1;

@@ -113,7 +113,7 @@ void parseini() {
 					int pin;
 					for(pin=0; pin<7; pin++) {
 						 snprintf(buff,sizeof buff,"i2c.%02X.%d", addr, pin);
-						 add_endpoint(buff, addr, &xap_cmd_ppe_pin, &info_binary_output);
+						 add_endpoint(buff, addr, &xap_cmd_ppe_pin, &info_rf_relay_output);
 					}
 					setup_i2c_ppe(addr);
 			   } 

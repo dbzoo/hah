@@ -181,7 +181,7 @@ case 1:
 </fieldset>
 <br/>
 <div class="submitFooter">
-  <input type="submit" value="login"/></td>
+  <input type="submit" value="Login"/></td>
   <input type="hidden" value="1" name="action"/>
 </div>
 </form>

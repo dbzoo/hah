@@ -58,11 +58,11 @@ cmd_t cmd[] = {
 	 { NULL, NULL },
 };
 
-static void serin_binary_helper(char *endpoint_name, int state) {
+static void serin_binary_helper(char *endpoint_name, int state, void (*event_func)()) {
 	 endpoint_t *endpoint = find_endpoint(endpoint_name);
 	 if(endpoint) {
 		  strcpy(endpoint->state, state ? "on" : "off");
-		  event_binary_input(endpoint);	 	 // generate an XAP event.
+		  (*event_func)(endpoint);
 	 }
 }
 
@@ -92,7 +92,7 @@ static void serin_input(cmd_t *s, char *argv[]) {
           bit = i + 2;
 		  if ((old ^ new) & (1 << bit)) {
 			   snprintf(buff,sizeof buff,"input.%d", i+1);   // 1 base index - input1, input2 etc..
-			   serin_binary_helper(buff, new & (1<<bit));
+			   serin_binary_helper(buff, new & (1<<bit), event_binary_input_labeled);
 		  }
 	 }
 	 out("serin_input");
@@ -152,7 +152,7 @@ static void serin_ppe(cmd_t *s, char *argv[]) {
 			   if ((oldi ^ newi) & (1 << pin)) {
 					// Compute an ENDPOINT name
 					snprintf(buff,sizeof buff,"i2c.%s.%d", addr, pin);
-					serin_binary_helper(buff, newi & (1<<pin));
+					serin_binary_helper(buff, newi & (1<<pin), event_binary_input);
 			   }
 		  }
 	 }
@@ -247,7 +247,7 @@ int cmd_relay(endpoint_t *self, char *stateStr) {
 		  strcpy(self->state, state ? "on" : "off");
 		  snprintf(arg, sizeof(arg), "%d", self->subid);
 		  // The state is also the AVR command.
-		  event_rf_relay_output(self);
+		  event_binary_output_labeled(self);
 		  return serial_cmd_msg(self->state, arg);
 	 }
 	 return -1;

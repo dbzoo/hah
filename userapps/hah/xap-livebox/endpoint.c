@@ -68,7 +68,7 @@ void add_relay(char *name, int id, int offset) {
 	 in("add_relay");
 	 snprintf(buff, sizeof buff, "%s.%d", name, id);
 	 endpoint_t *relay = add_endpoint(buff, id+offset, 
-					  &xap_cmd_relay, &info_rf_relay_output);
+					  &xap_cmd_relay, &info_binary_output_labeled);
 	 strcpy(relay->state,"off");
 	 out("add_relay");
 }
@@ -83,9 +83,9 @@ void load_endpoints() {
 		  add_relay("relay",i,0);
 	 }
 	 add_endpoint("lcd", 0, &xap_cmd_lcd, &info_lcd);
-	 add_endpoint("input.1", 1, CMD_IGNORE, &info_binary_input);
-	 add_endpoint("input.2", 2, CMD_IGNORE, &info_binary_input);
-	 add_endpoint("input.3", 3, CMD_IGNORE, &info_binary_input);
-	 add_endpoint("input.4", 4, CMD_IGNORE, &info_binary_input);
+	 add_endpoint("input.1", 1, CMD_IGNORE, &info_binary_input_labeled);
+	 add_endpoint("input.2", 2, CMD_IGNORE, &info_binary_input_labeled);
+	 add_endpoint("input.3", 3, CMD_IGNORE, &info_binary_input_labeled);
+	 add_endpoint("input.4", 4, CMD_IGNORE, &info_binary_input_labeled);
 	 out("load_endpoints");
 }

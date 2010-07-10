@@ -71,25 +71,8 @@ static void bsc_state(char *type, endpoint_t *self, char *io_type, char *display
 	out("bsc_state");
 }
 
-static void bsc_level(char *type, endpoint_t *self, char *io_type) {
-	in("bsc_level");
-	char body[64] = "state=on\nlevel=";
-	strlcat(body, self->state, sizeof(body));
-	xap_message(self, type, io_type, body);
-	out("bsc_level");
-}
-
-/** BSC Events **/
-inline void event_1wire(endpoint_t *self) {
-	bsc_1wire_text("event", self);
-}
-
-inline void event_binary_input(endpoint_t *self) {
-	bsc_state("event", self, "input", NULL);
-}
-
-static void bsc_rf_relay_output(endpoint_t *self, char *type) {
-	in("bsc_rf_relay_output");
+static void bsc_state_labeled(char *type, endpoint_t *self, char *io_type)
+{
 	char buf[64];
 	buf[0] = '\0';
 	// This is a bit of a hack.  self->name will contain something like
@@ -108,21 +91,36 @@ static void bsc_rf_relay_output(endpoint_t *self, char *type) {
 		snprintf(key, sizeof(key), "%s%s.label", section, dot+1);
 		ini_gets(section, key, "", buf, sizeof(buf), inifile);
 	}
-	bsc_state(type, self, "output", buf);
-	out("bsc_rf_relay_output");
-
+	bsc_state(type, self, io_type, buf);
 }
 
-inline void event_rf_relay_output(endpoint_t *self) {
-	bsc_rf_relay_output(self, "event");
+static void bsc_level(char *type, endpoint_t *self, char *io_type) {
+	in("bsc_level");
+	char body[64] = "state=on\nlevel=";
+	strlcat(body, self->state, sizeof(body));
+	xap_message(self, type, io_type, body);
+	out("bsc_level");
 }
 
-inline void info_rf_relay_output(endpoint_t *self) {
-	bsc_rf_relay_output(self, "info");
+/** BSC Events **/
+inline void event_1wire(endpoint_t *self) {
+	bsc_1wire_text("event", self);
+}
+
+inline void event_binary_input(endpoint_t *self) {
+	bsc_state("event", self, "input", NULL);
+}
+
+inline void event_binary_input_labeled(endpoint_t *self) {
+	bsc_state_labeled("event", self, "input");
 }
 
 inline void event_binary_output(endpoint_t *self) {
 	bsc_state("event", self, "output",NULL);
+}
+
+inline void event_binary_output_labeled(endpoint_t *self) {
+	bsc_state_labeled("event", self, "output");
 }
 
 inline void event_level_input(endpoint_t *self) {
@@ -143,11 +141,19 @@ inline void info_level_output(endpoint_t *self) {
 }
 
 inline void info_binary_input(endpoint_t *self) {
-	bsc_state("info", self, "input",NULL);
+	bsc_state("input", self, "info", NULL);
+}
+
+inline void info_binary_input_labeled(endpoint_t *self) {
+	bsc_state_labeled("info", self, "input");
 }
 
 inline void info_binary_output(endpoint_t *self) {
-	bsc_state("info", self, "output",NULL);
+	bsc_state("info", self, "output", NULL);
+}
+
+inline void info_binary_output_labeled(endpoint_t *self) {
+	bsc_state_labeled("info", self, "output");
 }
 
 inline void info_lcd(endpoint_t *self) {

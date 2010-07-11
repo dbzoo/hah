@@ -58,12 +58,13 @@ cmd_t cmd[] = {
 	 { NULL, NULL },
 };
 
-static void serin_binary_helper(char *endpoint_name, int state, void (*event_func)()) {
+static endpoint_t *dispatch_event(char *endpoint_name, char *state) {
 	 endpoint_t *endpoint = find_endpoint(endpoint_name);
 	 if(endpoint) {
-		  strcpy(endpoint->state, state ? "on" : "off");
-		  (*event_func)(endpoint);
+	   strlcpy(endpoint->state, state, EP_STATE_SIZE);
+	   (*endpoint->event)(endpoint);
 	 }
+	 return endpoint;
 }
 
 // Process inbound SERIAL command
@@ -92,7 +93,7 @@ static void serin_input(cmd_t *s, char *argv[]) {
           bit = i + 2;
 		  if ((old ^ new) & (1 << bit)) {
 			   snprintf(buff,sizeof buff,"input.%d", i+1);   // 1 base index - input1, input2 etc..
-			   serin_binary_helper(buff, new & (1<<bit), event_binary_input_labeled);
+			   dispatch_event(buff, new & (1<<bit) ? "on" : "off");
 		  }
 	 }
 	 out("serin_input");
@@ -111,12 +112,7 @@ static void serin_1wire(cmd_t *s, char *argv[]) {
 
 	 strcpy(buff, "1wire.");
 	 strlcat(buff, argv[0], sizeof buff);
-	 
-	 endpoint_t *endpoint = find_endpoint(buff);
-	 if(endpoint) {
-		  strlcpy(endpoint->state, argv[1], EP_STATE_SIZE);
-		  event_1wire(endpoint);
-	 }
+	 dispatch_event(buff, argv[1]);
 	 out("serin_1wire");
 }
 
@@ -139,11 +135,8 @@ static void serin_ppe(cmd_t *s, char *argv[]) {
 
 	 snprintf(buff, sizeof buff, "i2c.%s", addr);
 
-	 endpoint_t *endpoint = find_endpoint(buff);
-	 if(endpoint) { // We are in BYTE mode
-		  strlcpy(endpoint->state, new, EP_STATE_SIZE);
-		  event_level_input(endpoint);
-	 } else {
+	 // Try BYTE mode, fallback to PIN mode on failure.
+	 if(dispatch_event(buff, new) == NULL) {
 		  int pin;
 		  int newi = atoi(new);
 		  int oldi = atoi(old);
@@ -152,7 +145,7 @@ static void serin_ppe(cmd_t *s, char *argv[]) {
 			   if ((oldi ^ newi) & (1 << pin)) {
 					// Compute an ENDPOINT name
 					snprintf(buff,sizeof buff,"i2c.%s.%d", addr, pin);
-					serin_binary_helper(buff, newi & (1<<pin), event_binary_input);
+					dispatch_event(buff, newi & (1<<pin) ? "on" : "off");
 			   }
 		  }
 	 }
@@ -243,12 +236,10 @@ int parse_level(char *str) {
 int cmd_relay(endpoint_t *self, char *stateStr) {
 	 int state = decode_state(stateStr);
 	 if(state >= 0) {
-		  char arg[10];
-		  strcpy(self->state, state ? "on" : "off");
-		  snprintf(arg, sizeof(arg), "%d", self->subid);
-		  // The state is also the AVR command.
-		  event_binary_output_labeled(self);
-		  return serial_cmd_msg(self->state, arg);
+		 dispatch_event(self->name, state ? "on" : "off");
+		 char arg[10];
+		 snprintf(arg, sizeof(arg), "%d", self->subid);
+		 return serial_cmd_msg(self->state, arg);
 	 }
 	 return -1;
 }
@@ -266,7 +257,7 @@ void xap_cmd_relay(endpoint_t *self, char *section) {
 // Send a message to the LCD (internally and from web-server)
 void cmd_lcd(char *msg) {
 	 serial_lcd_msg(msg);
-	 event_lcd(find_endpoint("lcd"));     
+	 dispatch_event("lcd","on");
 }
 
 // Decode an XAP message for the LCD
@@ -335,6 +326,8 @@ void xap_handler(const char* a_buf) {
 
 	 xapmsg_parse(a_buf);
 
+	 if(xapmsg_gettype() != XAP_MSG_ORDINARY) return;
+	 
 	 if (xapmsg_getvalue("xap-header:target", i_target)==0) {
 		  if (g_debuglevel>3) printf("No target in header, not for us\n");
 

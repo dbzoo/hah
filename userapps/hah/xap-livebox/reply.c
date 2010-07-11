@@ -127,6 +127,10 @@ inline void event_level_input(endpoint_t *self) {
 	bsc_level("event", self, "input");
 }
 
+inline void event_level_output(endpoint_t *self) {
+	bsc_level("event", self, "output");
+}
+
 inline void event_lcd(endpoint_t *self) {
 	bsc_text("event", self, "input", g_lcd_text, NULL);
 }

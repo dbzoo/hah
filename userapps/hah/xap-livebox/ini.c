@@ -107,13 +107,13 @@ void parseini() {
 			   }
 			   if(strcmp(mode,"byte") == 0) {
 					snprintf(buff,sizeof buff,"i2c.%02X", addr); 
-					add_endpoint(buff, addr, &xap_cmd_ppe_byte, &info_level_output);
+					add_endpoint(buff, addr, &xap_cmd_ppe_byte, &info_level_output, &event_level_output);
 					setup_i2c_ppe(addr);
 			   } else if(strcmp(mode,"pin") == 0) {
 					int pin;
 					for(pin=0; pin<7; pin++) {
 						 snprintf(buff,sizeof buff,"i2c.%02X.%d", addr, pin);
-						 add_endpoint(buff, addr, &xap_cmd_ppe_pin, &info_binary_output_labeled);
+						 add_endpoint(buff, addr, &xap_cmd_ppe_pin, &info_binary_output, &event_binary_output);
 					}
 					setup_i2c_ppe(addr);
 			   } 
@@ -127,7 +127,7 @@ void parseini() {
 			   if (n > 15) n = 15;
 			   while(n > 0) {
 					snprintf(buff,sizeof buff,"1wire.%d", n);
-					add_endpoint(buff, n, NULL, &info_1wire);					
+					add_endpoint(buff, n, NULL, &info_1wire, &event_1wire);					
 					n--;
 			   }
 		  } 

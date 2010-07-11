@@ -17,9 +17,10 @@ endpoint_t *endpoint_list = NULL;
    It will be added to the HEAD of the list.
  */
 endpoint_t *add_endpoint(char *name, 
-						 char subid, 
-						 void (*cmd)(endpoint_t *, char *),
-						 void (*info)(endpoint_t *)
+			 char subid, 
+			 void (*cmd)(endpoint_t *, char *),
+			 void (*info)(endpoint_t *),
+			 void (*event)(endpoint_t *)
 	 )
 {
 	 endpoint_t *elem;
@@ -41,6 +42,7 @@ endpoint_t *add_endpoint(char *name,
 	 elem->name = strdup(name);
 	 elem->cmd = cmd;
 	 elem->info = info;
+	 elem->event = event;
 	 elem->id = (char *)malloc(EP_ID_SIZE);
 	 sprintf(elem->id,"%02X", element_count);
 	 elem->state = (char *)malloc(EP_STATE_SIZE);
@@ -68,7 +70,9 @@ void add_relay(char *name, int id, int offset) {
 	 in("add_relay");
 	 snprintf(buff, sizeof buff, "%s.%d", name, id);
 	 endpoint_t *relay = add_endpoint(buff, id+offset, 
-					  &xap_cmd_relay, &info_binary_output_labeled);
+					  &xap_cmd_relay, 
+					  &info_binary_output_labeled,
+					  &event_binary_output_labeled);
 	 strcpy(relay->state,"off");
 	 out("add_relay");
 }
@@ -82,10 +86,10 @@ void load_endpoints() {
 	 for(i = 1; i < 5; i++) {
 		  add_relay("relay",i,0);
 	 }
-	 add_endpoint("lcd", 0, &xap_cmd_lcd, &info_lcd);
-	 add_endpoint("input.1", 1, CMD_IGNORE, &info_binary_input_labeled);
-	 add_endpoint("input.2", 2, CMD_IGNORE, &info_binary_input_labeled);
-	 add_endpoint("input.3", 3, CMD_IGNORE, &info_binary_input_labeled);
-	 add_endpoint("input.4", 4, CMD_IGNORE, &info_binary_input_labeled);
+	 add_endpoint("lcd", 0, &xap_cmd_lcd, &info_lcd, &event_lcd);
+	 add_endpoint("input.1", 1, CMD_IGNORE, &info_binary_input_labeled, &event_binary_input_labeled);
+	 add_endpoint("input.2", 2, CMD_IGNORE, &info_binary_input_labeled, &event_binary_input_labeled);
+	 add_endpoint("input.3", 3, CMD_IGNORE, &info_binary_input_labeled, &event_binary_input_labeled);
+	 add_endpoint("input.4", 4, CMD_IGNORE, &info_binary_input_labeled, &event_binary_input_labeled);
 	 out("load_endpoints");
 }

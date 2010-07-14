@@ -1,21 +1,29 @@
 /*
-  || $Id$
   ||
-  || Provide a xAP capabilities
+  || @file 	xAP.cpp
+  || @version	1.1
+  || @author	Brett England
+  || @contact	brett@dbzoo.com
   ||
-  || This library is free software; you can redistribute it and/or
-  || modify it under the terms of the GNU Lesser General Public
-  || License as published by the Free Software Foundation; version
-  || 2.1 of the License.
-  || 
-  || This library is distributed in the hope that it will be useful,
-  || but WITHOUT ANY WARRANTY; without even the implied warranty of
-  || MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  || Lesser General Public License for more details.
-  || 
-  || You should have received a copy of the GNU Lesser General Public
-  || License along with this library; if not, write to the Free Software
-  || Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+  || @description
+  || | Provide an xAP capabilities
+  || #
+  ||
+  || @license
+  || | This library is free software; you can redistribute it and/or
+  || | modify it under the terms of the GNU Lesser General Public
+  || | License as published by the Free Software Foundation; version
+  || | 2.1 of the License.
+  || |
+  || | This library is distributed in the hope that it will be useful,
+  || | but WITHOUT ANY WARRANTY; without even the implied warranty of
+  || | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  || | Lesser General Public License for more details.
+  || |
+  || | You should have received a copy of the GNU Lesser General Public
+  || | License along with this library; if not, write to the Free Software
+  || | Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+  || #
   ||
 */
 
@@ -82,14 +90,14 @@ void XapClass::rtrim( byte *msg,  byte *p) {
 }
 
 // buf is modified.
-int XapClass::parseMsg(byte *buf) {
+int XapClass::parseMsg(byte *msg, int size) {
      enum {
 	  START_SECTION_NAME, IN_SECTION_NAME, START_KEYNAME, IN_KEYNAME, START_KEYVALUE, IN_KEYVALUE  
      } state = START_SECTION_NAME;
      char *current_section = NULL;
-     byte *msg = buf;
+     xapMsgPairs = 0;
   
-     for(xapMsgPairs=0; *buf; buf++) {
+     for(byte *buf = msg; buf < msg+size; buf++) {
 	  switch (state) {
 	  case START_SECTION_NAME:
 	       if ( (*buf>32) && (*buf<128) ) {

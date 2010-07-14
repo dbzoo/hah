@@ -1,6 +1,6 @@
 /*
   ||
-  || @file 	xAPSerial.cpp
+  || @file 	xAPEther.h
   || @version	1.0
   || @author	Brett England
   || @contact	brett@dbzoo.com
@@ -26,43 +26,21 @@
   || #
   ||
 */
-#ifndef XAPSERIAL_H
-#define XAPSERIAL_H
+#ifndef XAPETHER_H
+#define XAPETHER_H
 
 #include "xAP.h"
 
-#define STX 2
-#define ETX 3
-#define ESC 27
-
-enum unframe_state {
-    ST_START, ST_COMPILE, ST_COMPILE_ESC, ST_END
-};
-
-class XapSerial : public XapClass {
+class XapEther : public XapClass {
  public:
-  XapSerial(void);
-  XapSerial(char *source, char *uid);
+  XapEther(void);
+  XapEther(char *source, char *uid);
 
-  // When a framed xAP message is received, parse and callback (func)
-  void processSerial(void (*func)());
+  // When a xAP message is received, parse and callback (func)
+  void processPacket(byte *buf, word len, void (*func)());
   // Send a xap-hbeat and reset the heartbeat timeout.
   void sendHeartbeat(void);
- // unframeSerialMsg() requires an accumulation buffer.
-  void setSerialBuffer(byte *buf, int size);
-  // Send a serial heartbeat, if required.
-  void heartbeat();
-  void dumpParsedMsg();
-
- private:
-  // State machine to accumulate an XAP message from the serial port.
-  byte *unframeSerialMsg(int ch); 
-
-  byte *xapRaw;
-  int xapRawSize;
-
-  enum unframe_state state;
-  byte *p; // Position in xapRaw between unframeSerialMsg calls.
+  void heartbeat(void);
 };
 
 #endif

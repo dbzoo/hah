@@ -1,21 +1,29 @@
 /*
-  || $Id$
   ||
-  || Provide a xAP capabilities
+  || @file 	xAPSerial.cpp
+  || @version	1.0
+  || @author	Brett England
+  || @contact	brett@dbzoo.com
   ||
-  || This library is free software; you can redistribute it and/or
-  || modify it under the terms of the GNU Lesser General Public
-  || License as published by the Free Software Foundation; version
-  || 2.1 of the License.
-  || 
-  || This library is distributed in the hope that it will be useful,
-  || but WITHOUT ANY WARRANTY; without even the implied warranty of
-  || MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  || Lesser General Public License for more details.
-  || 
-  || You should have received a copy of the GNU Lesser General Public
-  || License along with this library; if not, write to the Free Software
-  || Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+  || @description
+  || | Provide an xAP capabilities for Serial ports
+  || #
+  ||
+  || @license
+  || | This library is free software; you can redistribute it and/or
+  || | modify it under the terms of the GNU Lesser General Public
+  || | License as published by the Free Software Foundation; version
+  || | 2.1 of the License.
+  || |
+  || | This library is distributed in the hope that it will be useful,
+  || | but WITHOUT ANY WARRANTY; without even the implied warranty of
+  || | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  || | Lesser General Public License for more details.
+  || |
+  || | You should have received a copy of the GNU Lesser General Public
+  || | License along with this library; if not, write to the Free Software
+  || | Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+  || #
   ||
 */
 #include "xAPSerial.h"
@@ -25,7 +33,7 @@ XapSerial::XapSerial(void) : XapClass() {
      state = ST_START;
      p = NULL;
      xapRaw = NULL;
-     xapRawEOB = NULL;
+     xapRawSize = 0;
 }
 
 XapSerial::XapSerial(char *source, char *uid) : XapClass(source,uid) {
@@ -33,20 +41,39 @@ XapSerial::XapSerial(char *source, char *uid) : XapClass(source,uid) {
 }
 
 void XapSerial::processSerial(void (*func)()) {
-     while(Serial.available() > 0) {
-	  byte *msg = unframeSerialMsg(Serial.read());
-	  if(msg) {
-	       parseMsg(msg);
-	       (*func)();
-	  }
-     }
-     heartbeat();
+  while(Serial.available() > 0) {
+    if(unframeSerialMsg(Serial.read())) {
+      parseMsg(xapRaw, p-xapRaw);
+      (*func)();
+    }
+  }
+  heartbeat();
 }
 
 void XapSerial::heartbeat() {
      if (after(heartbeatTimeout)) {      
        sendHeartbeat();
      }
+}
+
+/* Reconstruct an XAP packet from the parsed components.
+ */
+void XapSerial::dumpParsedMsg() {
+  char *currentSection = NULL;
+  for(int i=0; i < xapMsgPairs; i++) {
+    if (currentSection == NULL || currentSection != xapMsg[i].section) {
+      if(currentSection != NULL) {
+	Serial.println("}");
+      }
+      Serial.println(xapMsg[i].section);
+      Serial.println("{");
+      currentSection = xapMsg[i].section;
+    }
+    Serial.print(xapMsg[i].key);
+    Serial.print("=");
+    Serial.println(xapMsg[i].value);
+  }
+  Serial.println("}");
 }
 
 void XapSerial::sendHeartbeat(void) {
@@ -63,13 +90,13 @@ void XapSerial::sendHeartbeat(void) {
 
 void XapSerial::setSerialBuffer(byte *p, int s) {
   xapRaw = p;
-  xapRawEOB = p + s;  // Last usable address in the buffer.
+  xapRawSize = s;
 }
 
 // Unframe and calculate the checksum
 byte *XapSerial::unframeSerialMsg(int ch) {
      // Check for: Unset buffer or buffer over-run.
-     if (xapRaw == NULL || p >= xapRawEOB) {
+     if (xapRaw == NULL || p >= (xapRaw + xapRawSize)) {
 	  state = ST_START;
      }
 

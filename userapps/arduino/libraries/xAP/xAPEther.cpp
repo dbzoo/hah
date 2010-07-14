@@ -27,7 +27,7 @@
   ||
 */
 #include "xAPEther.h"
-#include <net.h>
+#include "../EtherCard/EtherCard.h"
 
 XapEther::XapEther(void) : XapClass() {
 }

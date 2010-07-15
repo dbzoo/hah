@@ -38,19 +38,15 @@ void setup () {
 }
 
 static void homePage() {
-  long t = millis() / 1000;
-  word h = t / 3600;
-  byte m = (t / 60) % 60;
-  byte s = t % 60;
   bfill.emit_p(PSTR(
   "HTTP/1.0 200 OK\r\n"
     "Content-Type: text/html\r\n"
     "Pragma: no-cache\r\n"
     "\r\n"
-    "<meta http-equiv='refresh' content='1'/>"
-    "<title>xAP Node</title>"
-    "<h1>Xap Node</h1>"
-    "<h2>$D$D:$D$D:$D$D</h2>"), h/10, h%10, m/10, m%10, s/10, s%10);
+    "<title>xAP Demonstration</title>"
+    "<h1>Xap Demonstration</h1>"
+    "Pin $D state: $S<p>"
+    "<a href=\"http://www.dbzoo.com/\">www.dbzoo.com</a>"), buttonPin, buttonState ? "HIGH" : "LOW");
 }
 
 void sendXapState(char *clazz) {

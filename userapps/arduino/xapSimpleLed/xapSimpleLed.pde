@@ -32,7 +32,7 @@ void setup()
      pinMode(ledPin, OUTPUT);  // Mark the LED PIN for OUTPUT
      digitalWrite(ledPin, HIGH); // Light LED to show we are initializing.
  
-     Xap.setSerialBuffer(xapBuff, sizeof(xapBuff));
+     Xap.setBuffer(xapBuff, sizeof(xapBuff));
  
      Serial.begin(38400);      // Setup the serial port 38400 baud.     
      Xap.sendHeartbeat();      // Send an initial heartbeat to show we are alive.
@@ -44,7 +44,7 @@ void setup()
 void loop() {
      // Receive framed xap message on the serial port, 
      // de-frame, parse and call inboundXapMsg() when done.
-     Xap.processSerial(inboundXapMsg);
+     Xap.process(inboundXapMsg);
 }
 
 // Now we do some work with an inbound XAP message.
@@ -58,7 +58,7 @@ void inboundXapMsg() {
      char *clazz = Xap.getValue("xap-header", "class");
 
      if(strcasecmp(clazz, "xAPBSC.cmd") == 0) {
-        digitalWrite(ledPin, Xap.getBSCstate("output.state.1","state"));         
+        digitalWrite(ledPin, Xap.getState("output.state.1","state"));         
      } else if(strcasecmp(clazz,"xAPBSC.query") == 0) {
          sendXapInfo();
      }

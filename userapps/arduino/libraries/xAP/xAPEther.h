@@ -6,7 +6,7 @@
   || @contact	brett@dbzoo.com
   ||
   || @description
-  || | Provide an xAP capabilities for Serial ports
+  || | Provide an xAP capabilities for NuElectronic ethernet module
   || #
   ||
   || @license
@@ -30,17 +30,29 @@
 #define XAPETHER_H
 
 #include "xAP.h"
+#include <../EtherCard/EtherCard.h>
+
+#define XAP_PORT 3639
 
 class XapEther : public XapClass {
  public:
-  XapEther(void);
-  XapEther(char *source, char *uid);
+  XapEther();
+  XapEther(byte *mac, byte *ip);
+  XapEther(char *source, char *uid, byte *mac, byte *ip);
 
   // When a xAP message is received, parse and callback (func)
-  void processPacket(byte *buf, word len, void (*func)());
+  void setBuffer(byte *buf, word len);
+  void process(word len, void (*callback)());
   // Send a xap-hbeat and reset the heartbeat timeout.
   void sendHeartbeat(void);
-  void heartbeat(void);
+
+ private:
+  void (*xapCallback)();
+
+  byte *xapbuf;
+  word xapbuflen;
 };
 
+extern EtherCard eth;
+extern BufferFiller bfill;
 #endif

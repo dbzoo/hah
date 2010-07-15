@@ -40,7 +40,14 @@ XapClass::XapClass(void) {
      XapClass("dbzoo.arduino.demo","FFDB2000");
 }
 
-void XapClass::resetHeartbeat(void) {
+void XapClass::heartbeat(void) {
+     if (after(heartbeatTimeout)) {      
+       sendHeartbeat();
+       resetHeartbeat();
+     }
+}
+
+void XapClass::resetHeartbeat() {
      heartbeatTimeout = smillis() + XAP_HEARTBEAT;
 }
 
@@ -75,7 +82,7 @@ int XapClass::decode_state(char *msg) {
      return -1;
 }
 
-int XapClass::getBSCstate(char *section, char *key) {
+int XapClass::getState(char *section, char *key) {
      return decode_state(getValue(section, key));
 }
 
@@ -149,4 +156,25 @@ int XapClass::parseMsg(byte *msg, int size) {
 	  }
      }
      return xapMsgPairs;
+}
+
+/* Reconstruct an XAP packet from the parsed components
+   and dump it to the serial port.  Useful for debugging.
+ */
+void XapClass::dumpParsedMsg() {
+  char *currentSection = NULL;
+  for(int i=0; i < xapMsgPairs; i++) {
+    if (currentSection == NULL || currentSection != xapMsg[i].section) {
+      if(currentSection != NULL) {
+	Serial.println("}");
+      }
+      Serial.println(xapMsg[i].section);
+      Serial.println("{");
+      currentSection = xapMsg[i].section;
+    }
+    Serial.print(xapMsg[i].key);
+    Serial.print("=");
+    Serial.println(xapMsg[i].value);
+  }
+  Serial.println("}");
 }

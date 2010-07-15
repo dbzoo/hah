@@ -40,7 +40,7 @@ XapSerial::XapSerial(char *source, char *uid) : XapClass(source,uid) {
   XapSerial();
 }
 
-void XapSerial::processSerial(void (*func)()) {
+void XapSerial::process(void (*func)()) {
   while(Serial.available() > 0) {
     if(unframeSerialMsg(Serial.read())) {
       parseMsg(xapRaw, p-xapRaw);
@@ -50,34 +50,7 @@ void XapSerial::processSerial(void (*func)()) {
   heartbeat();
 }
 
-void XapSerial::heartbeat() {
-     if (after(heartbeatTimeout)) {      
-       sendHeartbeat();
-     }
-}
-
-/* Reconstruct an XAP packet from the parsed components.
- */
-void XapSerial::dumpParsedMsg() {
-  char *currentSection = NULL;
-  for(int i=0; i < xapMsgPairs; i++) {
-    if (currentSection == NULL || currentSection != xapMsg[i].section) {
-      if(currentSection != NULL) {
-	Serial.println("}");
-      }
-      Serial.println(xapMsg[i].section);
-      Serial.println("{");
-      currentSection = xapMsg[i].section;
-    }
-    Serial.print(xapMsg[i].key);
-    Serial.print("=");
-    Serial.println(xapMsg[i].value);
-  }
-  Serial.println("}");
-}
-
 void XapSerial::sendHeartbeat(void) {
-  resetHeartbeat();
   Serial.print(STX, BYTE);
   Serial.println("xap-hbeat\n{\nv=12\nhop=1");
   Serial.print("uid=");  Serial.println(UID);
@@ -88,7 +61,7 @@ void XapSerial::sendHeartbeat(void) {
   Serial.print(ETX, BYTE);
 }
 
-void XapSerial::setSerialBuffer(byte *p, int s) {
+void XapSerial::setBuffer(byte *p, int s) {
   xapRaw = p;
   xapRawSize = s;
 }

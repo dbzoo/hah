@@ -1,36 +1,40 @@
-// This is a demo of an Xap receiver node with a WEB Server
 // $Id$
-
+//
+// This is a demo of an Xap receiver / sender
+//
+// The circuit:
+// * pushbutton attached to pin 3 from +5V
+// * 10K resistor attached to pin 3 from ground
+//
+// When the button is pressed an xAPBSC.event will be sent.
+// Also repond to an xAPBSC.query asking about the current button state.
+//
 #include <EtherCard.h>
 #include <xAPEther.h>
 
 // ethernet interface mac address
 static byte mymac[6] = { 
   0x54,0x55,0x58,0x10,0x00,0x26 };
-
-// ethernet interface ip address
 static byte myip[4] = { 
   192,168,1,15 };
-
-// listen port for tcp/www:
-#define HTTP_PORT 80
-
 static byte buf[500];
-static BufferFiller bfill;
+
+const int buttonPin = 3;
+int buttonState = 0;  // current state of the button
+int lastButtonState = 0;
 
 // XAP Identification
 #define UID "FFDB5500"
 #define SOURCE "dbzoo.arduino.demo"
 #define ENDPOINT SOURCE":print"
 
-EtherCard eth;
-XapEther xap(SOURCE, UID);
+XapEther xap(SOURCE, UID, mymac, myip);
 
 void setup () {
-  eth.spiInit();
-  eth.initialize(mymac);
-  eth.initIp(mymac, myip, HTTP_PORT);
   Serial.begin(115200);
+  pinMode(buttonPin, INPUT);
+  xap.setBuffer(buf, sizeof buf);
+  xap.sendHeartbeat();
 }
 
 static void homePage() {
@@ -44,26 +48,65 @@ static void homePage() {
     "Pragma: no-cache\r\n"
     "\r\n"
     "<meta http-equiv='refresh' content='1'/>"
-    "<title>XAP node</title>" 
-    "<h1>Uptime: $D$D:$D$D:$D$D</h1>"), h/10, h%10, m/10, m%10, s/10, s%10);
+    "<title>xAP Node</title>"
+    "<h1>Xap Node</h1>"
+    "<h2>$D$D:$D$D:$D$D</h2>"), h/10, h%10, m/10, m%10, s/10, s%10);
 }
 
-void processXap() {
+void sendXapState(char *clazz) {
+    bfill = eth.udpOffset(buf);
+    bfill.emit_p(PSTR("xap-header\n"
+		    "{\n"
+		    "v=12\n"
+		    "hop=1\n"
+		    "uid=$S\n"
+		    "class=$S\n"
+		    "source=$S\n"
+		    "}\n"
+		    "output.state.1\n"
+		    "{\n"
+                    "state=$D\n"
+                    "}"), UID, clazz, SOURCE, buttonState);
+  eth.sendUdpBroadcast(buf, bfill.position(), XAP_PORT, XAP_PORT);    
+}
+
+void processXapMsg() {
+  //Handy for debugging - parsed XAP message is dumped to serial port.
+  //xap.dumpParsedMsg();
   if(xap.getType() != XAP_MSG_ORDINARY) return;
   if(!xap.isValue("xap-header","target", ENDPOINT)) return;
-  Serial.println("Got xAP packet");
-  //xap.dumpParsedMsg();
+
+  char *clazz = xap.getValue("xap-header", "class");
+
+  if(strcasecmp(clazz,"xAPBSC.query") == 0) {
+    sendXapState("xAPBSC.info");
+  }
 }
 
 void loop () {
-  word len = eth.packetReceive(buf, sizeof buf);  
+  word len = eth.packetReceive(buf, sizeof buf);
+
   // ENC28J60 loop runner: handle ping and wait for a tcp packet
-  word pos = eth.packetLoop(buf,len);  
-  if (pos) {  // check if valid www data is received
+  word pos = eth.packetLoop(buf,len);
+
+  // Check if valid www data is received.
+  if(pos) 
+  {
     bfill = eth.tcpOffset(buf);
     homePage();
-    eth.httpServerReply(buf,bfill.position()); // send web page data
+    eth.httpServerReply(buf,bfill.position()); // send web page data    
+  } 
+  else 
+  {  // Handle xAP UDP
+    xap.process(len, processXapMsg);
   }
-  xap.processPacket(buf, len, processXap);
+  
+  // read the pushbutton input pin:
+  buttonState = digitalRead(buttonPin);
+  // compare the buttonState to its previous state
+  if (buttonState != lastButtonState) {
+    sendXapState("xAPBSC.event");
+    lastButtonState = buttonState;
+  }
 }
 

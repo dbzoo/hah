@@ -220,26 +220,25 @@ void make_echo_reply_from_request(byte *buf,uint16_t len) {
 	enc28j60PacketSend(len,buf);
 }
 
-void make_udp_reply_from_request(byte *buf,char *data,byte datalen,uint16_t port) {
+void make_udp_reply_from_request(byte *buf,char *data,uint16_t datalen,uint16_t port) {
+        uint16_t len = IP_HEADER_LEN+UDP_HEADER_LEN+datalen;
 	make_eth(buf);
-	if (datalen>220)
-		datalen=220;
-	buf[IP_TOTLEN_H_P]=0;
-	buf[IP_TOTLEN_L_P]=IP_HEADER_LEN+UDP_HEADER_LEN+datalen;
+	buf[IP_TOTLEN_H_P]=len>>8;
+	buf[IP_TOTLEN_L_P]=len;
 	make_ip(buf);
 	buf[UDP_DST_PORT_H_P]=buf[UDP_SRC_PORT_H_P];
 	buf[UDP_DST_PORT_L_P]= buf[UDP_SRC_PORT_L_P];
 	buf[UDP_SRC_PORT_H_P]=port>>8;
 	buf[UDP_SRC_PORT_L_P]=port;
-	buf[UDP_LEN_H_P]=0;
-	buf[UDP_LEN_L_P]=UDP_HEADER_LEN+datalen;
-	buf[UDP_CHECKSUM_H_P]=0;
-	buf[UDP_CHECKSUM_L_P]=0;
-	byte i=0;
-	while(i<datalen){
-		buf[UDP_DATA_P+i]=data[i];
-		i++;
+	len -= IP_HEADER_LEN;
+	buf[UDP_LEN_H_P]=len>>8;
+	buf[UDP_LEN_L_P]=len;
+
+	byte *udpbuf = buf + UDP_DATA_P;
+	for(uint16_t i=datalen; i > 0; i--) {
+	  *udpbuf++ = *data++;
 	}
+
 	uint16_t ck=checksum(&buf[IP_SRC_P], 16 + datalen,1);
 	buf[UDP_CHECKSUM_H_P]=ck>>8;
 	buf[UDP_CHECKSUM_L_P]=ck;
@@ -453,27 +452,40 @@ void send_udp_prepare(byte *buf,uint16_t sport, byte *dip, uint16_t dport) {
 	buf[UDP_CHECKSUM_L_P]=0;
 }
 
-void send_udp_transmit(byte *buf,byte datalen) {
-	buf[IP_TOTLEN_L_P]=IP_HEADER_LEN+UDP_HEADER_LEN+datalen;
+void send_udp_transmit(byte *buf,uint16_t datalen) {
+        uint16_t len = IP_HEADER_LEN+UDP_HEADER_LEN+datalen;
+	buf[IP_TOTLEN_H_P]=len>>8;
+	buf[IP_TOTLEN_L_P]=len;
 	fill_ip_hdr_checksum(buf);
-	buf[UDP_LEN_L_P]=UDP_HEADER_LEN+datalen;
+	len -= IP_HEADER_LEN;
+	buf[UDP_LEN_H_P]=len>>8;
+	buf[UDP_LEN_L_P]=len;
 	uint16_t ck=checksum(&buf[IP_SRC_P], 16 + datalen,1);
 	buf[UDP_CHECKSUM_H_P]=ck>>8;
 	buf[UDP_CHECKSUM_L_P]=ck;
 	enc28j60PacketSend(UDP_HEADER_LEN+IP_HEADER_LEN+ETH_HEADER_LEN+datalen,buf);
 }
 
-void send_udp(byte *buf,char *data,byte datalen,uint16_t sport, byte *dip, uint16_t dport) {
-	send_udp_prepare(buf,sport, dip, dport);
-	byte i=0;
-	if (datalen>220)
-		datalen=220;
-	i=0;
-	while(i<datalen){
-		buf[UDP_DATA_P+i]=data[i];
-		i++;
+static void send_udp_data(byte *buf, char *data, uint16_t datalen) {
+	byte *udpbuf = buf + UDP_DATA_P;     // Adjust packet point to be into the UDP data area.
+	for(uint16_t i=datalen; i > 0; i--) {
+		*udpbuf++ = *data++;    // Copy into the packet buffer.
 	}
-	send_udp_transmit(buf,datalen);
+	send_udp_transmit(buf, datalen);
+}
+
+void send_udp_broadcast(byte *buf, uint16_t datalen, uint16_t sport, uint16_t dport) {
+	send_udp_prepare(buf, sport, ipaddr, dport);
+	for(uint16_t i=0; i<6; i++) { // Override header for broadcast
+		buf[ETH_DST_MAC + i] = 0xff;
+	}
+	buf[IP_DST_P+3]=0xff; // Broadcast IP (Assumes netmask 255.255.255.0)
+	send_udp_transmit(buf, datalen);
+}
+
+void send_udp(byte *buf,char *data,uint16_t datalen, uint16_t sport, byte *dip, uint16_t dport) {
+	send_udp_prepare(buf, sport, dip, dport);
+        send_udp_data(buf, data, datalen);
 }
 
 void send_wol(byte *buf,byte *wolmac) {

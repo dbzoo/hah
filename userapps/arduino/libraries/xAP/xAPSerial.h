@@ -45,14 +45,11 @@ class XapSerial : public XapClass {
   XapSerial(char *source, char *uid);
 
   // When a framed xAP message is received, parse and callback (func)
-  void processSerial(void (*func)());
-  // Send a xap-hbeat and reset the heartbeat timeout.
+  void process(void (*func)());
+  // Send a xap-hbeat
   void sendHeartbeat(void);
  // unframeSerialMsg() requires an accumulation buffer.
-  void setSerialBuffer(byte *buf, int size);
-  // Send a serial heartbeat, if required.
-  void heartbeat();
-  void dumpParsedMsg();
+  void setBuffer(byte *buf, int size);
 
  private:
   // State machine to accumulate an XAP message from the serial port.

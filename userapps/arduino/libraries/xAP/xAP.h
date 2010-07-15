@@ -54,19 +54,19 @@ class XapClass
   XapClass(void);
   XapClass(char *source, char *uid);
   char *getValue(char *section, char *key);    // Get the contents of a parsed xAP message by section/key.
-  int getBSCstate(char *section, char *key);   // Get a BSC state value
+  int getState(char *section, char *key);   // Get a BSC state value
   int isValue(char *section, char *key, char *value);   // does section/key have value ?
   int getType(void);               // The (TYPE) of the xAP message
   int parseMsg(byte *buf, int size);  // Parse a raw XAP message; exposed for Ethernet shield users.
   int after(long);                    // Useful for managing TIMED events such as heartbeats and info
-  void resetHeartbeat(void);
-  friend class XapSerial;
-  friend class XapEther;
+  void dumpParsedMsg();
+  void heartbeat(void);
+  virtual void sendHeartbeat() {};
 
- private:
   const char *SOURCE;
   const char *UID;
 
+ private:
   struct xapmsg_buffer xapMsg[MAX_XAP_PAIRS];
   byte xapMsgPairs;
 
@@ -74,5 +74,6 @@ class XapClass
 
   int decode_state(char *msg);
   void rtrim(byte *msg, byte *p);
+  void resetHeartbeat();
 };
 #endif

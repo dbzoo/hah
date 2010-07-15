@@ -40,15 +40,11 @@ class XapEther : public XapClass {
   XapEther(byte *mac, byte *ip);
   XapEther(char *source, char *uid, byte *mac, byte *ip);
 
-  // When a xAP message is received, parse and callback (func)
   void setBuffer(byte *buf, word len);
   void process(word len, void (*callback)());
-  // Send a xap-hbeat and reset the heartbeat timeout.
   void sendHeartbeat(void);
 
  private:
-  void (*xapCallback)();
-
   byte *xapbuf;
   word xapbuflen;
 };

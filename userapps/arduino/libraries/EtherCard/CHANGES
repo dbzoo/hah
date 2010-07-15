@@ -3,6 +3,7 @@
 * Modified from JEENODE to NUELECTRONICS module
 * Don't filter out UDP broadcasts
 * Handle sending UDP packets > 255 bytes
+* Added UDP Broadcast sending support
 
 2010-06-20 jcw
 

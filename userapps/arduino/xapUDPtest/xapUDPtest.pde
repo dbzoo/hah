@@ -3,8 +3,8 @@
 // This is a demo of an Xap receiver / sender
 //
 // The circuit:
-// * pushbutton attached to pin 3 from +5V
-// * 10K resistor attached to pin 3 from ground
+// * pushbutton attached to pin 7 from +5V
+// * 10K resistor attached to pin 7 from ground
 //
 // When the button is pressed an xAPBSC.event will be sent.
 // Also repond to an xAPBSC.query asking about the current button state.
@@ -19,7 +19,7 @@ static byte myip[4] = {
   192,168,1,15 };
 static byte buf[500];
 
-const int buttonPin = 3;
+const int buttonPin = 7;
 int buttonState = 0;  // current state of the button
 int lastButtonState = 0;
 
@@ -31,10 +31,11 @@ int lastButtonState = 0;
 XapEther xap(SOURCE, UID, mymac, myip);
 
 void setup () {
-  Serial.begin(115200);
+  //Serial.begin(115200);
   pinMode(buttonPin, INPUT);
   xap.setBuffer(buf, sizeof buf);
-  xap.sendHeartbeat();
+  delay(800); // ethenet chip to restart
+  sendXapState("xAPBSC.info");
 }
 
 static void homePage() {
@@ -68,6 +69,7 @@ void sendXapState(char *clazz) {
 
 void processXapMsg() {
   //Handy for debugging - parsed XAP message is dumped to serial port.
+  //Don't forget to uncomment the Serial.begin in setup()
   //xap.dumpParsedMsg();
   if(xap.getType() != XAP_MSG_ORDINARY) return;
   if(!xap.isValue("xap-header","target", ENDPOINT)) return;

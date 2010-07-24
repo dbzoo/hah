@@ -6,21 +6,25 @@
 // * pushbutton attached to pin 7 from +5V
 // * 10K resistor attached to pin 7 from ground
 //
+// If you don't use a resister you need to enable the internal pull-ups
+// add this to the setup() phase.
+//    digitalWrite(buttonPin, HIGH);
+//
 // When the button is pressed an xAPBSC.event will be sent.
 // Also repond to an xAPBSC.query asking about the current button state.
 //
 #include <EtherCard.h>
 #include <xAPEther.h>
+#include <Bounce.h>
 
 // ethernet interface mac address
-static byte mymac[6] = { 
-  0x54,0x55,0x58,0x10,0x00,0x26 };
-static byte myip[4] = { 
-  192,168,1,15 };
+static byte mymac[6] = { 0x54,0x55,0x58,0x10,0x00,0x26 };
+static byte myip[4] = { 192,168,1,15 };
 static byte buf[500];
 
 const int buttonPin = 7;
-int buttonState = 0;  // current state of the button
+Bounce button = Bounce(buttonPin, 5);  // 5ms debounce
+int buttonState = 0;
 int lastButtonState = 0;
 
 // XAP Identification
@@ -39,6 +43,7 @@ void setup () {
 }
 
 static void homePage() {
+  bfill = eth.tcpOffset(buf);
   bfill.emit_p(PSTR(
   "HTTP/1.0 200 OK\r\n"
     "Content-Type: text/html\r\n"
@@ -48,6 +53,7 @@ static void homePage() {
     "<h1>Xap Demonstration</h1>"
     "Pin $D state: $S<p>"
     "<a href=\"http://www.dbzoo.com/\">www.dbzoo.com</a>"), buttonPin, buttonState ? "HIGH" : "LOW");
+  eth.httpServerReply(buf,bfill.position()); // send web page data
 }
 
 void sendXapState(char *clazz) {
@@ -73,36 +79,24 @@ void processXapMsg() {
   //xap.dumpParsedMsg();
   if(xap.getType() != XAP_MSG_ORDINARY) return;
   if(!xap.isValue("xap-header","target", ENDPOINT)) return;
-
-  char *clazz = xap.getValue("xap-header", "class");
-
-  if(strcasecmp(clazz,"xAPBSC.query") == 0) {
+  if(xap.isValue("xap-header","class","xAPBSC.query")) {
     sendXapState("xAPBSC.info");
   }
 }
 
 void loop () {
-  word len = eth.packetReceive(buf, sizeof buf);
-
+  word len = eth.packetReceive(buf, sizeof(buf));
   // ENC28J60 loop runner: handle ping and wait for a tcp packet
-  word pos = eth.packetLoop(buf,len);
-
-  // Check if valid www data is received.
-  if(pos) 
-  {
-    bfill = eth.tcpOffset(buf);
-    homePage();
-    eth.httpServerReply(buf,bfill.position()); // send web page data    
-  } 
-  else 
-  {  // Handle xAP UDP
+  word pos = eth.packetLoop(buf, len);  
+  if(pos) {  // Check if valid www data is received.
+    homePage();        
+  } else { // Handle xAP UDP
     xap.process(len, processXapMsg);
-  }
-  
-  // read the pushbutton input pin:
-  buttonState = digitalRead(buttonPin);
-  // compare the buttonState to its previous state
-  if (buttonState != lastButtonState) {
+  }  
+
+  button.update ( );  // Update the debouncer   
+  buttonState = button.read();  // read the pushbutton input pin:  
+  if (buttonState != lastButtonState) { // Compare to previous
     sendXapState("xAPBSC.event");
     lastButtonState = buttonState;
   }

@@ -137,6 +137,8 @@ void xap_handler(const char* a_buf)
 	     if(strcasecmp(map->name,"text") == 0) {
 		     if(g_debuglevel) printf("send tweet: %s\n", map->value);
 		     sendTweet(twit, map->value);
+		     // Get it back to update the ID so its not deleted!
+		     getLatestTweet(twit, tweet, sizeof(tweet), &last_tweet);
 	     }
      }
 }
@@ -176,7 +178,7 @@ void process_loop()
 				xap_handler(i_xap_buff);
 			}
 		} else { // timeout
-			getLatestTweet(twit, tweet, sizeof(tweet), &id);
+ 			getLatestTweet(twit, tweet, sizeof(tweet), &id);
 			if(id > last_tweet) {
 				process_tweet();
 				last_tweet = id;

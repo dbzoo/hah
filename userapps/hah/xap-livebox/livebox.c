@@ -202,8 +202,8 @@ static int serial_lcd_msg(char *msg) {
 }
 
 int decode_state(const char *msg) {
-	static const char *value[] = {"on","off","true","yes","false","no","1","0"};
-	static const int state[] = {1,0,1,1,0,0,1,0};
+        static const char *value[] = {"on","off","true","yes","false","no","1","0","toggle"};
+        static const int state[] = {1,0,1,1,0,0,1,0,2};
 	int i;
 
 	for(i=0; i < sizeof(value); i++) {
@@ -233,15 +233,17 @@ int parse_level(char *str) {
 
 // The relay endpoint being controlled and state
 // will act upon this relay
+// BSC (1.3) handle "toggle" as the steteStr.
 int cmd_relay(endpoint_t *self, char *stateStr) {
 	 int state = decode_state(stateStr);
-	 if(state >= 0) {
-		 dispatch_event(self->name, state ? "on" : "off");
-		 char arg[10];
-		 snprintf(arg, sizeof(arg), "%d", self->subid);
-		 return serial_cmd_msg(self->state, arg);
+	 if (state == -1) return -1; // error
+	 if (state == 2) { // toggle
+	   state = strcmp(self->state,"on") == 0 ? 0 : 1;
 	 }
-	 return -1;
+	 dispatch_event(self->name, state ? "on" : "off");
+	 char arg[10];
+	 snprintf(arg, sizeof(arg), "%d", self->subid);
+	 return serial_cmd_msg(self->state, arg);
 }
 
 void xap_cmd_relay(endpoint_t *self, char *section) {
@@ -281,6 +283,9 @@ void xap_cmd_ppe_pin(endpoint_t *self, char *section) {
 	 snprintf(key, sizeof(key), "%s:state", section);
 	 if(xapmsg_getvalue(key, i_msg)) {
 		  int state = decode_state(i_msg);
+		  if (state == 2) { // toggle
+		    state = strcmp(self->state,"on") == 0 ? 0 : 1;
+		  }
 		  if(state >= 0) {
 			   char arg[10];
 			   // The pin being modified corresponds to the last digit of the ENDPOINT name

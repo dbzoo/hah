@@ -178,6 +178,7 @@ static void xap_info_startup() {
 	     "class=xAPBSC.info\nsource=%s.%s.%s:%s\n}"			\
 	     "\ninput.state\n{\nstate=on\ntext=0\n}\n",
 	     g_uid, XAP_ME, XAP_SOURCE, g_instance, subtype[model][i]);
+    xap_send_message(i_xapmsg);
   }
 }
 

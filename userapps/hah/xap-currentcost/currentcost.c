@@ -41,7 +41,8 @@ int idx;
 int state;
 int hysteresis;
 
-enum {CC128,CLASSIC};
+#define CC128 0
+#define CLASSIC 1
 int model;
 
 /* SAX element (TAG) callback
@@ -163,9 +164,26 @@ static void xap_message(char *body, char *subtype, int id) {
 	 }
 }
 
+// Report basic information - CC128 may have other channels/sensors if these are avilable they will
+// appear with the first EVENT, this is just initial "hay here we are" type information.
+static void xap_info_startup() {
+  // CC128, CLASSIC
+  static char *subtype[2][3] = {{"ch1.0","temp",0}, {"ch1","temp", 0}};
+  char i_xapmsg[1500];
+  int i;
+
+  for(i=0; subtype[model][i]; i++) {
+    snprintf(i_xapmsg, sizeof(i_xapmsg),
+	     "xAP-header\n{\nv=12\nhop=1\nuid=%s\n"			\
+	     "class=xAPBSC.info\nsource=%s.%s.%s:%s\n}"			\
+	     "\ninput.state\n{\nstate=on\ntext=0\n}\n",
+	     g_uid, XAP_ME, XAP_SOURCE, g_instance, subtype[model][i]);
+  }
+}
+
 static void xap_watt_info(int ch) {
-	 char body[32];
-	 snprintf(body,sizeof(body),"state=on\nlevel=%d", cc.channel[ch]);
+	 char body[64];
+	 snprintf(body,sizeof(body),"state=on\ndisplaytext=%d watts\ntext=%d", cc.channel[ch], cc.channel[ch]);
 	 char subtype[10];
 	 snprintf(subtype, sizeof(subtype),"ch%d", ch+1);  // Convert ZERO index to base 1.
 	 xap_message(body, subtype, 1);
@@ -337,5 +355,6 @@ int main(int argc, char *argv[]) {
 	 setupXAPini();
 	 xap_init(argc, argv, 0);
 	 setup_serial_port();
+	 xap_info_startup();
 	 process_event();
 }

@@ -5,9 +5,10 @@
 
 #define ACT_ON 0
 #define ACT_OFF 1
-#define ACT_SETLCD 2
+#define ACT_TOGGLE 2
+#define ACT_SETLCD 3
 
-static char *action_s[] = {"on","off","lcd"};
+static char *action_s[] = {"on","off","toggle","lcd"};
 
 static struct {
 	 char temp_unit[2];
@@ -40,6 +41,9 @@ static void build_action(char *item, int count, char *action, int action_type) {
 					break;
 			   case ACT_OFF:
 					strcat(action,"off");
+					break;
+			   case ACT_TOGGLE:
+					strcat(action,"toggle");
 					break;
 			   }
 		  }
@@ -234,6 +238,7 @@ function comboSubmit() {
 <option value="" selected>Action&nbsp;</option>
 <option value="on">On
 <option value="off">Off
+<option value="toggle">Toggle
 <option value="lcd">Set LCD
 </select>
 </div>

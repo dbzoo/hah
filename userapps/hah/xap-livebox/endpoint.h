@@ -7,18 +7,21 @@
 #ifndef ENDPOINT_H
 #define ENDPOINT_H
 
+#include <time.h>
+
 #define EP_STATE_SIZE 10
 #define EP_ID_SIZE    3
 
 typedef struct _endpoint {
-	 char *id;
-	 char *name;
-	 char subid;
-	 char *state; // 5 bytes of something.
-	 void (*cmd )(struct _endpoint *self, char *section);
-	 void (*info)(struct _endpoint *self);
-	 void (*event)(struct _endpoint *self);
-	 struct _endpoint *next;
+	char *id;
+	char *name;
+	char subid;
+	char *state; // 5 bytes of something.
+	time_t event_time;
+	void (*cmd )(struct _endpoint *self, char *section);
+	void (*info)(struct _endpoint *self);
+	void (*event)(struct _endpoint *self);
+	struct _endpoint *next;
 } endpoint_t;
 
 extern endpoint_t *endpoint_list;        // Head of endpoint list

@@ -13,6 +13,7 @@ static struct {
 	 char temp_unit[2];
 	 int devices1wire;
 	 int devicesrf;
+         int timeout_1wire;
 	 char cc_uid[5];
 	 char cc_instance[30];
 	 char cc_enable[2];
@@ -122,6 +123,13 @@ static void submit_form() {
 		  ini.temp_unit[0] = *temp_unit;
 	 }
 
+	 const char *ctimeout_1wire = request_get_arg(request, "timeout_1wire");
+	 int timeout_1wire = atoi(ctimeout_1wire);
+	 if(timeout_1wire != ini.timeout_1wire) {
+		 ini_puts("1wire","timeout", ctimeout_1wire, con.inifile);
+		 ini.timeout_1wire = timeout_1wire;
+	 }
+
 	 int cc_restart = 0;
 
 	 const char *cc_uid = request_get_arg(request,"cc_uid");
@@ -196,6 +204,7 @@ static void readIni() {
 	 ini.devices1wire = ini_getl("1wire","devices", 0, con.inifile);
 	 ini.devicesrf = ini_getl("rf","devices", 0, con.inifile);
 	 ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), con.inifile);
+	 ini.timeout_1wire = ini_getl("1wire","timeout", 0, con.inifile);
 	 ini_gets("currentcost","enable","0",ini.cc_enable,sizeof(ini.cc_enable),con.inifile);
 	 ini_gets("currentcost","hystersis","10",ini.cc_hysteresis,sizeof(ini.cc_hysteresis),con.inifile);
 	 ini_gets("currentcost","usbserial","/dev/ttyUSB0",ini.cc_usbserial,sizeof(ini.cc_usbserial),con.inifile);
@@ -374,6 +383,10 @@ io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"sensor
     <div class="label">Temperature units</div>
 	<input class="spaceradio" type="radio" value="C" name="temp" <% if(ini.temp_unit[0] == 'C') { %> checked="checked"<% } %>/>Celsius&nbsp;
     <input class="spaceradio" type="radio" value="F" name="temp" <% if(ini.temp_unit[0] == 'F') { %> checked="checked"<% } %>/>Fahrenheit
+  </div>
+  <div class="setting">
+  <div class="label">Timeout check</div>
+    <input class="num" type="text" name="timeout_1wire" onblur="valid_range(this,0,99,'Timeout')" value="<% io_printf(out,"%d",ini.timeout_1wire); %>" maxlength="2" size="2"/> Minute(s)
   </div>
 </fieldset>
 <fieldset>

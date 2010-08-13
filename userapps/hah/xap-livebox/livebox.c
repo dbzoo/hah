@@ -23,6 +23,7 @@
 #include "server.h"
 #include "reply.h"
 #include "debug.h"
+#include "ini.h"
 #include <termios.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -62,6 +63,7 @@ static endpoint_t *dispatch_event(char *endpoint_name, char *state) {
 	 endpoint_t *endpoint = find_endpoint(endpoint_name);
 	 if(endpoint) {
 	   strlcpy(endpoint->state, state, EP_STATE_SIZE);
+	   endpoint->event_time = time(NULL);
 	   (*endpoint->event)(endpoint);
 	 }
 	 return endpoint;
@@ -423,6 +425,22 @@ void send_all_info() {
 	 out("send_all_info");
 }
 
+// Periodicially check that we are receiving data from our 1wire devices.
+void check_1wire_timeout() {
+  long n = ini_getl("1wire", "timeout", -1, inifile); // minutes
+  if (n < 1) return;  // No checking
+
+  n *= 60; // to seconds.
+  time_t now = time(NULL);
+  FOREACH_ENDPOINT(endpoint) {
+    if(endpoint->event_time && strncmp("1wire", endpoint->name, 5) == 0) {
+      if(now - endpoint->event_time > n) {
+	strcpy(endpoint->state, "?");
+      }
+    }
+  }
+}
+
 void process_event() {
 	 fd_set master, i_rdfs;
 	 int i_retval;
@@ -523,6 +541,8 @@ void process_event() {
 
 		  // Send heartbeat periodically
 		  xap_heartbeat_tick(HBEAT_INTERVAL);
+
+		  check_1wire_timeout();
 	 } // while(1)
 }
 

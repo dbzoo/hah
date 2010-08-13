@@ -43,6 +43,7 @@ endpoint_t *add_endpoint(char *name,
 	 elem->cmd = cmd;
 	 elem->info = info;
 	 elem->event = event;
+	 elem->event_time = 0;
 	 elem->id = (char *)malloc(EP_ID_SIZE);
 	 sprintf(elem->id,"%02X", element_count);
 	 elem->state = (char *)malloc(EP_STATE_SIZE);

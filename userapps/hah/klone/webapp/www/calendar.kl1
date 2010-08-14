@@ -111,8 +111,6 @@ addEvent(window,"load",function() {
 
 <%@include component/heading.kl1%>
 
-</div>
-
 <div id="main">
 <div id="contents">
 <form name="services" action="<%= SCRIPT_NAME %>" method="post">

@@ -25,6 +25,7 @@ MENU mymenu[] =
 {
   {"Automation","Control","automation.kl1", NULL},
   {"Automation","Configure","config.kl1", NULL},
+  {"Automation","Calendar","calendar.kl1", NULL},
   {"Automation","Twitter","twitter.kl1", NULL},
   {"Automation","Pachube","pachube.kl1", NULL},
   {"Automation","Graph","graph.kl1", isPachubeEnabled},

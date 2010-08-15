@@ -138,7 +138,7 @@ static void endElementCB(void *ctx, const xmlChar *name)
 
 static void xap_message(char *body, char *subtype, int id) {
 	 char i_xapmsg[1500];
-	 char uid[8];
+  	 char uid[8];
 	 int len;
 
 	 strlcpy(uid, g_uid, sizeof uid);
@@ -171,13 +171,16 @@ static void xap_info_startup() {
   static char *subtype[2][3] = {{"ch1.0","temp",0}, {"ch1","temp", 0}};
   char i_xapmsg[1500];
   int i;
+  char uid[8];
 
   for(i=0; subtype[model][i]; i++) {
+    strlcpy(uid, g_uid, sizeof uid);
+    sprintf(&uid[6], "%02x", i+1);  // create sub address
     snprintf(i_xapmsg, sizeof(i_xapmsg),
 	     "xAP-header\n{\nv=12\nhop=1\nuid=%s\n"			\
 	     "class=xAPBSC.info\nsource=%s.%s.%s:%s\n}"			\
 	     "\ninput.state\n{\nstate=on\ntext=0\n}\n",
-	     g_uid, XAP_ME, XAP_SOURCE, g_instance, subtype[model][i]);
+	     uid, XAP_ME, XAP_SOURCE, g_instance, subtype[model][i]);
     xap_send_message(i_xapmsg);
   }
 }

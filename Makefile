@@ -286,7 +286,7 @@ xap-plugboard: xaplib libluarex lua
 	install -m 755 $(HAH_DIR)/xap-plugboard/xap-plugboard $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-plugboard
 
-klone:
+klone: libcurl
 	$(MAKE) -C $(HAH_DIR)/klone
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/klone/kloned $(INSTALL_DIR)/usr/bin

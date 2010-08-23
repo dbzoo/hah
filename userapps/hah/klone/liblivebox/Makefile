@@ -12,9 +12,12 @@ KLONE_CONF_ARGS += --enable_hooks
 LIB = livebox
 
 # list of source files
-SRCS = comms.c minIni.c const.c hooks.c utils.c
+SRCS = comms.c minIni.c const.c hooks.c utils.c tcurl.c oauth.c hash.c xmalloc.c
 
 # compilation flags
-CFLAGS += -I ../include $(KLONE_CFLAGS)
+OPENSRC = ../../../opensource
+CURL=$(OPENSRC)/curl/include
+OPENSSL=$(OPENSRC)/openssl/include
+CFLAGS += -I../include -I$(CURL) -I$(OPENSSL) $(KLONE_CFLAGS)
 
 include lib.mk

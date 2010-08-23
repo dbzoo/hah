@@ -14,10 +14,14 @@ KLONE_CONF_ARGS += --enable_hooks
 SUBDIR = $(CURDIR)/liblivebox
 
 # include directories
-WEBAPP_CFLAGS = -I$(CURDIR)/include
+OPENSRC = $(CURDIR)/../../opensource
+CURL=$(OPENSRC)/curl
+OPENSSL=$(OPENSRC)/openssl
+WEBAPP_CFLAGS = -I$(CURDIR)/include -I$(CURL)/include -I$(OPENSSL)/include
+WEBAPP_LDFLAGS = -L$(CURDIR)/../../../targets/fs.src/lib -lcurl
 
 # static libraries
-WEBAPP_LDADD = $(CURDIR)/liblivebox/liblivebox.a
+WEBAPP_LDADD = $(CURDIR)/liblivebox/liblivebox.a 
 
 include klapp.mk
 

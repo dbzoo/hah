@@ -1,5 +1,5 @@
 /**
- $Id$
+ $Id: tcurl.h 10 2010-01-15 18:44:18Z dbzoo.com $
 
  Brett England
  No commercial use.
@@ -11,6 +11,7 @@
 #define _TWITCURL_H_
 
 #include <curl/curl.h>
+#include <klone/io.h>
 
 #define TWITCURL_URL_LEN 512
 
@@ -26,13 +27,17 @@ typedef struct _tcurl {
   char *userid;
   char *oauthAccessKey;
   char *oauthAccessSecret;
+  io_t *out;
 } tcurl;
 
-extern char *CONSUMER_KEY;
-extern char *CONSUMER_SECRET;
+extern const char *CONSUMER_KEY;
+extern const char *CONSUMER_SECRET;
 
-tcurl *new_tcurl();
+tcurl *new_tcurl(io_t *io);
 void free_tcurl(tcurl *c);
 int userGet(tcurl *c, char *userInfo, int isUserId);
 char *getLastWebResponse(tcurl *c);
+char *oauthGetAuthorizeUrl(tcurl *c, char *callbackURL);
+int oauthParseReply(char *reply, char **token, char **secret, char **user, char **userid);
+int oauthAuthorize(tcurl *c, char *oauth_verify);
 #endif

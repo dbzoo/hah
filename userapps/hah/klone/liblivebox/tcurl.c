@@ -1,5 +1,5 @@
 /**
-   $Id$
+   $Id: tcurl.c 10 2010-01-15 18:44:18Z dbzoo.com $
  
    Minimalist Twitter interface
 
@@ -15,15 +15,11 @@
 #include <assert.h>
 #include "tcurl.h"
 #include <errno.h>
-#include "oauth.h"
-#include <libxml/tree.h>
-#include <libxml/xpath.h>
+#include <oauth.h>
 
 #ifdef IDENT
-#ident "@(#) $Id$"
+#ident "@(#) $Id: tcurl.c 10 2010-01-15 18:44:18Z dbzoo.com $"
 #endif
-
-extern int g_debuglevel;
 
 static void clearCallbackBuffers(tcurl *c) {
         memset( c->errorBuffer, 0, CURL_ERROR_SIZE);
@@ -45,7 +41,7 @@ static size_t write_cb(void *ptr, size_t count, size_t chunk_size, void *data)
                 c->cb_length = current_length + size + 1;
                 ptr_tmp = (char *)realloc(c->callbackData, c->cb_length);
                 if (!ptr_tmp) {
-                        printf("write_cb: Failed relloc!");
+                        io_printf(c->out,"<b>write_cb: Failed relloc!</b>");
                         goto exit;
                 }
                 c->callbackData = ptr_tmp;
@@ -56,7 +52,7 @@ exit:
 }
 
 
-tcurl *new_tcurl() {
+tcurl *new_tcurl(io_t *io) {
         tcurl *c = (tcurl *)malloc(sizeof(tcurl));
 
         clearCallbackBuffers(c);
@@ -66,9 +62,10 @@ tcurl *new_tcurl() {
         c->curlHandle = curl_easy_init();
         c->oauthAccessKey = NULL;
         c->oauthAccessSecret = NULL;
+	c->out = io;
 
         if (NULL == c->curlHandle) {
-		printf("Fail to init CURL");
+		io_printf(io, "<p>Fail to init CURL</p>");
         } else {
 		/* Set buffer to get error */
 		curl_easy_setopt( c->curlHandle, CURLOPT_ERRORBUFFER, c->errorBuffer );
@@ -102,9 +99,7 @@ int performGet(tcurl *c) {
 
         curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 1);
         curl_easy_setopt( c->curlHandle, CURLOPT_URL, req_url_signed);
-	if(g_debuglevel) {
-	  curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
-	}
+
 
         int ret= CURLE_OK == curl_easy_perform(c->curlHandle);
         curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 0);
@@ -143,9 +138,7 @@ static int performPost(tcurl *c, char *url, char *msg) {
         curl_easy_setopt( c->curlHandle, CURLOPT_POST, 1 );
         curl_easy_setopt( c->curlHandle, CURLOPT_URL, url );
 	curl_easy_setopt( c->curlHandle, CURLOPT_POSTFIELDS, msg );
-	if(g_debuglevel) {
-	  curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
-	}
+
 
         headerlist = curl_slist_append(headerlist, "Expect:"); // Disable
 	http_hdr = malloc(strlen(req_hdr) + 55);
@@ -167,119 +160,149 @@ static int performPost(tcurl *c, char *url, char *msg) {
         return ret;
 }
 
-static int performDelete(tcurl *c) {
-	int argc;
-	char **argv = NULL;
-        clearCallbackBuffers(c);
-
-	argc = oauth_split_url_parameters(c->url, &argv);	
-	char *req_url_signed = oauth_sign_array2(&argc, &argv, 
-						 NULL,  // postarg
-						 OA_HMAC, "DELETE",
-						 CONSUMER_KEY, CONSUMER_SECRET, 
-						 c->oauthAccessKey, c->oauthAccessSecret);
-	oauth_free_array(&argc, &argv);
-
-        curl_easy_setopt( c->curlHandle, CURLOPT_CUSTOMREQUEST, "DELETE");
-        curl_easy_setopt( c->curlHandle, CURLOPT_URL, req_url_signed);
-        if(g_debuglevel)
-          curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
-
-        int ret = CURLE_OK == curl_easy_perform(c->curlHandle);
-        curl_easy_setopt( c->curlHandle, CURLOPT_CUSTOMREQUEST, 0);
-
-        free(req_url_signed);
-        return ret;
-}
-
 inline char *getLastWebResponse( tcurl *c )
 {
         return c->callbackData;
 }
 
- 
-int deleteTweetById( tcurl *c, long long id ) {
-        int retVal = -1;
-        if( isCurlInit(c) )
-        {
-                snprintf(c->url, TWITCURL_URL_LEN, "http://twitter.com/statuses/destroy/%lld.xml", id);
-                retVal = performDelete( c );
-        }
-        return retVal;
-}
-
-int userGet(tcurl *c, char *userInfo, int isUserId) {
-        int retVal;
-        if( isCurlInit(c) && userInfo) {
-                strcpy(c->url, "http://twitter.com/users/show.xml");
-                strcat(c->url, isUserId ? "?user_id=" : "?screen_name=");
-                strcat(c->url, userInfo);
-                retVal = performGet(c);
-        }
-        return retVal;
-}
-
-// Get the latest tweet along with when it was published.  We assume for the authenticated user.
-int getLatestTweet(tcurl *c, char *content, int clen, long long *id)
-{
-        *id = 0;
-        strcpy(c->url, "http://twitter.com/statuses/user_timeline/");
-        strcat(c->url, c->user);
-        strcat(c->url, ".xml?count=1");
-        if(! performGet(c)) return -1;
-        char *result = getLastWebResponse(c);
-
-        if(g_debuglevel > 7) {
-                printf("XML response from TWITTER\n");
-                printf(result);
-        }
-
-        xmlDoc *doc = xmlReadMemory(result, strlen(result), "noname.xml", NULL, 0);
-        if (doc == NULL) {
-                if(g_debuglevel) printf("Failed to parse document.\n");
-                return -1;
-        }
-        xmlNode *node = xmlDocGetRootElement(doc);
+/*
+ * request authorize url from twitter.
+ * output: authorization url
+ */
+char *oauthGetAuthorizeUrl(tcurl *c, char *callbackURL) {
+        char *req_url = NULL;
+        char *postarg = NULL;
+        char *t_key = NULL;
+        char *t_secret = NULL;
         
-        // We could use XPATH but what we want isn't that deep...
-
-        // Locate the entry node.
-        xmlNode *entry = NULL;
-        for(node = node->children; node; node = node->next) {
-                if(strcmp(node->name,"status") == 0) {
-                        entry = node;
-                        break;
-                }
-        }
-
-        if(entry) {
-                for(node = node->children; node; node = node->next) {
-                        if(node->type == XML_ELEMENT_NODE) {
-                                
-                                if(strcmp(node->name,"id") == 0) {
-                                        *id = atoll( xmlNodeGetContent(node) );
-                                }
-                                if(strcmp(node->name,"text") == 0) {
-                                        strlcpy(content, xmlNodeGetContent(node), clen);
-                                }
-                        }
-                }
-                if(g_debuglevel) printf("Tweet: %lld %s\n", *id, content);
-        }
-        xmlFreeDoc(doc);
-
-        return 0;
-}
-
-int sendTweet(tcurl *c, char *tweet) {
-        int retVal = -1;
         if( isCurlInit(c) )
         {
-                char msg[140+8];
-                strcpy(msg, "status=");
-                strlcat(msg, tweet, sizeof(msg));
-                retVal = performPost( c, "http://twitter.com/statuses/update.xml", msg );
+                // HTTP GET
+                c->oauthAccessKey = NULL;
+                c->oauthAccessSecret = NULL;
+
+                sprintf(c->url, "http://api.twitter.com/oauth/request_token?oauth_callback=%s", callbackURL);
+                performGet(c);
+        
+                char *reply = getLastWebResponse(c);
+        
+                if (reply == NULL || *reply == 0) {
+		  io_printf(c->out,"<p>Unable to acquire request token from Twitter</p>");
+		  return NULL;
+                }
+                
+                if (oauthParseReply(reply, &t_key, &t_secret, NULL, NULL)) {
+		  io_printf(c->out,"<p>Unable to parse data from twitter. Content:<pre>");
+		  io_printf(c->out,reply);
+		  io_printf(c->out,"</pre></p>");
+		  return NULL;
+                }
+        
+                /* Compile url string */
+                char *t_url = (char *)malloc(50 + strlen(t_key));
+                strcpy(t_url,"https://twitter.com/oauth/authorize?oauth_token=");
+                strcat(t_url, t_key);
+                
+                /* Set temporary access key/secret */
+                c->oauthAccessKey = t_key;
+                c->oauthAccessSecret = t_secret;
+                
+                return t_url;
         }
-        return retVal;
+        
+        return NULL;
+}
+
+/*
+ * Method to authorize with twitter, and get/store access key/secret.
+ *
+ * input: PIN for authorization
+ * output: bool for success
+ */
+int oauthAuthorize(tcurl *c, char *oauth_verify) {
+        char *t_key;
+        char *t_secret;
+        char *t_user = NULL;
+	char *t_userid = NULL;
   
+        if( isCurlInit(c) )
+        {
+                strcpy(c->url, "http://api.twitter.com/oauth/access_token?oauth_verifier=");
+                strcat(c->url, oauth_verify);      
+                if(! performGet(c)) return -1;
+      
+                char *reply = getLastWebResponse(c);
+                if (reply == NULL || *reply == 0) {
+		  io_printf(c->out,"<p>Unable to get authorisation URL from Twitter.</p>");
+		  return -1; 
+                }
+                if (oauthParseReply(reply, &t_key, &t_secret, &t_user, &t_userid)) {
+		  io_printf(c->out,"<p>Unable to parse data from twitter. Content:<pre>");
+		  io_printf(c->out,reply);
+		  io_printf(c->out,"</pre></p>");
+		  return -1; 
+                }
+      
+                /* Set final access key/secret */
+                c->oauthAccessKey = t_key;
+                c->oauthAccessSecret = t_secret;
+                c->user = t_user;
+		c->userid = t_userid;
+      
+                return 0;
+        }
+        return -1;
+}
+
+/*
+ * method to parse reply from oauth. this is an internal method.
+ * users should not use this method.
+ *
+ * input: reply - reply data,
+ *        token - buffer for oauth key
+ *        secret - buffer for oauth secret
+ *        screen_name - buffer for twitter username
+ *        user_id - buffer for twitter user ID (long as char)
+ */
+int oauthParseReply(char *reply, char **token, char **secret, char **screen_name, char **user_id) {
+        int rc;
+        int ok=1;
+        char **rv = NULL;
+        int i;
+	
+        rc = oauth_split_post_paramters(reply, &rv, 1);
+        qsort(rv, rc, sizeof(char *), oauth_cmpstringp);
+        int oauth_cnt = 0;
+        for(i=0; i<rc; i++) {
+          if(strncmp(rv[i],"oauth_token=",12) == 0) {
+            if(token) *token = strdup(&(rv[i][12]));
+            oauth_cnt++;
+          } else if(strncmp(rv[i],"oauth_token_secret=",19) == 0) {
+            if(secret) *secret = strdup(&(rv[i][19]));
+            oauth_cnt++;
+          } else if(strncmp(rv[i],"screen_name=",12) == 0) {
+            if(screen_name) *screen_name = strdup(&(rv[i][12]));
+          } else if(strncmp(rv[i],"user_id=",8) == 0) {
+            if(user_id) *user_id = strdup(&(rv[i][8]));
+          }
+        }
+        if(rv)
+                free(rv);
+        if(oauth_cnt >= 2)
+                ok = 0;
+        else { // Partial deocde?  Cleanup and get outta here...
+                free(*token);
+                *token = NULL;
+                free(*secret);
+                *secret = NULL;
+		if(screen_name) {
+		  free(*screen_name);
+		  *screen_name = NULL;
+		}
+		if(user_id) {
+		  free(*user_id);
+		  *user_id = NULL;
+		}
+        }
+        return ok;
 }

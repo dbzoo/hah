@@ -3,14 +3,22 @@
 #include "login.h"
 #include "const.h"
 #include "utils.h"
+#include "tcurl.h"
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <string.h>
+
+// HAH Twitter application keys
+const char *CONSUMER_KEY = "hmGCdLfP9HjVfkzDSnw";
+const char *CONSUMER_SECRET = "6iaSFRs6RFuILhjrBhUYDDEkUBGDsGcFNv7lQyoA";
 
 #define sizearray(x) (sizeof(x) / sizeof(x[0]))
 static int reboot = 0;
 
 static struct {
-	 char user[64];
-	 char passwd[64];
+	 char key[128];
+	 char secret[128];
 	 char ufreq[5];
 	 char uid[5];
 	 char instance[30];
@@ -21,12 +29,12 @@ static void readIni() {
 	 ini_gets("twitter","enable","0",ini.enable,sizeof(ini.enable),con.inifile);
 	 ini_gets("twitter","uid","00D9",ini.uid,sizeof(ini.uid),con.inifile);
 	 ini_gets("twitter","instance","Twitter",ini.instance,sizeof(ini.instance),con.inifile);
-	 ini_gets("twitter","user","",ini.user,sizeof(ini.user),con.inifile);
-	 ini_gets("twitter","passwd","",ini.passwd,sizeof(ini.passwd),con.inifile);
+	 ini_gets("twitter","access_key","",ini.key,sizeof(ini.key),con.inifile);
+	 ini_gets("twitter","access_secret","",ini.secret,sizeof(ini.secret),con.inifile);
 	 ini_gets("twitter","ufreq","30",ini.ufreq,sizeof(ini.ufreq),con.inifile);
 }
 
-static void submit_form() {
+static void submit_form(int restart_ok) {
 	 int restart=1;
 
 	 const char *enable = request_get_arg(request,"enable");
@@ -48,27 +56,17 @@ static void submit_form() {
 		  restart = 1;
 	 }
 	 if(instance && strcmp(instance,ini.instance)) {
-		  ini_puts("twitter","instance",instance,con.inifile);
+	          ini_puts("twitter","instance",instance,con.inifile);
 		  restart = 1;
 	 }
 
-	 const char *user = request_get_arg(request,"user");
-	 if(user && strcmp(user,ini.user)) {
-		  ini_puts("twitter","user",user,con.inifile);
-		  restart = 1;
-	 }
-	 const char *passwd = request_get_arg(request,"passwd");
-	 if(passwd && strlen(passwd) > 0 && strcmp(passwd,ini.passwd)) {
-		  ini_puts("twitter","passwd",passwd,con.inifile);
-		  restart = 1;
-	 }
 	 const char *ufreq = request_get_arg(request,"ufreq");
 	 if(ufreq && strcmp(ufreq,ini.ufreq)) {
 		  ini_puts("twitter","ufreq",ufreq,con.inifile);
 		  restart = 1;
 	 }
 
-	 if(restart) {
+	 if(restart && restart_ok) {
 	     char *argv[] = {"/etc/init.d/xap","restart","twitter", NULL};
 	     subprocess(argv);
 	 }
@@ -81,7 +79,7 @@ static void submit_form() {
   const char *action = request_get_arg(request,"action");
   readIni();
   if(action && strcmp(action,"Apply") == 0) {
-      submit_form();
+      submit_form(1);
       readIni();
   }
 %>
@@ -144,24 +142,95 @@ addEvent(window,"load",function() {
   </div>
 
   <div class="setting">
-    <div class="label">Username</div>
-    <input maxlength="64" size="40" name="user" value="<%= ini.user %>"/>
+    <div class="label">Update Frequency</div>
+	 <input maxlength="5" size="5" name="ufreq" value="<%= ini.ufreq %>" onblur="valid_range(this,15,300,'Update Frequency')"/>
+	 <span class="default">(Default: 30, 15-300 sec)</span>
   </div>
 
-  <div class="setting">
-    <div class="label">Password</div>
-    <input maxlength="64" size="40" name="passwd"/>
+  <div class="Authorise">
+    <div class="label">Account</div>
+    <button type="submit" name="auth_button" value="1">Authorise with Twitter</button>
   </div>
-  <div class="setting">
-    <div class="label">Update Frequency</div>
-	 <input maxlength="5" size="5" name="ufreq" value="<%= ini.ufreq %>" onblur="valid_range(this,30,300,'Update Frequency')"/>
-	 <span class="default">(Default: 30, 30-300 sec)</span>
-  </div>
+
 </fieldset>
-<a href="http://www.twitter.com/" target="_blank">Connect to twitter</a>
+
+    <% // OAUTH AUTHORIZATION CALLBACK
+    const char *oauth_verifier = request_get_arg(request,"oauth_verifier");
+    if(oauth_verifier) {
+
+     // Fetch temporary access keyss
+     char *key = session_get(session,"key");
+     char *secret = session_get(session,"secret");
+
+     if (key && secret) {
+       tcurl *c = new_tcurl(out);
+       c->oauthAccessKey = key;
+       c->oauthAccessSecret = secret;
+       // Obtain access keys and verify us.
+       oauthAuthorize(c, oauth_verifier);
+
+       // Keys in tcurl are now the permenant keys.
+       ini_puts("twitter","consumer_key", CONSUMER_KEY, con.inifile);
+       ini_puts("twitter","consumer_secret", CONSUMER_SECRET, con.inifile);
+       ini_puts("twitter","access_key", c->oauthAccessKey, con.inifile);
+       ini_puts("twitter","access_secret", c->oauthAccessSecret, con.inifile);
+       ini_puts("twitter","user", c->user, con.inifile);
+       ini_puts("twitter","userid", c->userid, con.inifile);
+
+       // We don't need the temporary access creds anymore.
+       session_del(session,"key");
+       session_del(session,"secret");
+
+       free_tcurl(c);
+%>
+	 <p><b>Authorisation Successful</b></p>
+<%       
+     }
+   } else {
+      if(strlen(ini.key) == 0) {
+%>
+	<p><b>Authorisation has not been setup</b></p>
+<%
+      }
+   }
+
+// OAUTH REQUEST
+    const char *auth = request_get_arg(request,"auth_button");
+    if(auth && *auth == '1') {   // Authorisation button pressed?
+      submit_form(0); // Save any outstanding FORM changes first.
+
+      tcurl *c = new_tcurl(out);
+
+      char callback_url[128];
+      snprintf(callback_url, sizeof(callback_url),"http://%s:%d%s",
+	       inet_ntoa(request_get_addr(request)->sa.sin.sin_addr),
+	       htons(request_get_addr(request)->sa.sin.sin_port),
+	       request_get_uri(request));
+
+      char *url = oauthGetAuthorizeUrl(c, callback_url);
+      if(url) {
+	// Store the temporary access key/secret in the session.
+	// We need this for the callback from twitter.
+	session_set(session, "key", c->oauthAccessKey);
+	session_set(session, "secret", c->oauthAccessSecret);
+      } else {
+	%>
+	<p><b>Acquiring a request token failed</b></p>
+<%
+      }
+      free_tcurl(c);
+
+      // Redirect to TWITTER for HAH authorisation.
+      if(url) {
+	response_redirect(response, url);
+	free(url);
+      }
+      
+    }
+%>
+
 </div>
 </fieldset>
-
 
 </div>
 <br/>

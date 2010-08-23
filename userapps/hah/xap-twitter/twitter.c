@@ -34,9 +34,6 @@
 #include <string.h>
 #include "xapdef.h"
 #include "xapGlobals.h"
-#ifdef XMLALIAS
-#include "alias.h"
-#endif
 #include "tcurl.h"
 
 const char* XAP_ME = "dbzoo";
@@ -45,14 +42,14 @@ const char* XAP_GUID;
 const char* XAP_DEFAULT_INSTANCE;
 
 static int freq; // calendar sync frequency
-static char username[64];
-static char password[64];
 
-#ifdef XMLALIAS
-const char defalias[] = "/etc/xap-alias.xml";
-static alias_t *aliases;
-static char aliasfile[64];
-#endif
+char *CONSUMER_KEY;
+char *CONSUMER_SECRET;
+char access_key[128];
+char access_secret[128];
+char user[32];
+char userid[16];
+
 const char inifile[] = "/etc/xap-livebox.ini";
 
 static tcurl *twit;
@@ -64,20 +61,6 @@ static char tweet[141];
 static long long id;
 
 void process_tweet() {
-#ifdef XMLALIAS
-     // Use the XML file to transform the alias into a valid xAP message.
-     char *xapmsg = matchAlias(aliases, tweet);
-     if(xapmsg) {
-	  if(g_debuglevel) printf("Send XAP message\n%s\n", xapmsg);
-	  xap_send_message(xapmsg);
-	  free(xapmsg);
-	  // Twitter won't let you send the same tweet twice within a given time period.
-	  // As we are using twitter for a control interface the workaround it to delete
-	  // a tweet when the livebox processes it.
-	  // This gives active feedback it was actioned and allows it to be sent again.
-	  deleteTweetById(twit, id);
-     }
-#else
      // Send the alias in an xAP message.
      char buff[1500];
      int len;
@@ -88,10 +71,9 @@ void process_tweet() {
 		    g_uid, XAP_ME, XAP_SOURCE, g_instance, tweet);
      
      if(len > sizeof(buff)) // Buffer overflow!
-	  return 0;
+       return;
      xap_send_message(buff);
      deleteTweetById(twit, id);
-#endif
 }
 
 
@@ -219,22 +201,29 @@ void setupXAPini()
 
 	//Rate limit exceeded. Clients may not make more than 150 requests per hour.
 	freq = ini_getl("twitter","ufreq", 30, inifile);
-	if(freq < 30 || freq > 60*5) freq = 30;
+	if(freq < 10 || freq > 60*5) freq = 30;
   
-	ini_gets("twitter","user","",username,sizeof(username),inifile);
-	if(strlen(username) == 0) {
-		printf("Error: user has not been setup\n");
-		exit(1);
-	}
+	ini_gets("twitter","access_key","",access_key,sizeof(access_key),inifile);
+	ini_gets("twitter","access_secret","",access_secret,sizeof(access_secret),inifile);
+	char consumer_key[128];
+	char consumer_secret[128];
+	ini_gets("twitter","consumer_key","",consumer_key,sizeof(consumer_key),inifile);
+	ini_gets("twitter","consumer_secret","",consumer_secret,sizeof(consumer_secret),inifile);
+	CONSUMER_KEY = strdup(consumer_key);
+	CONSUMER_SECRET = strdup(consumer_secret);
+	ini_gets("twitter","user","",user,sizeof(user),inifile);
+	ini_gets("twitter","userid","",userid,sizeof(userid),inifile);
 
-	ini_gets("twitter","passwd","",password,sizeof(password),inifile);
-	if(strlen(password) == 0) {
-		printf("Error: passwd has not been setup\n");
-		exit(1);
-	}  
-#ifdef XMLALIAS
-	ini_gets("twitter","aliasfile",defalias,aliasfile,sizeof(aliasfile),inifile);
-#endif
+	if(strlen(access_key) == 0 ||
+	   strlen(access_secret) == 0 ||
+	   strlen(consumer_key) == 0 ||
+	   strlen(consumer_secret) == 0 ||
+	   strlen(user) == 0 ||
+	   strlen(userid) == 0) 
+	  {
+	    printf("Error: Twitter not authorized\n");
+	    exit(1);
+	  }
 }
 
 
@@ -245,26 +234,16 @@ int main(int argc, char *argv[])
   
 	setupXAPini();  
 	xap_init(argc, argv, 0);
-#ifdef XMLALIAS
-	if(g_debuglevel) printf("Reading aliases from %s\n", aliasfile);
-	aliases = parseAliasDoc(aliasfile);
-	if(g_debuglevel) dumpAliases(aliases);
-	if(NULL == aliases) {
-		printf("No aliases defined\n");
-		exit(1);
-	}
-#endif
+
 	if (!(twit = new_tcurl())) 
 	{
 		printf("Failed to create Twitter CURL Object\n");
 		exit(1);
 	}
-
-	int result = tcurl_get_authentication(twit, username, password);
-	if(result) {
-		printf("Failed to authenticate\n");
-		exit(1);
-	}
+	twit->oauthAccessKey = access_key;
+	twit->oauthAccessSecret = access_secret;
+	twit->user = user;
+	twit->userid = userid;
 
 	getLatestTweet(twit, tweet, sizeof(tweet), &last_tweet);
 	process_loop();

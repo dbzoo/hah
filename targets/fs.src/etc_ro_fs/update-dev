@@ -31,13 +31,16 @@ fi
 devip=$1
 shift
 
+echo Shutdown XAP services
+/etc/init.d/xap stop
+
+echo Building RAMDISK
 ramdisk start
 cd /mnt/ramdisk/rd1
 
 wget_wrap fcp
 wget_wrap rootfs.img
 
-/etc/init.d/xap stop
 echo "lcd Flashing..." >/dev/ttyS0
 
 if [ "$1" = "clean" ]; then

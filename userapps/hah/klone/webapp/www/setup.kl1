@@ -23,6 +23,8 @@ static struct {
      char ntp_host[30];
 	 char config_bridge[2];
 	 char power[2];
+	char ether0[20];  // 00:18:8B:D4:EC:06
+	char ether1[20];  // 00:18:8B:D4:EC:06
 } ini;
 
 struct in_addr addr;
@@ -38,6 +40,8 @@ static void readIni() {
 	 ini_gets("network","ntp_host", "uk.pool.ntp.org", ini.ntp_host, sizeof(ini.ntp_host), con.inifile);
 	 ini_gets("network","config_bridge","1",ini.config_bridge,sizeof(ini.config_bridge),con.inifile);
 	 ini_gets("hardware","power", "1", ini.power, sizeof (ini.power), con.inifile);
+	 ini_gets("network","ether_0", "", ini.ether0, sizeof (ini.ether0), con.inifile);
+	 ini_gets("network","ether_1", "", ini.ether1, sizeof (ini.ether1), con.inifile);
 }
 
 /* Append all web named segments *webname into a single IP address
@@ -90,10 +94,17 @@ static int submit_form(io_t *out) {
 	 
 	 char *config_bridge = request_get_arg(request, "config_bridge");
 	 ini_puts("network","config_bridge", config_bridge, con.inifile);
+
+         const char *ether0 = request_get_arg(request,"ether0");
+         const char *ether1 = request_get_arg(request,"ether1");
+	 ini_puts("network","ether_0", ether0, con.inifile);
+	 ini_puts("network","ether_1", ether1, con.inifile);
 	 
 	 reboot |= strcmp(hostname, ini.hostname)
 		  || strcmp(domain, ini.domain)
 		  || strcmp(ntp_host, ini.ntp_host)
+		  || strcmp(ether0, ini.ether0)
+		  || strcmp(ether1, ini.ether1)
 		  || strcmp(config_bridge, ini.config_bridge);
 
 	 const char *power = request_get_arg(request,"power_enable");
@@ -219,6 +230,16 @@ addEvent(window,"load",function() {
 <div class="setting">
   <div class="label">Bridge Ethernet ports</div>
 	 <input class="spaceradio" type="checkbox" name="config_bridge" value="1" <% if(ini.config_bridge[0] == '1') { %>checked<% } %>/>
+</div>
+
+<div class="setting">
+  <div class="label">ETH0</div>
+  <input class="text" name="ether0" value="<%= ini.ether0 %>" maxlength="19" size="19" onblur="isValidMacAddress(this.value)"/>
+</div>
+
+<div class="setting">
+  <div class="label">ETH1</div>
+  <input class="text" name="ether1" value="<%= ini.ether1 %>" maxlength="19" size="19" onblur="isValidMacAddress(this.value)"/>
 </div>
 
 </fieldset>

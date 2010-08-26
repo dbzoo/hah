@@ -120,6 +120,18 @@ function valid_name(I,M,flag) {
 
 }
 
+function isValidMacAddress(macAdd)
+{
+ var RegExPattern = "^[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}$";
+ var regex = new RegExp(RegExPattern);
+ if (!(regex.test(macAdd)))
+ {
+  alert("Invalid MAC Address");
+  return false;
+ }
+ return true;
+}
+
 function valid_mask(F,N,flag){
 	var match0 = -1;
 	var match1 = -1;

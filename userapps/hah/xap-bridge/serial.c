@@ -248,6 +248,7 @@ int sendSerialMsg(portConf *pDevice, char *msg) {
 		    continue;
 	       }
 	  }
+	  tcdrain(pDevice->fd);
 	  return rv;
      }
 

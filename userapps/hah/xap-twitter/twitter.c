@@ -58,7 +58,6 @@ static tcurl *twit;
 static long long last_tweet; // ID of the last TWEET processed.
 // Current TWEET details
 static char tweet[141];
-static long long id;
 
 void process_tweet() {
      // Send the alias in an xAP message.
@@ -73,7 +72,7 @@ void process_tweet() {
      if(len > sizeof(buff)) // Buffer overflow!
        return;
      xap_send_message(buff);
-     deleteTweetById(twit, id);
+     deleteTweetById(twit, last_tweet);
 }
 
 
@@ -160,13 +159,11 @@ void process_loop()
 				xap_handler(i_xap_buff);
 			}
 		} else { // timeout
- 			getLatestTweet(twit, tweet, sizeof(tweet), &id);
-			if(id > last_tweet) {
-				process_tweet();
-				last_tweet = id;
-			}
-			i_tv.tv_sec = freq;
-			i_tv.tv_usec = 0;
+		     if(getLatestTweet(twit, tweet, sizeof(tweet), &last_tweet) > 0) {
+			  process_tweet();
+		     }
+		     i_tv.tv_sec = freq;
+		     i_tv.tv_usec = 0;
 		}
 		// Send heartbeat periodically
 		xap_heartbeat_tick(HBEAT_INTERVAL);

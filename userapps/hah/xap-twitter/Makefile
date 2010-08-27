@@ -1,12 +1,12 @@
 # $Id$
 
 XAP=twitter
-CFLAGS=-g -DLINUX -DIDENT -I$(INSTALL_DIR)/include -I$(INSTALL_DIR)/include/libxml2
-#CFLAGS+=-I../xaplib -I../xapxmllib
-#LDFLAGS=-L$(INSTALL_DIR)/lib -lxap -lxapxml -lxml2 -lcurl
-#LDFLAGS+=-L../xaplib -L../xapxmllib
+
+# uncomment for standalone compile
+#INSTALL_DIR=/usr
+CFLAGS=-DLINUX -DIDENT -I$(INSTALL_DIR)/include
 CFLAGS+=-I../xaplib -I../../opensource/openssl/include
-LDFLAGS=-L$(INSTALL_DIR)/lib -lxap -lxml2 -lcurl
+LDFLAGS=-L$(INSTALL_DIR)/lib -lxap -lcurl -lm
 LDFLAGS+=-L../xaplib
 OBJECTS=$(XAP).o tcurl.o oauth.o xmalloc.o hash.o
 

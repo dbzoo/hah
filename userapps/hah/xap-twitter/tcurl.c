@@ -16,8 +16,6 @@
 #include "tcurl.h"
 #include <errno.h>
 #include "oauth.h"
-#include <libxml/tree.h>
-#include <libxml/xpath.h>
 
 #ifdef IDENT
 #ident "@(#) $Id$"
@@ -26,6 +24,7 @@
 extern int g_debuglevel;
 
 static void clearCallbackBuffers(tcurl *c) {
+     if(g_debuglevel) printf("clearCallbackbuffers(len: %d)\n", c->cb_length);    
         memset( c->errorBuffer, 0, CURL_ERROR_SIZE);
         memset( c->callbackData, 0, c->cb_length);
 }
@@ -57,15 +56,13 @@ exit:
 
 
 tcurl *new_tcurl() {
-        tcurl *c = (tcurl *)malloc(sizeof(tcurl));
+     tcurl *c = (tcurl *)calloc(1, sizeof(tcurl));
 
         clearCallbackBuffers(c);
         // Set resonable sizes for our buffers; these will realloc if necessary.
         c->callbackData = (char *)malloc(256);
         c->cb_length = 256;
         c->curlHandle = curl_easy_init();
-        c->oauthAccessKey = NULL;
-        c->oauthAccessSecret = NULL;
 
         if (NULL == c->curlHandle) {
 		printf("Fail to init CURL");
@@ -94,22 +91,26 @@ void free_tcurl(tcurl *c) {
 }
 
 int performGet(tcurl *c) {
+     int ret = -1;
+     if(g_debuglevel) printf("PerformGet()\n");
         clearCallbackBuffers(c);
 
         char *req_url_signed = oauth_sign_url2(c->url, NULL, OA_HMAC, NULL, 
                                                CONSUMER_KEY, CONSUMER_SECRET, 
                                                c->oauthAccessKey, c->oauthAccessSecret);
 
-        curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 1);
-        curl_easy_setopt( c->curlHandle, CURLOPT_URL, req_url_signed);
-	if(g_debuglevel) {
-	  curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
+	if(req_url_signed) {
+	     curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 1);
+	     curl_easy_setopt( c->curlHandle, CURLOPT_URL, req_url_signed);
+	     if(g_debuglevel > 5) {
+		  curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
+	     }
+
+	     ret= CURLE_OK == curl_easy_perform(c->curlHandle);
+	     curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 0);
+
+	     free(req_url_signed);
 	}
-
-        int ret= CURLE_OK == curl_easy_perform(c->curlHandle);
-        curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 0);
-
-        free(req_url_signed);
         return ret;
 }
 
@@ -122,6 +123,7 @@ static int performPost(tcurl *c, char *url, char *msg) {
 	int argc;
 	char **argv = NULL;
 
+     if(g_debuglevel) printf("PerformPost()\n");
         clearCallbackBuffers(c);
 
 	argc = 2;
@@ -143,7 +145,7 @@ static int performPost(tcurl *c, char *url, char *msg) {
         curl_easy_setopt( c->curlHandle, CURLOPT_POST, 1 );
         curl_easy_setopt( c->curlHandle, CURLOPT_URL, url );
 	curl_easy_setopt( c->curlHandle, CURLOPT_POSTFIELDS, msg );
-	if(g_debuglevel) {
+	if(g_debuglevel > 5) {
 	  curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
 	}
 
@@ -158,7 +160,9 @@ static int performPost(tcurl *c, char *url, char *msg) {
 	// CLEAN UP
         curl_easy_setopt( c->curlHandle, CURLOPT_POST, 0);
         curl_easy_setopt( c->curlHandle, CURLOPT_POSTFIELDS, 0 );
+
         curl_slist_free_all(headerlist);
+
 	if (req_hdr) free(req_hdr);
 	if (req_url) free(req_url);
 	if (http_hdr) free(http_hdr);
@@ -182,7 +186,7 @@ static int performDelete(tcurl *c) {
 
         curl_easy_setopt( c->curlHandle, CURLOPT_CUSTOMREQUEST, "DELETE");
         curl_easy_setopt( c->curlHandle, CURLOPT_URL, req_url_signed);
-        if(g_debuglevel)
+        if(g_debuglevel > 5)
           curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
 
         int ret = CURLE_OK == curl_easy_perform(c->curlHandle);
@@ -222,53 +226,40 @@ int userGet(tcurl *c, char *userInfo, int isUserId) {
 // Get the latest tweet along with when it was published.  We assume for the authenticated user.
 int getLatestTweet(tcurl *c, char *content, int clen, long long *id)
 {
-        *id = 0;
-        strcpy(c->url, "http://twitter.com/statuses/user_timeline/");
-        strcat(c->url, c->user);
-        strcat(c->url, ".xml?count=1");
+     if(g_debuglevel) printf("getLatestTweet()\n");
+
+     if (*id > 0) { // Get tweet after this POINT
+	  snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1/statuses/user_timeline.xml?user_id=%s&since_id=%lld&trim_user=1&count=1", c->userid, *id);
+     } else { // Get the latest
+	  snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1/statuses/user_timeline.xml?user_id=%s&trim_user=1&count=1", c->userid);
+     }
+
         if(! performGet(c)) return -1;
         char *result = getLastWebResponse(c);
+        if(g_debuglevel) printf("Response from TWITTER\n%s\n", result);
 
-        if(g_debuglevel > 7) {
-                printf("XML response from TWITTER\n");
-                printf(result);
-        }
+	// An empty STATUS response in XML is 75 characters.
+	if(strlen(result) < 76) {
+	     return -1;
+	}
 
-        xmlDoc *doc = xmlReadMemory(result, strlen(result), "noname.xml", NULL, 0);
-        if (doc == NULL) {
-                if(g_debuglevel) printf("Failed to parse document.\n");
-                return -1;
-        }
-        xmlNode *node = xmlDocGetRootElement(doc);
+	char *bid = strstr(result,"<id>");
+	char *eid = strstr(result,"</id>");
+	char *btext = strstr(result,"<text>");
+	char *etext = strstr(result,"</text>");
+
+	if(! (bid && eid && btext && etext)) {
+	     if(g_debuglevel) printf("Failed to find XML tags\n");
+	     return -1;
+	}
+
+	*eid = 0;
+	*etext = 0;
+	*id = atoll(bid + 4);
+	strlcpy(content, btext + 6, clen);
+	if(g_debuglevel) printf("Tweet: %lld %s\n", *id, content);
         
-        // We could use XPATH but what we want isn't that deep...
-
-        // Locate the entry node.
-        xmlNode *entry = NULL;
-        for(node = node->children; node; node = node->next) {
-                if(strcmp(node->name,"status") == 0) {
-                        entry = node;
-                        break;
-                }
-        }
-
-        if(entry) {
-                for(node = node->children; node; node = node->next) {
-                        if(node->type == XML_ELEMENT_NODE) {
-                                
-                                if(strcmp(node->name,"id") == 0) {
-                                        *id = atoll( xmlNodeGetContent(node) );
-                                }
-                                if(strcmp(node->name,"text") == 0) {
-                                        strlcpy(content, xmlNodeGetContent(node), clen);
-                                }
-                        }
-                }
-                if(g_debuglevel) printf("Tweet: %lld %s\n", *id, content);
-        }
-        xmlFreeDoc(doc);
-
-        return 0;
+        return 1;
 }
 
 int sendTweet(tcurl *c, char *tweet) {
@@ -278,7 +269,7 @@ int sendTweet(tcurl *c, char *tweet) {
                 char msg[140+8];
                 strcpy(msg, "status=");
                 strlcat(msg, tweet, sizeof(msg));
-                retVal = performPost( c, "http://twitter.com/statuses/update.xml", msg );
+                retVal = performPost( c, "http://twitter.com/statuses/update.json", msg );
         }
         return retVal;
   

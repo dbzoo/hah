@@ -1,0 +1,48 @@
+Sample Twitter sent via xAP
+
+xap-header
+{
+v=13
+Hop=1
+UID=FFB11700
+Class=xAPBSC.cmd
+Source=dbzoo.livebox.test
+target=dbzoo.livebox.Twitter
+}
+output.state.1
+{
+id=*
+text=Testing 1.2.3.4.5.6
+}
+
+Result of a reading a tweet from twitter:
+
+<?xml version="1.0" encoding="UTF-8"?>
+<statuses type="array">
+<status>
+  <created_at>Tue Aug 24 23:22:49 +0000 2010</created_at>
+  <id>22040160741</id>
+  <text>HAH twitter with OAUTH is in beta firmware release 251.8</text>
+  <source>web</source>
+  <truncated>false</truncated>
+  <in_reply_to_status_id></in_reply_to_status_id>
+  <in_reply_to_user_id></in_reply_to_user_id>
+  <favorited>false</favorited>
+  <in_reply_to_screen_name></in_reply_to_screen_name>
+  <retweet_count></retweet_count>
+  <retweeted>false</retweeted>
+  <user>
+    <id>95186468</id>
+  </user>
+  <geo/>
+  <coordinates/>
+  <place/>
+  <contributors/>
+</status>
+</statuses>
+
+Result of call to twitter where the since_id returns no tweets.
+
+<?xml version="1.0" encoding="UTF-8"?>
+<statuses type="array">
+</statuses>

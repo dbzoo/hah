@@ -275,7 +275,7 @@ xap-googlecal: xaplib libgcal libxml2 libcurl
 	install -m 755 $(HAH_DIR)/xap-googlecal/xap-googlecal $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-googlecal
 
-xap-twitter: xaplib libxml2 libcurl
+xap-twitter: xaplib libcurl
 	$(MAKE) -C $(HAH_DIR)/xap-twitter
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/xap-twitter/xap-twitter $(INSTALL_DIR)/usr/bin

@@ -25,8 +25,9 @@ extern int g_debuglevel;
 
 static void clearCallbackBuffers(tcurl *c) {
      if(g_debuglevel) printf("clearCallbackbuffers(len: %d)\n", c->cb_length);    
-        memset( c->errorBuffer, 0, CURL_ERROR_SIZE);
-        memset( c->callbackData, 0, c->cb_length);
+     memset( c->errorBuffer, 0, CURL_ERROR_SIZE);
+     memset( c->callbackData, 0, c->cb_length);
+     curl_easy_reset(c->curlHandle);
 }
 
 inline char *getLastCurlError(tcurl *c) {
@@ -58,11 +59,11 @@ exit:
 tcurl *new_tcurl() {
      tcurl *c = (tcurl *)calloc(1, sizeof(tcurl));
 
-        clearCallbackBuffers(c);
         // Set resonable sizes for our buffers; these will realloc if necessary.
         c->callbackData = (char *)malloc(256);
         c->cb_length = 256;
         c->curlHandle = curl_easy_init();
+        clearCallbackBuffers(c);
 
         if (NULL == c->curlHandle) {
 		printf("Fail to init CURL");
@@ -139,9 +140,7 @@ static int performPost(tcurl *c, char *url, char *msg) {
 
 	req_hdr = oauth_serialize_url_sep(argc, 1, argv, ", ", 6);
 	req_url = oauth_serialize_url_sep(argc, 0, argv, "&", 1);
-	
-	oauth_free_array(&argc, &argv);
-	
+		
         curl_easy_setopt( c->curlHandle, CURLOPT_POST, 1 );
         curl_easy_setopt( c->curlHandle, CURLOPT_URL, url );
 	curl_easy_setopt( c->curlHandle, CURLOPT_POSTFIELDS, msg );
@@ -161,6 +160,7 @@ static int performPost(tcurl *c, char *url, char *msg) {
         curl_easy_setopt( c->curlHandle, CURLOPT_POST, 0);
         curl_easy_setopt( c->curlHandle, CURLOPT_POSTFIELDS, 0 );
 
+	oauth_free_array(&argc, &argv);
         curl_slist_free_all(headerlist);
 
 	if (req_hdr) free(req_hdr);
@@ -269,7 +269,7 @@ int sendTweet(tcurl *c, char *tweet) {
                 char msg[140+8];
                 strcpy(msg, "status=");
                 strlcat(msg, tweet, sizeof(msg));
-                retVal = performPost( c, "http://twitter.com/statuses/update.json", msg );
+                retVal = performPost( c, "http://api.twitter.com/1/statuses/update.xml", msg );
         }
         return retVal;
   

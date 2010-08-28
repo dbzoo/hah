@@ -23,6 +23,7 @@ static struct {
 	 char uid[5];
 	 char instance[30];
 	 char enable[2];
+	 char prefix[18];
 } ini;
 
 static void readIni() {
@@ -32,6 +33,7 @@ static void readIni() {
 	 ini_gets("twitter","access_key","",ini.key,sizeof(ini.key),con.inifile);
 	 ini_gets("twitter","access_secret","",ini.secret,sizeof(ini.secret),con.inifile);
 	 ini_gets("twitter","ufreq","30",ini.ufreq,sizeof(ini.ufreq),con.inifile);
+	 ini_gets("twitter","prefix","",ini.prefix,sizeof(ini.prefix),con.inifile);
 }
 
 static int submit_form() {
@@ -63,6 +65,12 @@ static int submit_form() {
 	 const char *ufreq = request_get_arg(request,"ufreq");
 	 if(ufreq && strcmp(ufreq,ini.ufreq)) {
 		  ini_puts("twitter","ufreq",ufreq,con.inifile);
+		  restart = 1;
+	 }
+
+	 const char *prefix = request_get_arg(request,"prefix");
+	 if(prefix && strcmp(prefix,ini.prefix)) {
+		  ini_puts("twitter","prefix",prefix,con.inifile);
 		  restart = 1;
 	 }
 
@@ -150,6 +158,12 @@ addEvent(window,"load",function() {
     <div class="label">Update Frequency</div>
 	 <input maxlength="5" size="5" name="ufreq" value="<%= ini.ufreq %>" onblur="valid_range(this,15,300,'Update Frequency')"/>
 	 <span class="default">(Default: 30, 15-300 sec)</span>
+  </div>
+
+  <div class="setting">
+    <div class="label">Command prefix</div>
+	 <input maxlength="18" size="18" name="prefix" value="<%= ini.prefix %>"/>
+	 <span class="default">(only process tweets starting with)</span>
   </div>
 
   <div class="Authorise">

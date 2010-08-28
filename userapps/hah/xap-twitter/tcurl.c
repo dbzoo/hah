@@ -24,10 +24,9 @@
 extern int g_debuglevel;
 
 static void clearCallbackBuffers(tcurl *c) {
-     if(g_debuglevel) printf("clearCallbackbuffers(len: %d)\n", c->cb_length);    
-     memset( c->errorBuffer, 0, CURL_ERROR_SIZE);
-     memset( c->callbackData, 0, c->cb_length);
-     curl_easy_reset(c->curlHandle);
+	if(g_debuglevel) printf("clearCallbackbuffers(len: %d)\n", c->cb_length);    
+	memset( c->errorBuffer, 0, CURL_ERROR_SIZE);
+	memset( c->callbackData, 0, c->cb_length);
 }
 
 inline char *getLastCurlError(tcurl *c) {
@@ -57,7 +56,7 @@ exit:
 
 
 tcurl *new_tcurl() {
-     tcurl *c = (tcurl *)calloc(1, sizeof(tcurl));
+	tcurl *c = (tcurl *)calloc(1, sizeof(tcurl));
 
         // Set resonable sizes for our buffers; these will realloc if necessary.
         c->callbackData = (char *)malloc(256);
@@ -92,8 +91,8 @@ void free_tcurl(tcurl *c) {
 }
 
 int performGet(tcurl *c) {
-     int ret = -1;
-     if(g_debuglevel) printf("PerformGet()\n");
+	int ret = -1;
+	if(g_debuglevel) printf("PerformGet()\n");
         clearCallbackBuffers(c);
 
         char *req_url_signed = oauth_sign_url2(c->url, NULL, OA_HMAC, NULL, 
@@ -101,16 +100,16 @@ int performGet(tcurl *c) {
                                                c->oauthAccessKey, c->oauthAccessSecret);
 
 	if(req_url_signed) {
-	     curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 1);
-	     curl_easy_setopt( c->curlHandle, CURLOPT_URL, req_url_signed);
-	     if(g_debuglevel > 5) {
-		  curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
-	     }
+		curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 1);
+		curl_easy_setopt( c->curlHandle, CURLOPT_URL, req_url_signed);
+		if(g_debuglevel > 5) {
+			curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
+		}
 
-	     ret= CURLE_OK == curl_easy_perform(c->curlHandle);
-	     curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 0);
+		ret= CURLE_OK == curl_easy_perform(c->curlHandle);
+		curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 0);
 
-	     free(req_url_signed);
+		free(req_url_signed);
 	}
         return ret;
 }
@@ -124,7 +123,7 @@ static int performPost(tcurl *c, char *url, char *msg) {
 	int argc;
 	char **argv = NULL;
 
-     if(g_debuglevel) printf("PerformPost()\n");
+	if(g_debuglevel) printf("PerformPost()\n");
         clearCallbackBuffers(c);
 
 	argc = 2;
@@ -145,7 +144,7 @@ static int performPost(tcurl *c, char *url, char *msg) {
         curl_easy_setopt( c->curlHandle, CURLOPT_URL, url );
 	curl_easy_setopt( c->curlHandle, CURLOPT_POSTFIELDS, msg );
 	if(g_debuglevel > 5) {
-	  curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
+		curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
 	}
 
         headerlist = curl_slist_append(headerlist, "Expect:"); // Disable
@@ -159,6 +158,7 @@ static int performPost(tcurl *c, char *url, char *msg) {
 	// CLEAN UP
         curl_easy_setopt( c->curlHandle, CURLOPT_POST, 0);
         curl_easy_setopt( c->curlHandle, CURLOPT_POSTFIELDS, 0 );
+        curl_easy_setopt( c->curlHandle, CURLOPT_HTTPHEADER, 0);
 
 	oauth_free_array(&argc, &argv);
         curl_slist_free_all(headerlist);
@@ -187,7 +187,7 @@ static int performDelete(tcurl *c) {
         curl_easy_setopt( c->curlHandle, CURLOPT_CUSTOMREQUEST, "DELETE");
         curl_easy_setopt( c->curlHandle, CURLOPT_URL, req_url_signed);
         if(g_debuglevel > 5)
-          curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
+		curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
 
         int ret = CURLE_OK == curl_easy_perform(c->curlHandle);
         curl_easy_setopt( c->curlHandle, CURLOPT_CUSTOMREQUEST, 0);
@@ -226,21 +226,21 @@ int userGet(tcurl *c, char *userInfo, int isUserId) {
 // Get the latest tweet along with when it was published.  We assume for the authenticated user.
 int getLatestTweet(tcurl *c, char *content, int clen, long long *id)
 {
-     if(g_debuglevel) printf("getLatestTweet()\n");
+	if(g_debuglevel) printf("getLatestTweet()\n");
 
-     if (*id > 0) { // Get tweet after this POINT
-	  snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1/statuses/user_timeline.xml?user_id=%s&since_id=%lld&trim_user=1&count=1", c->userid, *id);
-     } else { // Get the latest
-	  snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1/statuses/user_timeline.xml?user_id=%s&trim_user=1&count=1", c->userid);
-     }
+	if (*id > 0) { // Get tweet after this POINT
+		snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1/statuses/user_timeline.xml?user_id=%s&since_id=%lld&trim_user=1&count=1", c->userid, *id);
+	} else { // Get the latest
+		snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1/statuses/user_timeline.xml?user_id=%s&trim_user=1&count=1", c->userid);
+	}
 
-        if(! performGet(c)) return -1;
+	if(! performGet(c)) return -1;
         char *result = getLastWebResponse(c);
         if(g_debuglevel) printf("Response from TWITTER\n%s\n", result);
 
 	// An empty STATUS response in XML is 75 characters.
 	if(strlen(result) < 76) {
-	     return -1;
+		return -1;
 	}
 
 	char *bid = strstr(result,"<id>");
@@ -249,8 +249,8 @@ int getLatestTweet(tcurl *c, char *content, int clen, long long *id)
 	char *etext = strstr(result,"</text>");
 
 	if(! (bid && eid && btext && etext)) {
-	     if(g_debuglevel) printf("Failed to find XML tags\n");
-	     return -1;
+		if(g_debuglevel) printf("Failed to find XML tags\n");
+		return -1;
 	}
 
 	*eid = 0;

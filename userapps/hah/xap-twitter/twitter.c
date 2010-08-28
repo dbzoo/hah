@@ -49,6 +49,8 @@ char access_key[128];
 char access_secret[128];
 char user[32];
 char userid[16];
+char prefix[20];
+int prefix_len = 0;
 
 const char inifile[] = "/etc/xap-livebox.ini";
 
@@ -60,19 +62,26 @@ static long long last_tweet; // ID of the last TWEET processed.
 static char tweet[141];
 
 void process_tweet() {
-     // Send the alias in an xAP message.
-     char buff[1500];
-     int len;
-     len = snprintf(buff, sizeof(buff),
-		    "xap-header\n{\nv=12\nhop=1\nuid=%s\n"
-		    "class=alias\nsource=%s.%s.%s\n}\n"
-		    "command\n{\ntext=%s\n}\n", 
-		    g_uid, XAP_ME, XAP_SOURCE, g_instance, tweet);
-     
-     if(len > sizeof(buff)) // Buffer overflow!
-       return;
-     xap_send_message(buff);
-     deleteTweetById(twit, last_tweet);
+	if(prefix_len == 0 || strncmp(tweet, prefix, prefix_len) == 0) {
+		char *tweeter = &tweet[0];
+
+		if (prefix_len)
+			tweeter += prefix_len;
+
+		// Send the alias in an xAP message.
+		char buff[1500];
+		int len;
+		len = snprintf(buff, sizeof(buff),
+			       "xap-header\n{\nv=12\nhop=1\nuid=%s\n"
+			       "class=alias\nsource=%s.%s.%s\n}\n"
+			       "command\n{\ntext=%s\n}\n", 
+			       g_uid, XAP_ME, XAP_SOURCE, g_instance, tweeter);
+		
+		if(len > sizeof(buff)) // Buffer overflow!
+			return;
+		xap_send_message(buff);
+		deleteTweetById(twit, last_tweet);
+	}
 }
 
 
@@ -199,6 +208,15 @@ void setupXAPini()
 	//Rate limit exceeded. Clients may not make more than 150 requests per hour.
 	freq = ini_getl("twitter","ufreq", 30, inifile);
 	if(freq < 10 || freq > 60*5) freq = 30;
+
+ 	ini_gets("twitter","prefix","",prefix,sizeof(prefix),inifile);
+	prefix_len = strlen(prefix);
+
+	// PREFIX command always has a trailing space.
+	if (prefix_len) {
+		prefix[prefix_len++] = ' ';
+		prefix[prefix_len] = '\0';
+	}
   
 	ini_gets("twitter","access_key","",access_key,sizeof(access_key),inifile);
 	ini_gets("twitter","access_secret","",access_secret,sizeof(access_secret),inifile);
@@ -209,7 +227,7 @@ void setupXAPini()
 	CONSUMER_KEY = strdup(consumer_key);
 	CONSUMER_SECRET = strdup(consumer_secret);
 	ini_gets("twitter","user","",user,sizeof(user),inifile);
-	ini_gets("twitter","userid","",userid,sizeof(userid),inifile);
+ 	ini_gets("twitter","userid","",userid,sizeof(userid),inifile);
 
 	if(strlen(access_key) == 0 ||
 	   strlen(access_secret) == 0 ||

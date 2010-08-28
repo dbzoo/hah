@@ -2,4 +2,4 @@
 insmod sunrpc
 insmod lockd
 insmod nfs
-mount -t nfs -o nolock 192.168.1.12:/opt/tools /opt
+mount -t nfs -o nolock 192.168.1.9:/home/brett /opt

@@ -339,7 +339,7 @@ void setupXAPini() {
 	 }
 	 XAP_DEFAULT_INSTANCE = strdup(control);
 
-	 hysteresis = ini_getl("currentcost", "hysteresis", 10, inifile) / 2;
+	 hysteresis = ini_getl("currentcost", "hysteresis", 10, inifile);
 
 	 ini_gets("currentcost","usbserial","/dev/ttyUSB0", g_serialport, sizeof(g_serialport), inifile);
 

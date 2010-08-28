@@ -206,7 +206,7 @@ static void readIni() {
 	 ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), con.inifile);
 	 ini.timeout_1wire = ini_getl("1wire","timeout", 0, con.inifile);
 	 ini_gets("currentcost","enable","0",ini.cc_enable,sizeof(ini.cc_enable),con.inifile);
-	 ini_gets("currentcost","hystersis","10",ini.cc_hysteresis,sizeof(ini.cc_hysteresis),con.inifile);
+	 ini_gets("currentcost","hysteresis","10",ini.cc_hysteresis,sizeof(ini.cc_hysteresis),con.inifile);
 	 ini_gets("currentcost","usbserial","/dev/ttyUSB0",ini.cc_usbserial,sizeof(ini.cc_usbserial),con.inifile);
 	 ini_gets("currentcost","model","CLASSIC",ini.cc_model,sizeof(ini.cc_model),con.inifile);
 	 ini_gets("currentcost","uid","00DC",ini.cc_uid,sizeof(ini.cc_uid),con.inifile);

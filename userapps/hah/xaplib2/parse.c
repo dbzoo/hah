@@ -1,5 +1,12 @@
 /* $Id$
+   Copyright (c) Brett England, 2010
+
+   No commercial use.
+   No redistribution at profit.
+   All derivative work must retain this message and
+   acknowledge the work of the original author.
 */
+
 #include <stdio.h>
 #include <string.h>
 #include "xap.h"

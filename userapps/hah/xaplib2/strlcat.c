@@ -1,4 +1,4 @@
-/*  $Id: strlcat.c 10 2010-01-15 18:44:18Z dbzoo.com $
+/*  $Id$
 **
 **  Replacement for a missing strlcat.
 **

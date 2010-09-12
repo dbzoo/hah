@@ -1,4 +1,4 @@
-# $Id: Makefile 10 2010-01-15 18:44:18Z dbzoo.com $
+# $Id$
 OBJECTS=init.o parse.o timeout.o tx.o rx.o filter.o bsc.o strlcpy.o strlcat.o
 CFLAGS=-g -Wall
 

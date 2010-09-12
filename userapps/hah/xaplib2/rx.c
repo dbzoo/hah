@@ -1,7 +1,12 @@
 /* $Id$
-*
-* Copyright: See COPYING file that comes with this distribution
+   Copyright (c) Brett England, 2010
+
+   No commercial use.
+   No redistribution at profit.
+   All derivative work must retain this message and
+   acknowledge the work of the original author.
 */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/select.h>

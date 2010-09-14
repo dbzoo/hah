@@ -1,6 +1,6 @@
 /* $Id$
    Copyright (c) Brett England, 2010
-
+ 
    No commercial use.
    No redistribution at profit.
    All derivative work must retain this message and
@@ -14,7 +14,7 @@
 #include "xap.h"
 #include "bsc.h"
 
-// Allowable values for a "state=value" key pair
+/// Decode allowable values for a "state=value" key pair.
 static int decode_state(char *msg)
 {
         int i;
@@ -33,7 +33,7 @@ static int decode_state(char *msg)
         return -1;
 }
 
-// Fully qualified endpoint name
+/// Fully qualified endpoint name.
 static char *bscFQEN(char *target, bscEndpoint *e)
 {
         char addr[512];
@@ -47,8 +47,60 @@ static char *bscFQEN(char *target, bscEndpoint *e)
         return strdup(addr);
 }
 
-// Handle an incoming xapBSC.cmd class control message
-// directed at an endpoint or a set of endpoints.
+/// Set the value of a BSC STREAM device type
+void setbscText(bscEndpoint *e, char *text)
+{
+        if(e->text)
+                free(e->text);
+        e->text = strdup(text);
+}
+
+/// Set the value of a BSC LEVEL device type.
+void setbscLevel(bscEndpoint *e, char *level)
+{
+        setbscText(e, level);
+}
+
+/// Set the value of a BSC BINARY device type.
+void setbscState(bscEndpoint *e, int state)
+{
+        e->state = state & 0x3;
+}
+
+/// Locate an Endpoint given its name and optional sub-address.
+bscEndpoint *findbscEndpoint(bscEndpoint *head, char *name, char *subaddr)
+{
+        bscEndpoint *e = head;
+        while(e) {
+                if(strcmp(e->name, name) == 0 &&
+                                ((e->subaddr == NULL && subaddr == NULL) ||
+                                 (e->subaddr && subaddr && strcmp(e->subaddr, subaddr) == 0))) {
+                        return e;
+                }
+                e = e->next;
+        }
+        return NULL;
+}
+
+/** Parse BSC LEVEL device type value.
+ *
+ * An XAP BSC level message may be of the form.
+ *     level = <value>/<range>  i.e: 256/512 = 50
+ */
+int bscParseLevel(char *str)
+{
+        int level;
+        int range;
+        if(index(str,'/') == 0) {
+                return 0;
+        }
+        sscanf(str,"%d/%d", &level, &range);
+        return range / level;
+}
+
+/** Handle an incoming xapBSC.cmd class control message
+ * directed at an endpoint or a set of endpoints.
+ */
 static void bscIncomingCmd(xAP *xap, void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
@@ -78,9 +130,9 @@ static void bscIncomingCmd(xAP *xap, void *data)
                         e->state = istate;
 
                         if(e->type == BSC_LEVEL) {
-                                e->level = strdup(xapGetValue(xap, section, "level"));
+                                setbscLevel(e, xapGetValue(xap, section, "level"));
                         } else if(e->type == BSC_STREAM) {
-                                e->text = strdup(xapGetValue(xap, section, "text"));
+                                setbscText(e, xapGetValue(xap, section, "text"));
                         }
 
                         // Perform Endpoint action.
@@ -93,8 +145,7 @@ static void bscIncomingCmd(xAP *xap, void *data)
         }
 }
 
-// Send XAP INFO message for this endpoint.
-
+/// Send an xapBSC.info message for this endpoint.
 static void bscIncomingQuery(xAP *xap, void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
@@ -104,10 +155,12 @@ static void bscIncomingQuery(xAP *xap, void *data)
         }
 }
 
-// Send XAP INFO message for this endpoint (TIMEOUT)
-// To reduce traffic if the device is sending EVENTS then we postpone
-// the regular INFO message until the INTERVAL time has elasped and no
-// xapBSC.query or xapBSC.event has been seen.
+/** Send XAP INFO message for this endpoint (TIMEOUT).
+*
+* To reduce traffic if the device is sending EVENTS then we postpone
+* the regular INFO message until the INTERVAL time has elasped and no
+* xapBSC.query or xapBSC.event has been seen.
+*/
 static void bscInfoTimeout(xAP *xap, int interval, void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
@@ -156,7 +209,7 @@ void bscInfoEvent(xAP *xap, bscEndpoint *e, char *clazz)
                 xapSend(xap, buff);
 }
 
-// Create an BSC endpoint.  Endpoint are use for automation control.
+/// Create a BSC endpoint these are use for automation control.
 void bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, char *id, unsigned int dir, unsigned int typ,
                     void (*cmd)(xAP *xap, struct _bscEndpoint *self),
                     void (*infoEvent)(xAP *xap, struct _bscEndpoint *self, char *clazz)
@@ -182,7 +235,7 @@ void bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, char *id, uns
         *head = e;
 }
 
-// Add CMD and QUERY filter callbacks for the BSC endpoints.
+/// Add CMD and QUERY filter callbacks for the BSC endpoints.
 void xapAddBscEndpointFilters(xAP *xap, bscEndpoint *head, int info_interval)
 {
         xAPFilter *filter;

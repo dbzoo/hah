@@ -89,7 +89,9 @@ typedef struct _xAP {
 	xAPFilterCallback *filterList;
 } xAP;
 
+// init.c
 xAP *xapNew(char *source, char *uid, char *interfaceName);
+void xapAddSocketListener(xAP *xap, int fd, void (*callback)(xAP *, int, void *), void *data);
 
 // tx.c
 void xapSend(xAP *this, const char *mess);
@@ -100,10 +102,12 @@ void timeoutDispatch(xAP *this);
 
 // rx.c
 void xapProcess(xAP *xap);
+void handleXapPacket(xAP *xap, int fd, void *data);
 
 //parse.c
+int xapGetType(xAP *this);
 char *xapGetValue(xAP *this, char *section, char *key);
-void handleXapPacket(xAP *xap, int fd, void *data);
+int xapIsValue(xAP *this, char *section, char *key, char *value);
 int parseMsg(struct parsedMsgElement parsedMsg[], int maxParsedMsgCount, unsigned char *msg);
 
 //filter.c

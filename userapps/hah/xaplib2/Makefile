@@ -1,25 +1,25 @@
 # $Id$
 OBJECTS=init.o parse.o timeout.o tx.o rx.o filter.o bsc.o strlcpy.o strlcat.o
-CFLAGS=-g -Wall
+CFLAGS=-g -Wall -fPIC
 
-all: demo
-
-init.c: xap.h
-parse.c: xap.h
-timeout.c: xap.h
-bsc.c: xap.h bsc.h
-tx.c: xap.h
-rx.c: xap.h
-filter.c: xap.h
-
-demo: demo.o $(OBJECTS)
-	$(CC) -o demo demo.o $(OBJECTS) 
-
-xaplib2.so: $(OBJECTS)
+libxap2.so: $(OBJECTS)
 	$(CC) -shared -Wl,-soname,libxap2.so -o libxap2.so $(OBJECTS)
 
-xaplib2.a: $(OBJECTS)
+libxap2.a: $(OBJECTS)
 	$(AR) rcv libxap2.a $(OBJECTS)
+
+demo: demo.o libxap2.so
+	$(CC) -o demo demo.o -L. -lxap2
 
 clean:
 	rm -f $(OBJECTS) libxap2.a libxap2.so demo.o
+
+init.o: init.c xap.h
+parse.o: parse.c xap.h
+timeout.o: timeout.c xap.h
+tx.o: tx.c xap.h
+rx.o: rx.c xap.h
+filter.o: filter.c xap.h
+bsc.o: bsc.c xap.h bsc.h
+
+demo.o: demo.c xap.h bsc.h

@@ -22,6 +22,10 @@ static int readXapData(xAP *xap) {
 }
 
 void handleXapPacket(xAP *xap, int fd, void *data) {
+	// If we have no filters then we don't care about xAP packets!
+	// When the receive buffer overflows as we are using UDP the data will
+	// just be dropped.
+	if(xap->filterList == NULL) return;	
 	if(readXapData(xap) > 0) {
 		xap->parsedMsgCount = parseMsg(xap->parsedMsg, XAP_MSG_ELEMENTS, xap->dataPacket);
 		filterDispatch(xap);

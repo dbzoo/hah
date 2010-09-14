@@ -51,7 +51,7 @@ typedef struct _bscEndpoint {
 	char *displayText;
 	time_t last_report; // last time an INFO or EVENT was sent.
 	char *uid;
-	char *source;
+	char *source; // vendor.device.instance:name.subaddr
 	
 	struct _bscEndpoint *next;
 } bscEndpoint;
@@ -62,5 +62,10 @@ void bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, char *id, uns
                    );
 void xapAddBscEndpointFilters(xAP *xap, bscEndpoint *head, int info_interval);
 void bscInfoEvent(xAP *xap, bscEndpoint *e, char *clazz);
+void setbscLevel(bscEndpoint *e, char *level);
+void setbscText(bscEndpoint *e, char *level);
+void setbscState(bscEndpoint *e, int state);
+bscEndpoint *findbscEndpoint(bscEndpoint *head, char *name, char *subaddr);
+int bscParseLevel(char *str);
 
 #endif

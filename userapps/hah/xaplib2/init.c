@@ -50,11 +50,16 @@ int discoverHub(int *rxport, int *rxfd, struct sockaddr_in *txAddr)
                                 break;
                         }
                 }
+	        if(i > XAP_PORT_H) {
+	        	printf("ERR: Could not allocate a port from the range %d to %d\n",
+	        	       XAP_PORT_L, XAP_PORT_H);
+		        return -1;
+	        }
         } else {
                 printf("Acquired broadcast socket, port %d\n", *rxport);
                 printf("Assuming no local hub is active\n");
         }
-	return 1;
+	return 0;
 }
 
 // Setup for Tx XAP Packets

@@ -107,7 +107,7 @@ void serin_1wire(cmd_t *s, xAP *x, bscEndpoint *head, char *argv[])
 * dispatch table and it will be passed the remaining arguments.
 * Up to 8 arguments are allowed.
 */
-void serial_handler(xAP *x, bscEndpoint *head, char *a_cmd)
+void processSerialCommand(xAP *x, bscEndpoint *head, char *a_cmd)
 {
         cmd_t *s = &cmd[0];
         char *command = NULL;
@@ -149,7 +149,7 @@ void serialInputHandler(xAP *x, int fd, void *data)
                 if (cmd[pos] == '\r' || cmd[pos] == '\n') {
                         cmd[pos] = '\0';
                         if(pos)
-                                serial_handler(x, head, cmd);
+                                processSerialCommand(x, head, cmd);
                         pos = 0;
                 } else if(pos < sizeof(cmd)) {
                         pos++;
@@ -164,16 +164,15 @@ void serialSend(char *buf)
 }
 
 /// Handle xapBSC.cmd for the RELAY endpoints.
-void relay_cmd (xAP *xap, bscEndpoint *e)
+void cmdRelay (xAP *xap, bscEndpoint *e)
 {
         char buf[30];
-        char *state = e->state == STATE_ON ? "on" : "off";
-        snprintf(buf, sizeof(buf), "relay %s %s\n", e->subaddr, state);
+	snprintf(buf, sizeof(buf), "relay %s %s\n", e->subaddr, bscStateToString(e));
         serialSend(buf);
 }
 
 /// Handle xapBSC.cmd for the LCD endpoint.
-void lcd_cmd (xAP *xap, bscEndpoint *e)
+void cmdLCD(xAP *xap, bscEndpoint *e)
 {
         char buf[30];
         snprintf(buf, sizeof(buf), "lcd %s\n", e->text);
@@ -193,7 +192,7 @@ void infoEvent1wire (xAP *xap, bscEndpoint *e, char *clazz)
 }
 
 /// Setup the serial port.
-int setup_serial_port(char *serialport, int baud)
+int setupSerialPort(char *serialport, int baud)
 {
         struct termios newtio;
         int fd = open(serialport, O_RDWR | O_NDELAY);
@@ -210,7 +209,7 @@ int setup_serial_port(char *serialport, int baud)
         return fd;
 }
 
-/// Setup Endpoints, the Serial port, a callback for the serial port, and process xAP messages.
+/// Setup Endpoints, the Serial port, a callback for the serial port and process xAP messages.
 int main(int argc, char *argv[])
 {
         serialfd = setup_serial_port("/dev/ttyS0", B115200);
@@ -222,18 +221,19 @@ int main(int argc, char *argv[])
         xAP *x = xapNew("dbzoo.livebox.Demo","FF00DB00", "eth0");
 
         bscEndpoint *ep = NULL;
-        // An INPUT can't have control command.
+        // An INPUT can't have a command callback, if supplied it'd be ignored anyway.
         // A NULL infoEvent function is equiv to supplying bscInfoEvent().
+	// Params: LIST, NAME, SUBADDR, UID, IO, DEVICE TYPE, CMD CALLBACK, INFO/EVENT CALLBACK
 	bscAddEndpoint(&ep, "1wire", "1", "01", BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);
         bscAddEndpoint(&ep, "1wire", "2", "02", BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);
         bscAddEndpoint(&ep, "input", "1", "03", BSC_INPUT, BSC_BINARY, NULL, NULL);
         bscAddEndpoint(&ep, "input", "2", "04", BSC_INPUT, BSC_BINARY, NULL, NULL);
         bscAddEndpoint(&ep, "input", "3", "05", BSC_INPUT, BSC_BINARY, NULL, NULL);
-        bscAddEndpoint(&ep, "relay", "1", "06", BSC_OUTPUT, BSC_BINARY, &relay_cmd, NULL);
-        bscAddEndpoint(&ep, "relay", "2", "07", BSC_OUTPUT, BSC_BINARY, &relay_cmd, NULL);
-        bscAddEndpoint(&ep, "relay", "3", "08", BSC_OUTPUT, BSC_BINARY, &relay_cmd, NULL);
-        bscAddEndpoint(&ep, "relay", "4", "09", BSC_OUTPUT, BSC_BINARY, &relay_cmd, NULL);
-        bscAddEndpoint(&ep, "lcd",  NULL, "10", BSC_OUTPUT, BSC_STREAM, &lcd_cmd, NULL);
+	bscAddEndpoint(&ep, "relay", "1", "06", BSC_OUTPUT, BSC_BINARY, &cmdRelay, NULL);
+	bscAddEndpoint(&ep, "relay", "2", "07", BSC_OUTPUT, BSC_BINARY, &cmdRelay, NULL);
+	bscAddEndpoint(&ep, "relay", "3", "08", BSC_OUTPUT, BSC_BINARY, &cmdRelay, NULL);
+	bscAddEndpoint(&ep, "relay", "4", "09", BSC_OUTPUT, BSC_BINARY, &cmdRelay, NULL);
+	bscAddEndpoint(&ep, "lcd",  NULL, "0A", BSC_OUTPUT, BSC_STREAM, &cmdLCD, NULL);
 
         xapAddBscEndpointFilters(x, ep, INFO_INTERVAL);
 

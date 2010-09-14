@@ -67,5 +67,7 @@ void setbscText(bscEndpoint *e, char *level);
 void setbscState(bscEndpoint *e, int state);
 bscEndpoint *findbscEndpoint(bscEndpoint *head, char *name, char *subaddr);
 int bscParseLevel(char *str);
+char *bscStateToString(bscEndpoint *e);
+char *bscIOToString(bscEndpoint *e);
 
 #endif

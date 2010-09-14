@@ -14,16 +14,19 @@
 #include "xap.h"
 #include "bsc.h"
 
+static char *io_str[] = {"input","output"};
+static char *state_str[] = {"off","on","?","?"};
+
 /// Decode allowable values for a "state=value" key pair.
 static int decode_state(char *msg)
 {
         int i;
-        static const char *value[] = {
-                                             "on","off","true","false","yes","no","1","0","toggle"
-                                     };
-        static const int state[] = {
-                                           1,0,1,0,1,0,1,0,2
-                                   };
+        static char *value[] = {
+                                       "on","off","true","false","yes","no","1","0","toggle"
+                               };
+        static int state[] = {
+                                     1,0,1,0,1,0,1,0,2
+                             };
         if (msg == NULL)
                 return -1;
         for(i=0; i < sizeof(value); i++) {
@@ -56,15 +59,27 @@ void setbscText(bscEndpoint *e, char *text)
 }
 
 /// Set the value of a BSC LEVEL device type.
-void setbscLevel(bscEndpoint *e, char *level)
+inline void setbscLevel(bscEndpoint *e, char *level)
 {
         setbscText(e, level);
 }
 
 /// Set the value of a BSC BINARY device type.
-void setbscState(bscEndpoint *e, int state)
+inline void setbscState(bscEndpoint *e, int state)
 {
         e->state = state & 0x3;
+}
+
+/// Return a string representation of the state
+inline char *bscStateToString(bscEndpoint *e)
+{
+        return state_str[e->state];
+}
+
+/// Return a string representation of the IO type
+inline char *bscIOToString(bscEndpoint *e)
+{
+        return io_str[e->io];
 }
 
 /// Locate an Endpoint given its name and optional sub-address.
@@ -176,8 +191,6 @@ static void bscInfoTimeout(xAP *xap, int interval, void *data)
 void bscInfoEvent(xAP *xap, bscEndpoint *e, char *clazz)
 {
         int len;
-        static char *io[] = {"input","output"};
-        static char *state[] = {"off","on","?","?"};
 
         char buff[XAP_DATA_LEN];
         len = snprintf(buff, XAP_DATA_LEN, "xap-header\n"
@@ -191,7 +204,7 @@ void bscInfoEvent(xAP *xap, bscEndpoint *e, char *clazz)
                        "%s.state\n"
                        "{\n"
                        "state=%s\n",
-                       e->uid, clazz, e->source, io[e->io], state[e->state]);
+                       e->uid, clazz, e->source, bscIOToString(e), bscStateToString(e));
 
         if(e->type == BSC_LEVEL) {
                 len += snprintf(&buff[len], XAP_DATA_LEN-len, "level=%s\n", e->level);

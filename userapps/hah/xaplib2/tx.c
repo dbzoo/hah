@@ -15,6 +15,7 @@
 
 void xapSend(xAP *this, const char *mess)
 {
+	info("send\n%s", mess);
 	if(sendto(this->txSockfd, mess, strlen(mess), 0, (struct sockaddr *)&(this->txAddress), sizeof(struct sockaddr_in)) < 0)
-		perror("sendto");
+		err_strerror("Tx xAP packet");
 }

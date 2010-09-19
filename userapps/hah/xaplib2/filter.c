@@ -20,6 +20,7 @@
 // Add in the order: Section key, Class key, Target key
 
 void xapAddFilter(xAPFilter **f, char *section, char *key, char *value) {
+	debug("section=%s key=%s value=%s", section, key, value);
 	xAPFilter *e = (xAPFilter *)malloc(sizeof(xAPFilter));
 	e->section = section;
 	e->key = key;
@@ -32,6 +33,7 @@ void xapAddFilter(xAPFilter **f, char *section, char *key, char *value) {
 
 // Match a filterAddr address against a sub address
 int xapFilterAddrSubaddress(char *filterAddr, char *addr) {
+	debug("filterAddr=%s addr=%s", filterAddr, addr);
 	int match = 1;
 
 	if(filterAddr == NULL || *filterAddr == '\0') { 
@@ -76,10 +78,12 @@ int xapCompareFilters(xAP *this, xAPFilter *head) {
 		match &= xapFilterAddrSubaddress(value, f->value);
 		f = f->next;
 	}
+	debug("match=%d",match);
 	return match;
 }
 
 void xapAddFilterAction(xAP *this, void (*func)(xAP *, void *), xAPFilter *filter, void *data) {
+	debug("Add filter. section=%s key=%s value=%s", filter->section, filter->key, filter->value);
 	xAPFilterCallback *cb = (xAPFilterCallback *)malloc(sizeof(xAPFilterCallback));
 	cb->callback = func;
 	cb->user_data = data;
@@ -98,22 +102,3 @@ void filterDispatch(xAP *this) {
 		}
 	}
 }
-
-#ifdef TESTING2
-// cc -DTESTING2 -o filter filter.c
-#include "parse.c"
-int main(int argc, char **argv) {
-	xAPFilter *f = NULL;
-	xapAddFilter(&f, "xap-header","target","dbzoo.livebox.1.Controller");
-	xapAddFilter(&f, "xap-header","target","dbzoo.livebox.1.>");
-	xapAddFilter(&f, "xap-header","target","dbzoo.livebox.Controller");
-	xapAddFilter(&f, "xap-header","target","dbzoo.livebox.*.Controller");
-	xapAddFilter(&f, "xap-header","target","dbzoo.livebox.>");
-
-	xAPFilter *e;
-	for(e = f; e; e = e->next) {
-		int match = xapFilterAddrSubaddress(e->value, "dbzoo.livebox.1.controller");
-		printf("%s { %s=%s } - %d\n", e->section, e->key, e->value, match);
-	}
-}
-#endif

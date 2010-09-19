@@ -6,7 +6,6 @@
    All derivative work must retain this message and
    acknowledge the work of the original author.
 */
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,6 +55,7 @@ void setbscText(bscEndpoint *e, char *text)
         if(e->text)
                 free(e->text);
         e->text = strdup(text);
+	info("text=%d", e->text);	
 }
 
 /// Set the value of a BSC LEVEL device type.
@@ -68,6 +68,7 @@ inline void setbscLevel(bscEndpoint *e, char *level)
 inline void setbscState(bscEndpoint *e, int state)
 {
         e->state = state & 0x3;
+	info("state=%d", e->state);
 }
 
 /// Return a string representation of the state
@@ -85,11 +86,13 @@ inline char *bscIOToString(bscEndpoint *e)
 /// Locate an Endpoint given its name and optional sub-address.
 bscEndpoint *findbscEndpoint(bscEndpoint *head, char *name, char *subaddr)
 {
+	debug("name %s subaddr %s", subaddr);
         bscEndpoint *e = head;
         while(e) {
                 if(strcmp(e->name, name) == 0 &&
                                 ((e->subaddr == NULL && subaddr == NULL) ||
                                  (e->subaddr && subaddr && strcmp(e->subaddr, subaddr) == 0))) {
+	                info("Found ", e->source);
                         return e;
                 }
                 e = e->next;
@@ -107,6 +110,7 @@ int bscParseLevel(char *str)
         int level;
         int range;
         if(index(str,'/') == 0) {
+	        warning("level=%s", str);
                 return 0;
         }
         sscanf(str,"%d/%d", &level, &range);
@@ -119,11 +123,13 @@ int bscParseLevel(char *str)
 static void bscIncomingCmd(xAP *xap, void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
-
+	info("xapBSC.cmd detected for %s", e->source);
+	
         // Can't control an INPUT device!
-        if(e->io == BSC_INPUT)
+	if(e->io == BSC_INPUT) {
+		warning("INPUT devices can't be controlled");
                 return;
-
+	}
         // Walk each multi block section updating the ENDPOINT if the section ID allows it.
         char section[16];
         int i;
@@ -164,7 +170,8 @@ static void bscIncomingCmd(xAP *xap, void *data)
 static void bscIncomingQuery(xAP *xap, void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
-        if(e->infoEvent) {
+	info("xapBSC.query detected for %s", e->source);	
+	if(e->infoEvent) {
                 e->last_report = time(NULL);
                 (*e->infoEvent)(xap, e, "xapBSC.info");
         }
@@ -181,7 +188,8 @@ static void bscInfoTimeout(xAP *xap, int interval, void *data)
         bscEndpoint *e = (bscEndpoint *)data;
         time_t now = time(NULL);
         if(e->infoEvent && (e->last_report = 0 || e->last_report + interval < now )) {
-                e->last_report = now;
+	        info("Timeout for %s", e->source);
+	        e->last_report = now;
                 (*e->infoEvent)(xap, e, "xapBSC.info");
         }
 }
@@ -217,7 +225,7 @@ void bscInfoEvent(xAP *xap, bscEndpoint *e, char *clazz)
         len += snprintf(&buff[len], XAP_DATA_LEN-len, "}\n");
 
         if(len > XAP_DATA_LEN)
-                printf("ERR: XAP message buffer truncated - not sending\n");
+                err("xAP message buffer truncated - not sending\n");
         else
                 xapSend(xap, buff);
 }
@@ -228,10 +236,11 @@ void bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, char *id, uns
                     void (*infoEvent)(xAP *xap, struct _bscEndpoint *self, char *clazz)
                    )
 {
-        assert(id && strlen(id) == 2);
+	die_if(name == NULL, "Name is mandatory");
+        die_if(id == NULL || strlen(id) != 2,"Endpoint ID must be length 2");
         bscEndpoint *e = (bscEndpoint *)calloc(1, sizeof(bscEndpoint));
 
-        e->name = strdup(name);
+	e->name = strdup(name);
         if(subaddr)
                 e->subaddr = strdup(subaddr);
         e->id = strdup(id);
@@ -252,13 +261,16 @@ void bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, char *id, uns
 void xapAddBscEndpointFilters(xAP *xap, bscEndpoint *head, int info_interval)
 {
         xAPFilter *filter;
-        while(xap && head) {
+	die_if(xap == NULL, "xAP xap==NULL");
+	notice_if(head == NULL, "No endpoints to add!?");
+        while(head) {
                 // UID of the endpoint is the xAP UID with the latest 2 digits replaced with the endpoint ID.
                 head->uid = strdup(xap->uid);
                 strncpy(&head->uid[6], head->id, 2);
 
                 // Compute ENDPOINTS source name.
                 head->source = bscFQEN(xap->source, head);
+        	info("source=%s", head->source);
 
                 if(head->io == BSC_OUTPUT) {
                         filter = NULL;

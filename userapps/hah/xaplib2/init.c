@@ -1,6 +1,6 @@
 /* $Id$
    Copyright (c) Brett England, 2010
-
+ 
    No commercial use.
    No redistribution at profit.
    All derivative work must retain this message and
@@ -16,25 +16,25 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <assert.h>
 #include "xap.h"
 
-// Setup for Rx XAP packets
-int discoverHub(int *rxport, int *rxfd, struct sockaddr_in *txAddr)
+/// Setup for Rx XAP packets
+void discoverHub(int *rxport, int *rxfd, struct sockaddr_in *txAddr)
 {
         struct sockaddr_in s;
 
         *rxfd = socket(AF_INET, SOCK_DGRAM, 0); // Non-blocking listener
-	*rxport = XAP_PORT_L;
-	fcntl(*rxfd, F_SETFL, O_NONBLOCK);
+        *rxport = XAP_PORT_L;
+        fcntl(*rxfd, F_SETFL, O_NONBLOCK);
 
         s.sin_family = AF_INET;
         s.sin_port = htons(*rxport);
-	s.sin_addr.s_addr = txAddr->sin_addr.s_addr;  // broadcast addr
+        s.sin_addr.s_addr = txAddr->sin_addr.s_addr;  // broadcast addr
 
-        if (bind(*rxfd, (struct sockaddr *)&s, sizeof(s)) == -1) {
-                printf("Broadcast socket port %d in use\n", XAP_PORT_L);
-                printf("Assuming a hub is active\n");
+        if (bind(*rxfd, (struct sockaddr *)&s, sizeof(s)) == -1)
+        {
+                notice("Broadcast socket port %d in use", XAP_PORT_L);
+                info("Assuming a hub is active");
                 int i;
                 for (i=XAP_PORT_L+1; i < XAP_PORT_H; i++)
                 {
@@ -43,27 +43,23 @@ int discoverHub(int *rxport, int *rxfd, struct sockaddr_in *txAddr)
                         s.sin_port = htons(i);
 
                         if (bind(*rxfd, (struct sockaddr *)&s, sizeof(struct sockaddr)) == -1) {
-                                printf("Socket port %d in use\n", i);
+                                notice("Socket port %d in use", i);
                         } else {
-                                printf("Discovered port %d\n", i);
+                                info("Discovered port %d", i);
                                 *rxport = i;
                                 break;
                         }
                 }
-	        if(i > XAP_PORT_H) {
-	        	printf("ERR: Could not allocate a port from the range %d to %d\n",
-	        	       XAP_PORT_L, XAP_PORT_H);
-		        return -1;
-	        }
-        } else {
-                printf("Acquired broadcast socket, port %d\n", *rxport);
-                printf("Assuming no local hub is active\n");
+                die_if(i > XAP_PORT_H,"Could not allocate a port from the range %d to %d", XAP_PORT_L, XAP_PORT_H);
+        } else
+        {
+                info("Acquired broadcast socket, port %d", *rxport);
+                info("Assuming no local hub is active");
         }
-	return 0;
 }
 
-// Setup for Tx XAP Packets
-int discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char *interfaceName)
+/// Setup for Tx XAP Packets
+void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char *interfaceName)
 {
         struct ifreq interface;
         struct sockaddr_in myinterface;
@@ -71,18 +67,21 @@ int discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char *interf
         int optval, optlen;
 
         if (interfaceName == NULL)
+        {
                 interfaceName = "eth0";
+                info("Defaulting interface to %s", interfaceName);
+        }
 
-        // Discover the broadcast network settings
-        *txfd = socket(AF_INET, SOCK_DGRAM, 0);
+        if((*txfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+        {
+                die_strerror("Unable to create Tx socket");
+        }
 
         optval=1;
         optlen=sizeof(int);
-        if (setsockopt(*txfd, SOL_SOCKET, SO_BROADCAST, (char*)&optval, optlen))
+        if (setsockopt(*txfd, SOL_SOCKET, SO_BROADCAST, (char*)&optval, optlen) == -1)
         {
-	        perror("discoverBroadcastNetwork");
-                printf("Cannot set options on broadcast socket\n");
-                return -1;
+                die_strerror("Cannot set options on broadcast socket");
         }
 
         // Query the low-level capabilities of the network interface
@@ -91,40 +90,36 @@ int discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char *interf
         memset((char*)&interface, sizeof(interface),0);
         interface.ifr_addr.sa_family = AF_INET;
         strcpy(interface.ifr_name, interfaceName);
-        if (ioctl(*txfd, SIOCGIFADDR, &interface))
+        if (ioctl(*txfd, SIOCGIFADDR, &interface) == -1)
         {
-	        perror("discoverBroadcastNetwork");
-	        printf("Could not determine interface address for interface %s\n", interfaceName);
-                return -1;
+                die_strerror("Unable to determine interface interface for interface %s", interfaceName);
         }
         myinterface.sin_addr.s_addr=((struct sockaddr_in*)&interface.ifr_broadaddr)->sin_addr.s_addr;
 
-	printf("%s: address %s\n", interfaceName, inet_ntoa(((struct sockaddr_in *)&interface.ifr_addr)->sin_addr));
-	
+        info("%s: address %s", interfaceName, inet_ntoa(((struct sockaddr_in *)&interface.ifr_addr)->sin_addr));
+
         // Find netmask
         interface.ifr_addr.sa_family = AF_INET;
         interface.ifr_broadaddr.sa_family = AF_INET;
         strcpy(interface.ifr_name, interfaceName);
-        if (ioctl(*txfd, SIOCGIFNETMASK, &interface))
+        if (ioctl(*txfd, SIOCGIFNETMASK, &interface) == -1)
         {
-	        perror("discoverBroadcastNetwork");
-                printf("Unable to determine netmask for interface %s\n", interfaceName);
-                return -1;
+                die_strerror("Unable to determine netmask for interface %s", interfaceName);
         }
         mynetmask.sin_addr.s_addr = ((struct sockaddr_in*)&interface.ifr_broadaddr)->sin_addr.s_addr;
 
-	printf("%s: netmask %s\n", interfaceName, inet_ntoa(((struct sockaddr_in *)&interface.ifr_netmask)->sin_addr));
-	
+        info("%s: netmask %s", interfaceName, inet_ntoa(((struct sockaddr_in *)&interface.ifr_netmask)->sin_addr));
+
         // Calculate broadcast address and stuff TX_address struct
         txAddr->sin_addr.s_addr = ~mynetmask.sin_addr.s_addr | myinterface.sin_addr.s_addr;
         txAddr->sin_family = AF_INET;
         txAddr->sin_port = htons(XAP_PORT_L);
 
-        printf("Autoconfig: xAP broadcasts on %s:%d\n",inet_ntoa(txAddr->sin_addr), XAP_PORT_L);
-
-        return 0;
+        info("Autoconfig: xAP broadcasts on %s:%d",inet_ntoa(txAddr->sin_addr), XAP_PORT_L);
 }
 
+/** Timeout handler to send heartbeats.
+*/
 void heartbeatHandler(xAP *this, int interval, void *data)
 {
         char buff[XAP_DATA_LEN];
@@ -143,8 +138,12 @@ void heartbeatHandler(xAP *this, int interval, void *data)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
+/** select() on other descriptors whilst in the xapProcess() loop.
+*/
 void xapAddSocketListener(xAP *xap, int fd, void (*callback)(xAP *, int, void *), void *data)
 {
+        die_if(fd < 0, "Invalid socket %d", fd);
+        debug("socket=%d", fd);
         xAPSocketConnection *cb = (xAPSocketConnection *)malloc(sizeof(xAPSocketConnection));
         cb->callback = callback;
         cb->user_data = data;
@@ -154,25 +153,25 @@ void xapAddSocketListener(xAP *xap, int fd, void (*callback)(xAP *, int, void *)
         xap->connectionList = cb;
 }
 
+/** Create a new xAP object.
+* Creates Tx/Rx sockets.
+* Registers a heartbeat timeout callback.
+* Registers the Rx packet handler for xAP data.
+*/
 xAP *xapNew(char *source, char *uid, char *interfaceName)
 {
-	assert(uid && strlen(uid) == 8);
+        die_if(uid == NULL || strlen(uid) != 8, "UID must be of length 8");
 
-	xAP *self = (xAP *)calloc(sizeof(xAP), 1);
+        xAP *self = (xAP *)calloc(sizeof(xAP), 1);
 
-	if(discoverBroadcastNetwork(&self->txAddress, &self->txSockfd, interfaceName) == -1)
-		goto error;
-	if(discoverHub(&self->rxPort, &self->rxSockfd, &self->txAddress) == -1)
-		goto error;
-	
-	self->source = strdup(source);
-	self->uid = strdup(uid);
+        discoverBroadcastNetwork(&self->txAddress, &self->txSockfd, interfaceName);
+        discoverHub(&self->rxPort, &self->rxSockfd, &self->txAddress);
 
-	xapAddTimeoutAction(self, &heartbeatHandler, XAP_HEARTBEAT_INTERVAL, NULL);
+        self->source = strdup(source);
+        self->uid = strdup(uid);
+
+        xapAddTimeoutAction(self, &heartbeatHandler, XAP_HEARTBEAT_INTERVAL, NULL);
         xapAddSocketListener(self, self->rxSockfd, handleXapPacket, NULL);
 
         return self;
-error:
-	free(self);
-	return NULL;
 }

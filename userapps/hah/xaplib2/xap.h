@@ -11,6 +11,7 @@
 
 #include <time.h>
 #include <arpa/inet.h>
+#include "log.h"
 
 #define MAX_SOCKETS 5			// Additional sockets to listen on
 
@@ -31,7 +32,6 @@
 #define XAP_MSG_CACHE_REPLY 6		// xap cache message type
 #define XAP_MSG_UNKNOWN  0              // unknown xap message type
 #define XAP_MSG_NONE 0                  // (or no message received)
-
 
 typedef struct _xAPFilter {
 	char *section;
@@ -108,6 +108,7 @@ void handleXapPacket(xAP *xap, int fd, void *data);
 int xapGetType(xAP *this);
 char *xapGetValue(xAP *this, char *section, char *key);
 int xapIsValue(xAP *this, char *section, char *key, char *value);
+int parsedMsgToRaw(struct parsedMsgElement parsedMsg[], int parsedMsgCount, char *msg, int size);
 int parseMsg(struct parsedMsgElement parsedMsg[], int maxParsedMsgCount, unsigned char *msg);
 
 //filter.c
@@ -115,6 +116,7 @@ int xapCompareFilters(xAP *this, xAPFilter *f);
 void xapAddFilterAction(xAP *this, void (*func)(xAP *, void *), xAPFilter *filter, void *data);
 void filterDispatch(xAP *this);
 void xapAddFilter(xAPFilter **f, char *section, char *key, char *value);
+int xapFilterAddrSubaddress(char *filterAddr, char *addr);
 
 // safe string copy
 size_t strlcpy(char *dst, const char *src, size_t size);

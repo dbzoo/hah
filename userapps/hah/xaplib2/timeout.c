@@ -10,8 +10,11 @@
 #include <time.h>
 #include "xap.h"
 
+/** Add a timeout callback to the list
+*/
 void xapAddTimeoutAction(xAP *this, void (*func)(xAP *, int, void *), int interval, void *data) {
 	xAPTimeoutCallback *cb = (xAPTimeoutCallback *)malloc(sizeof(xAPTimeoutCallback));
+	debug("Add timeout. interval=%d",interval);
 	cb->callback = func;
 	cb->user_data = data;
 	cb->interval = interval;
@@ -21,6 +24,8 @@ void xapAddTimeoutAction(xAP *this, void (*func)(xAP *, int, void *), int interv
 	this->timeoutList = cb;
 }
 
+/** Dispatch timeout callback that have expired.
+*/
 void timeoutDispatch(xAP *this) {
 	xAPTimeoutCallback *cb;
 	time_t now = time(NULL);
@@ -31,28 +36,4 @@ void timeoutDispatch(xAP *this) {
 		}
 	}
 }
-
-#ifdef TESTING
-// cc -DTESTING -o timeout timeout.c
-#include <stdio.h>
-#include <string.h>
-void cb(xAP *this, int interval, void *data) {
-	char *s = (char *)data;
-	time_t now = time(NULL);
-	char *t = ctime(&now);
-	t[strlen(t)-1] = 0;
-	printf("%s - Interval %d - %s\n", t, interval, s);
-}
-
-int main(int argc, char *argv[]) {
-	xAP *me = (xAP *)calloc(sizeof(xAP), 1);
-	xapAddTimeoutAction(me, &cb, 5, "hello");
-	xapAddTimeoutAction(me, &cb, 7, "there");
-	int i;
-	for(i=0; i<20; i++) {
-		timeoutDispatch(me);
-		sleep(1);
-	}
-}
-#endif
 

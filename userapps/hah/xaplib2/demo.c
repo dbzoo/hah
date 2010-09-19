@@ -196,8 +196,10 @@ int setupSerialPort(char *serialport, int baud)
 {
         struct termios newtio;
         int fd = open(serialport, O_RDWR | O_NDELAY);
-        if (fd < 0)
+	if (fd < 0) {
+		err_strerror("Failed to open serial port %s", serialport);
                 return -1;
+	}
         cfmakeraw(&newtio);
         newtio.c_cflag = baud | CS8 | CLOCAL | CREAD ;
         newtio.c_iflag = IGNPAR;
@@ -212,15 +214,16 @@ int setupSerialPort(char *serialport, int baud)
 /// Setup Endpoints, the Serial port, a callback for the serial port and process xAP messages.
 int main(int argc, char *argv[])
 {
-        serialfd = setup_serial_port("/dev/ttyS0", B115200);
-        if(serialfd < 0) {
-                printf("Failed to open serial port");
-                exit(1);
-        }
+	bscEndpoint *ep = NULL;
 
-        xAP *x = xapNew("dbzoo.livebox.Demo","FF00DB00", "eth0");
+	setLoglevel(LOG_INFO);
+	xAP *x = xapNew("dbzoo.livebox.Demo","FF00DB00", "eth0");
+	die_if(x == NULL,"Failed to init xAP");
 
-        bscEndpoint *ep = NULL;
+        // Setup Serial port and install a handler for SERIAL input.
+	if((serialfd = setupSerialPort("/dev/ttyS0", B115200)) > 0)
+		xapAddSocketListener(x, serialfd, &serialInputHandler, ep);
+	
         // An INPUT can't have a command callback, if supplied it'd be ignored anyway.
         // A NULL infoEvent function is equiv to supplying bscInfoEvent().
 	// Params: LIST, NAME, SUBADDR, UID, IO, DEVICE TYPE, CMD CALLBACK, INFO/EVENT CALLBACK
@@ -236,9 +239,6 @@ int main(int argc, char *argv[])
 	bscAddEndpoint(&ep, "lcd",  NULL, "0A", BSC_OUTPUT, BSC_STREAM, &cmdLCD, NULL);
 
         xapAddBscEndpointFilters(x, ep, INFO_INTERVAL);
-
-        // Install a handler for SERIAL input.
-        xapAddSocketListener(x, serialfd, &serialInputHandler, ep);
 
         xapProcess(x);
 	return 0;  // not reached

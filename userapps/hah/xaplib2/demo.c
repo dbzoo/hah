@@ -214,16 +214,11 @@ int setupSerialPort(char *serialport, int baud)
 /// Setup Endpoints, the Serial port, a callback for the serial port and process xAP messages.
 int main(int argc, char *argv[])
 {
-	bscEndpoint *ep = NULL;
-
 	setLoglevel(LOG_INFO);
 	xAP *x = xapNew("dbzoo.livebox.Demo","FF00DB00", "eth0");
 	die_if(x == NULL,"Failed to init xAP");
-
-        // Setup Serial port and install a handler for SERIAL input.
-	if((serialfd = setupSerialPort("/dev/ttyS0", B115200)) > 0)
-		xapAddSocketListener(x, serialfd, &serialInputHandler, ep);
 	
+	bscEndpoint *ep = NULL;
         // An INPUT can't have a command callback, if supplied it'd be ignored anyway.
         // A NULL infoEvent function is equiv to supplying bscInfoEvent().
 	// Params: LIST, NAME, SUBADDR, UID, IO, DEVICE TYPE, CMD CALLBACK, INFO/EVENT CALLBACK
@@ -239,7 +234,11 @@ int main(int argc, char *argv[])
 	bscAddEndpoint(&ep, "lcd",  NULL, "0A", BSC_OUTPUT, BSC_STREAM, &cmdLCD, NULL);
 
         xapAddBscEndpointFilters(x, ep, INFO_INTERVAL);
-
+	
+        // Setup Serial port and install a handler for SERIAL input.
+	if((serialfd = setupSerialPort("/dev/ttyS0", B115200)) > 0)
+		xapAddSocketListener(x, serialfd, &serialInputHandler, ep);
+	
         xapProcess(x);
 	return 0;  // not reached
 }

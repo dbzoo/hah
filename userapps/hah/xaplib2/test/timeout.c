@@ -1,4 +1,4 @@
-/* $Id: timeout.c 78 2010-09-12 23:01:29Z dbzoo.com $
+/* $Id$
    Copyright (c) Brett England, 2010
 
    No commercial use.
@@ -21,9 +21,21 @@ void cb(xAP *this, int interval, void *data) {
 	printf("%s - Interval %d - %s\n", t, interval, s);
 }
 
+void hello(xAP *this, int interval, void *data) {
+	static int i = 0;
+	cb(this, interval, data);
+	i++;
+	if(i == 2) { // After being invoked 2 times speed up.
+		xapDelTimeoutActionByFunc(this, &hello);
+		interval -= 2; // Make it 2 seconds quicker.
+		printf("removing Hello timeout - Resubmitting every %d sec\n", interval);
+		xapAddTimeoutAction(this, &cb, interval, "hello");
+	}
+}
+
 int main(int argc, char *argv[]) {
 	xAP *me = (xAP *)calloc(sizeof(xAP), 1);
-	xapAddTimeoutAction(me, &cb, 5, "hello");
+	xapAddTimeoutAction(me, &hello, 5, "hello");
 	xapAddTimeoutAction(me, &cb, 7, "there");
 	int i;
 	for(i=0; i<20; i++) {

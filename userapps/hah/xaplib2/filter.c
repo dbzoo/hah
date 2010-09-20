@@ -19,16 +19,15 @@
 //
 // Add in the order: Section key, Class key, Target key
 
-void xapAddFilter(xAPFilter **f, char *section, char *key, char *value) {
+xAPFilter *xapAddFilter(xAPFilter **f, char *section, char *key, char *value) {
 	debug("section=%s key=%s value=%s", section, key, value);
 	xAPFilter *e = (xAPFilter *)malloc(sizeof(xAPFilter));
 	e->section = section;
 	e->key = key;
 	e->value = value;
 
-	// PREPEND to list
-	e->next = *f;
-	*f = e;
+	LL_PREPEND(*f, e);
+	return e;
 }
 
 // Match a filterAddr address against a sub address
@@ -82,20 +81,20 @@ int xapCompareFilters(xAP *this, xAPFilter *head) {
 	return match;
 }
 
-void xapAddFilterAction(xAP *this, void (*func)(xAP *, void *), xAPFilter *filter, void *data) {
+xAPFilterCallback *xapAddFilterAction(xAP *this, void (*func)(xAP *, void *), xAPFilter *filter, void *data) {
 	debug("Add filter. section=%s key=%s value=%s", filter->section, filter->key, filter->value);
 	xAPFilterCallback *cb = (xAPFilterCallback *)malloc(sizeof(xAPFilterCallback));
 	cb->callback = func;
 	cb->user_data = data;
 	cb->filter = filter;
 
-	cb->next = this->filterList;
-	this->filterList = cb;
+	LL_PREPEND(this->filterList, cb);
+	return cb;
 }
 
 void filterDispatch(xAP *this) {
 	xAPFilterCallback *cb;
-	for(cb = this->filterList; cb; cb = cb->next) {
+	LL_FOREACH(this->filterList, cb) {
 		// Do all the filters for this Callback match?
 		if(xapCompareFilters(this, cb->filter)) {
 			(*cb->callback)(this, cb->user_data); // Dispatch it..

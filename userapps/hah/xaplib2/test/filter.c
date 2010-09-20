@@ -1,4 +1,4 @@
-/* $Id: filter.c 78 2010-09-12 23:01:29Z dbzoo.com $
+/* $Id$
    Copyright (c) Brett England, 2010
 
    No commercial use.

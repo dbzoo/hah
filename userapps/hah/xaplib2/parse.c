@@ -16,6 +16,11 @@ int xapGetType(xAP *this) {
 	if (this->parsedMsgCount==0) return XAP_MSG_NONE;
 	if (strcasecmp(this->parsedMsg[0].section,"xap-hbeat")==0) return XAP_MSG_HBEAT;
 	if (strcasecmp(this->parsedMsg[0].section,"xap-header")==0) return XAP_MSG_ORDINARY;
+	// Patrick had these in his xaplib are these valid?
+	if (strcasecmp(this->parsedMsg[0].section,"xap-config-request")==0) return XAP_MSG_CONFIG_REQUEST;
+	if (strcasecmp(this->parsedMsg[0].section,"xap-cache-request")==0) return XAP_MSG_CACHE_REQUEST;
+	if (strcasecmp(this->parsedMsg[0].section,"xap-cache-reply")==0) return XAP_MSG_CACHE_REPLY;
+	if (strcasecmp(this->parsedMsg[0].section,"xap-config-reply")==0) return XAP_MSG_CONFIG_REPLY;
 	return XAP_MSG_UNKNOWN;
 }
 

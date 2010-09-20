@@ -12,6 +12,7 @@
 #include <time.h>
 #include <arpa/inet.h>
 #include "log.h"
+#include "utlist.h"
 
 #define MAX_SOCKETS 5			// Additional sockets to listen on
 
@@ -97,8 +98,10 @@ void xapAddSocketListener(xAP *xap, int fd, void (*callback)(xAP *, int, void *)
 void xapSend(xAP *this, const char *mess);
 
 // timeout.c
-void xapAddTimeoutAction(xAP *this, void (*func)(xAP *, int, void *), int interval, void *data);
+xAPTimeoutCallback *xapAddTimeoutAction(xAP *this, void (*func)(xAP *, int, void *), int interval, void *data);
 void timeoutDispatch(xAP *this);
+void xapDelTimeoutAction(xAP *xap, xAPTimeoutCallback **cb);
+void xapDelTimeoutActionByFunc(xAP *xap, void (*func)(xAP *, int, void *));
 
 // rx.c
 void xapProcess(xAP *xap);
@@ -113,9 +116,9 @@ int parseMsg(struct parsedMsgElement parsedMsg[], int maxParsedMsgCount, unsigne
 
 //filter.c
 int xapCompareFilters(xAP *this, xAPFilter *f);
-void xapAddFilterAction(xAP *this, void (*func)(xAP *, void *), xAPFilter *filter, void *data);
+xAPFilterCallback *xapAddFilterAction(xAP *this, void (*func)(xAP *, void *), xAPFilter *filter, void *data);
 void filterDispatch(xAP *this);
-void xapAddFilter(xAPFilter **f, char *section, char *key, char *value);
+xAPFilter *xapAddFilter(xAPFilter **f, char *section, char *key, char *value);
 int xapFilterAddrSubaddress(char *filterAddr, char *addr);
 
 // safe string copy

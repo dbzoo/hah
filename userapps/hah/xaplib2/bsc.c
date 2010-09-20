@@ -87,15 +87,14 @@ inline char *bscIOToString(bscEndpoint *e)
 bscEndpoint *findbscEndpoint(bscEndpoint *head, char *name, char *subaddr)
 {
 	debug("name %s subaddr %s", subaddr);
-        bscEndpoint *e = head;
-        while(e) {
+        bscEndpoint *e;
+	LL_FOREACH(head, e) {
                 if(strcmp(e->name, name) == 0 &&
                                 ((e->subaddr == NULL && subaddr == NULL) ||
                                  (e->subaddr && subaddr && strcmp(e->subaddr, subaddr) == 0))) {
 	                info("Found ", e->source);
                         return e;
                 }
-                e = e->next;
         }
         return NULL;
 }
@@ -253,8 +252,7 @@ void bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, char *id, uns
         // If the user hasn't supplied handlers use the defaults.
         e->infoEvent = infoEvent == NULL ? bscInfoEvent : infoEvent;
 
-        e->next = *head;
-        *head = e;
+	LL_PREPEND(*head, e);
 }
 
 /// Add CMD and QUERY filter callbacks for the BSC endpoints.

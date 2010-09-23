@@ -13,6 +13,8 @@
 #include <ctype.h>
 #include "xap.h"
 
+xAP *gXAP;
+
 int main(int argc, char **argv) {
 	xAPFilter *f = NULL;
 	xapAddFilter(&f, "xap-header","target","dbzoo.livebox.1.Controller");

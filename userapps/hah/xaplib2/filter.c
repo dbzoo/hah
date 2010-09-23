@@ -65,11 +65,11 @@ int xapFilterAddrSubaddress(char *filterAddr, char *addr) {
 
 // Test if a set of filters match the xap message
 // returns: 1 if a match was found, otherwise 0
-int xapCompareFilters(xAP *this, xAPFilter *head) {
+int xapCompareFilters(xAPFilter *head) {
 	int match = 1;
 	xAPFilter *f = head;
 	while(f && match) {
-		char *value = xapGetValue(this, f->section, f->key);
+		char *value = xapGetValue(f->section, f->key);
 		if(value == NULL) { // No section key.  We can't match.
 			match = 0;
 			break;
@@ -81,23 +81,23 @@ int xapCompareFilters(xAP *this, xAPFilter *head) {
 	return match;
 }
 
-xAPFilterCallback *xapAddFilterAction(xAP *this, void (*func)(xAP *, void *), xAPFilter *filter, void *data) {
+xAPFilterCallback *xapAddFilterAction(void (*func)(void *), xAPFilter *filter, void *data) {
 	debug("Add filter. section=%s key=%s value=%s", filter->section, filter->key, filter->value);
 	xAPFilterCallback *cb = (xAPFilterCallback *)malloc(sizeof(xAPFilterCallback));
 	cb->callback = func;
 	cb->user_data = data;
 	cb->filter = filter;
 
-	LL_PREPEND(this->filterList, cb);
+	LL_PREPEND(gXAP->filterList, cb);
 	return cb;
 }
 
-void filterDispatch(xAP *this) {
+void filterDispatch() {
 	xAPFilterCallback *cb;
-	LL_FOREACH(this->filterList, cb) {
+	LL_FOREACH(gXAP->filterList, cb) {
 		// Do all the filters for this Callback match?
-		if(xapCompareFilters(this, cb->filter)) {
-			(*cb->callback)(this, cb->user_data); // Dispatch it..
+		if(xapCompareFilters(cb->filter)) {
+			(*cb->callback)(cb->user_data); // Dispatch it..
 		}
 	}
 }

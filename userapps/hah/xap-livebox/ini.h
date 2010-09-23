@@ -4,8 +4,10 @@
 #ifndef INI_H
 #define INI_H
 
+extern bscEndpoint *endpointList;
 extern const char inifile[];
-void setupXAPini();
-void parseini();
+
+void addIniEndpoints();
+void infoEventRFnRelay(bscEndpoint *e, char *clazz);
 
 #endif

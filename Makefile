@@ -94,6 +94,7 @@ SUBDIRS_INVENTEL = \
 HAH_DIR=$(USERAPPS_DIR)/hah
 SUBDIRS_HAH = \
 	$(HAH_DIR)/xaplib \
+	$(HAH_DIR)/xaplib2 \
 	$(HAH_DIR)/xap-hub \
 	$(HAH_DIR)/xap-livebox \
 	$(HAH_DIR)/xap-snoop \
@@ -111,7 +112,7 @@ SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIR
 
 OPENSOURCE_APPS = brctl dropbear ftpd msmtp iptables busybox ntpclient ini mtd lua wol
 INVENTEL_APPS = inventelbin sendarp ledctrl
-HAH_APPS = xaplib xap-hub xap-livebox xap-snoop xap-pachube xap-sms xap-bridge \
+HAH_APPS = xaplib xaplib2 xap-hub xap-livebox xap-snoop xap-pachube xap-sms xap-bridge \
 	xap-currentcost xap-googlecal xap-twitter xap-plugboard luarex klone
 
 BUSYBOX_DIR = $(OPENSOURCE_DIR)/busybox
@@ -168,13 +169,13 @@ xaplib:
 	install -m 755 -d $(INSTALL_DIR)/include
 	install -m 644 $(HAH_DIR)/xaplib/*.h $(INSTALL_DIR)/include
 
-xapxmllib: libxml2 xaplib
-	$(MAKE) -C $(HAH_DIR)/xapxmllib
+xaplib2:
+	$(MAKE) -C $(HAH_DIR)/xaplib2
 	install -m 755 -d $(INSTALL_DIR)/lib
-	install -m 644 $(HAH_DIR)/xapxmllib/libxapxml.so $(INSTALL_DIR)/lib
-	$(STRIP) $(INSTALL_DIR)/lib/libxapxml.so
+	install -m 644 $(HAH_DIR)/xaplib2/libxap2.so $(INSTALL_DIR)/lib
+	$(STRIP) $(INSTALL_DIR)/lib/libxap.so
 	install -m 755 -d $(INSTALL_DIR)/include
-	install -m 644 $(HAH_DIR)/xapxmllib/*.h $(INSTALL_DIR)/include
+	install -m 644 $(HAH_DIR)/xaplib2/*.h $(INSTALL_DIR)/include
 
 xap-hub: xaplib
 	$(MAKE) -C $(HAH_DIR)/xap-hub
@@ -182,7 +183,7 @@ xap-hub: xaplib
 	install -m 755 $(HAH_DIR)/xap-hub/xap-hub $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-hub
 
-xap-livebox: xaplib
+xap-livebox: xaplib2
 	$(MAKE) -C $(HAH_DIR)/xap-livebox
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/xap-livebox/xap-livebox $(INSTALL_DIR)/usr/bin

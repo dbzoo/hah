@@ -44,14 +44,14 @@ typedef struct _xAPFilter {
 struct _xAP;
 
 typedef struct _xAPFilterCallback {
-	void (*callback)(struct _xAP *, void *);
+	void (*callback)(void *);
 	void *user_data;
 	xAPFilter *filter;
 	struct _xAPFilterCallback *next;
 } xAPFilterCallback;
 
 typedef struct _xAPTimeoutCallback {
-	void (*callback)(struct _xAP *, int, void *);
+	void (*callback)(int, void *);
 	void *user_data;
 	int interval;
 	time_t ttl;
@@ -61,7 +61,7 @@ typedef struct _xAPTimeoutCallback {
 typedef struct _xAPSocketConnection {
 	int fd;
 	void *user_data;
-	void (*callback)(struct _xAP*, int fd, void *data);
+	void (*callback)(int fd, void *data);
 	struct _xAPSocketConnection *next;
 } xAPSocketConnection;
 
@@ -78,6 +78,7 @@ typedef struct _xAP {
 	int rxPort;
 	int rxSockfd;
 
+	char *ip;
 	struct sockaddr_in txAddress;
 	int txSockfd;
 
@@ -90,34 +91,37 @@ typedef struct _xAP {
 	xAPFilterCallback *filterList;
 } xAP;
 
+// Global XAP object used by ALL - easier than constantly passing this about.
+extern xAP *gXAP; 
+
 // init.c
-xAP *xapNew(char *source, char *uid, char *interfaceName);
-void xapAddSocketListener(xAP *xap, int fd, void (*callback)(xAP *, int, void *), void *data);
+void xapInit(char *source, char *uid, char *interfaceName);
+void xapAddSocketListener(int fd, void (*callback)(int, void *), void *data);
 
 // tx.c
-void xapSend(xAP *this, const char *mess);
+void xapSend(const char *mess);
 
 // timeout.c
-xAPTimeoutCallback *xapAddTimeoutAction(xAP *this, void (*func)(xAP *, int, void *), int interval, void *data);
-void timeoutDispatch(xAP *this);
-void xapDelTimeoutAction(xAP *xap, xAPTimeoutCallback **cb);
-void xapDelTimeoutActionByFunc(xAP *xap, void (*func)(xAP *, int, void *));
+xAPTimeoutCallback *xapAddTimeoutAction(void (*func)(int, void *), int interval, void *data);
+void timeoutDispatch();
+void xapDelTimeoutAction(xAPTimeoutCallback **cb);
+void xapDelTimeoutActionByFunc(void (*func)(int, void *));
 
 // rx.c
-void xapProcess(xAP *xap);
-void handleXapPacket(xAP *xap, int fd, void *data);
+void xapProcess();
+void handleXapPacket(int fd, void *data);
 
 //parse.c
-int xapGetType(xAP *this);
-char *xapGetValue(xAP *this, char *section, char *key);
-int xapIsValue(xAP *this, char *section, char *key, char *value);
+int xapGetType();
+char *xapGetValue(char *section, char *key);
+int xapIsValue(char *section, char *key, char *value);
 int parsedMsgToRaw(struct parsedMsgElement parsedMsg[], int parsedMsgCount, char *msg, int size);
 int parseMsg(struct parsedMsgElement parsedMsg[], int maxParsedMsgCount, unsigned char *msg);
 
 //filter.c
-int xapCompareFilters(xAP *this, xAPFilter *f);
-xAPFilterCallback *xapAddFilterAction(xAP *this, void (*func)(xAP *, void *), xAPFilter *filter, void *data);
-void filterDispatch(xAP *this);
+int xapCompareFilters(xAPFilter *f);
+xAPFilterCallback *xapAddFilterAction(void (*func)(void *), xAPFilter *filter, void *data);
+void filterDispatch();
 xAPFilter *xapAddFilter(xAPFilter **f, char *section, char *key, char *value);
 int xapFilterAddrSubaddress(char *filterAddr, char *addr);
 

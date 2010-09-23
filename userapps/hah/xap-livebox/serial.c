@@ -1,30 +1,23 @@
 /* $Id$
-   Copyright (c) Brett England, 2010
 
-   Demonstration usage for the xAP and BSC library calls.
-   Based around a stripped down xap-livebox daemon.
-
-   No commercial use.
-   No redistribution at profit.
-   All derivative work must retain this message and
-   acknowledge the work of the original author.
+Serial interfacing to the external AVR hardware
 */
+#ifdef IDENT
+#ident "@(#) $Id$"
+#endif
+
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <termios.h>
 #include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include "xap.h"
 #include "bsc.h"
+#include "log.h"
 
-#define INFO_INTERVAL 120
-
-xAP *gXAP = NULL;  // Usage of the library requires a global XAP object.
-
-int serialfd;
+int gSerialfd;
 
 typedef struct _cmd
 {
@@ -33,13 +26,15 @@ typedef struct _cmd
 }
 cmd_t;
 
-void serin_input(cmd_t *, bscEndpoint *, char **);
-void serin_1wire(cmd_t *, bscEndpoint *, char **);
+static void serin_input(cmd_t *, bscEndpoint *, char **);
+static void serin_1wire(cmd_t *, bscEndpoint *, char **);
+static void serin_ppe(cmd_t *, bscEndpoint *, char **);
 
 // incoming serial command dispatch table.
-cmd_t cmd[] = {
+static cmd_t cmd[] = {
                       {"input", &serin_input},
                       {"1wire", &serin_1wire},
+                      {"i2c-ppe", &serin_ppe},
                       { NULL, NULL }
               };
 
@@ -53,7 +48,7 @@ cmd_t cmd[] = {
 *        Each will be bit mapped into a decimal number.
 *        0110 = 6
 */
-void serin_input(cmd_t *s, bscEndpoint *head, char *argv[])
+static void serin_input(cmd_t *s, bscEndpoint *head, char *argv[])
 {
         int old, new;
         int bit, i;
@@ -74,8 +69,7 @@ void serin_input(cmd_t *s, bscEndpoint *head, char *argv[])
 	                buff[0] = '1' + i;
                         bscEndpoint *e = findbscEndpoint(head, "input", buff);
                         if(e) {
-                        	setbscState(e, new & (1<<bit) ? STATE_ON : STATE_OFF);
-                                (*e->infoEvent)(e, "xapBSC.event");
+                        	setbscStateNow(e, new & (1<<bit) ? STATE_ON : STATE_OFF);
                         }
                 }
         }
@@ -89,14 +83,54 @@ void serin_input(cmd_t *s, bscEndpoint *head, char *argv[])
 *     by amending the endpoint struct.
 * L - a numeric value.  Temp, Pressure etc..
 */
-void serin_1wire(cmd_t *s, bscEndpoint *head, char *argv[])
+static void serin_1wire(cmd_t *s, bscEndpoint *head, char *argv[])
 {
         if(argv[0] == NULL)
                 return;  // Bad input shouldn't happen?!
         bscEndpoint *e = findbscEndpoint(head, "1wire", argv[0]);
         if(e) {
+	        setbscState(e, STATE_ON);  // got a serial event we know its alive.
                 setbscTextNow(e, argv[1]);
+	        // record the last time this 1wire device reported in.
+	        *(time_t *)e->userData = time(NULL);
         }
+}
+
+// i2c-ppe A O N
+//
+// A - Address of PPE chip (in hex 2 digits only)
+// O - Original value before state change
+// N - Value after state change
+static void serin_ppe(cmd_t *s, bscEndpoint *head, char *argv[]) {
+	 // We need to do a bit more work to find the endpoint.
+	 // As the user may have configure a single ENDPOINT or ONE per PIN
+	 char buff[30];
+	 char *addr = argv[0];  // PPE address
+	 char *old = argv[1];
+	 char *new = argv[2];
+
+	 info("addr %s new %s old %s", addr, new, old);
+	 if(new == NULL || old == NULL || addr == NULL) // Bad input shouldn't happen?!
+		  return;
+
+	 bscEndpoint *e = findbscEndpoint(head, "i2c", addr);
+	 if(e) {
+		 setbscText(e, new);
+		 (*e->infoEvent)(e, "xapBSC.event");
+	 } else {
+		  int pin;
+		  int newi = atoi(new);
+		  int oldi = atoi(old);
+		  for(pin=0; pin<8; pin++) {
+			   // Figure out what changed in the PPE
+			   if ((oldi ^ newi) & (1 << pin)) {
+					// Compute an ENDPOINT name
+					snprintf(buff,sizeof buff,"%s.%d", addr, pin);
+					e = findbscEndpoint(head, "i2c", buff);
+					setbscStateNow(e, newi & (1<<pin) ? STATE_ON : STATE_OFF);
+			   }
+		  }
+	 }
 }
 
 /** Tokenize a serial command and dispatch.
@@ -108,7 +142,7 @@ void serin_1wire(cmd_t *s, bscEndpoint *head, char *argv[])
 * dispatch table and it will be passed the remaining arguments.
 * Up to 8 arguments are allowed.
 */
-void processSerialCommand(bscEndpoint *head, char *a_cmd)
+static void processSerialCommand(bscEndpoint *head, char *a_cmd)
 {
         cmd_t *s = &cmd[0];
         char *command = NULL;
@@ -144,7 +178,7 @@ void serialInputHandler(int fd, void *data)
         static char cmd[128];
         static int pos = 0;
 
-        len = read(serialfd, serial_buff, 128);
+        len = read(gSerialfd, serial_buff, 128);
         for(i=0; i < len; i++) {
                 cmd[pos] = serial_buff[i];
                 if (cmd[pos] == '\r' || cmd[pos] == '\n') {
@@ -161,35 +195,12 @@ void serialInputHandler(int fd, void *data)
 /// Send a message to the serial port.
 void serialSend(char *buf)
 {
-        write(serialfd, buf, strlen(buf));
-}
-
-/// Handle xapBSC.cmd for the RELAY endpoints.
-void cmdRelay (bscEndpoint *e)
-{
-        char buf[30];
-	snprintf(buf, sizeof(buf), "relay %s %s\n", e->subaddr, bscStateToString(e));
-        serialSend(buf);
-}
-
-/// Handle xapBSC.cmd for the LCD endpoint.
-void cmdLCD(bscEndpoint *e)
-{
-        char buf[30];
-        snprintf(buf, sizeof(buf), "lcd %s\n", e->text);
-        serialSend(buf);
-}
-
-/// Augment default xapBSC.info & xapBSC.event handler.
-void infoEvent1wire (bscEndpoint *e, char *clazz)
-{
-        // Lazy memory allocation of displayText
-        if(e->displayText == NULL)
-                e->displayText = (char *)malloc(20);
-        // Configure the displayText optional argument.
-        snprintf(e->displayText, 20, "Temperature %s C", e->text);
-
-        bscInfoEvent(e, clazz); // do the default.
+	if(gSerialfd > 0) {
+		info("Serial Tx: %s", buf);
+		char nbuf[128];
+		snprintf(nbuf, sizeof(nbuf), "\n%s\n", buf);
+		write(gSerialfd, nbuf, strlen(nbuf));
+	}
 }
 
 /// Setup the serial port.
@@ -209,37 +220,6 @@ int setupSerialPort(char *serialport, int baud)
         newtio.c_cc[VMIN] = 0; /* no blocking read */
         tcflush(fd, TCIFLUSH);
         tcsetattr(fd, TCSANOW, &newtio);
+	gSerialfd = fd;
         return fd;
-}
-
-/// Setup Endpoints, the Serial port, a callback for the serial port and process xAP messages.
-int main(int argc, char *argv[])
-{
-	setLoglevel(LOG_INFO);
-	xapInit("dbzoo.livebox.Demo","FF00DB00", "eth0");
-	die_if(gXAP == NULL,"Failed to init xAP");
-	
-	bscEndpoint *ep = NULL;
-        // An INPUT can't have a command callback, if supplied it'd be ignored anyway.
-        // A NULL infoEvent function is equiv to supplying bscInfoEvent().
-	// Params: LIST, NAME, SUBADDR, UID, IO, DEVICE TYPE, CMD CALLBACK, INFO/EVENT CALLBACK
-	bscAddEndpoint(&ep, "1wire", "1", BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);
-        bscAddEndpoint(&ep, "1wire", "2", BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);
-        bscAddEndpoint(&ep, "input", "1", BSC_INPUT, BSC_BINARY, NULL, NULL);
-        bscAddEndpoint(&ep, "input", "2", BSC_INPUT, BSC_BINARY, NULL, NULL);
-        bscAddEndpoint(&ep, "input", "3", BSC_INPUT, BSC_BINARY, NULL, NULL);
-	bscAddEndpoint(&ep, "relay", "1", BSC_OUTPUT, BSC_BINARY, &cmdRelay, NULL);
-	bscAddEndpoint(&ep, "relay", "2", BSC_OUTPUT, BSC_BINARY, &cmdRelay, NULL);
-	bscAddEndpoint(&ep, "relay", "3", BSC_OUTPUT, BSC_BINARY, &cmdRelay, NULL);
-	bscAddEndpoint(&ep, "relay", "4", BSC_OUTPUT, BSC_BINARY, &cmdRelay, NULL);
-	bscAddEndpoint(&ep, "lcd",  NULL, BSC_OUTPUT, BSC_STREAM, &cmdLCD, NULL);
-
-        xapAddBscEndpointFilters(ep, INFO_INTERVAL);
-	
-        // Setup Serial port and install a handler for SERIAL input.
-	if((serialfd = setupSerialPort("/dev/ttyS0", B115200)) > 0)
-		xapAddSocketListener(serialfd, &serialInputHandler, ep);
-	
-	xapProcess();
-	return 0;  // not reached
 }

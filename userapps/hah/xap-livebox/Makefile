@@ -1,15 +1,17 @@
 # $Id$
 
 XAP=livebox
-CFLAGS=-g -DLINUX -DIDENT -I$(INSTALL_DIR)/include
-LDFLAGS=-L$(INSTALL_DIR)/lib -lxap
-OBJECTS=$(XAP).o reply.o server.o endpoint.o ini.o
+#CFLAGS=-g -DIDENT -I$(INSTALL_DIR)/include
+#LDFLAGS=-L$(INSTALL_DIR)/lib -lxap
+
+#DEV
+CFLAGS=-g -Wall -DIDENT -I../xaplib2
+LDFLAGS=-L../xaplib2 -lxap2
+
+OBJECTS=$(XAP).o serial.o ini.o server.o
 
 xap-$(XAP): $(OBJECTS)
 	$(CC) -o xap-$(XAP) $(OBJECTS) $(LDFLAGS)
-
-poke:	poke.c
-	$(CC) -g -o poke poke.c
 
 clean:
 	rm -f xap-$(XAP) core $(OBJECTS)

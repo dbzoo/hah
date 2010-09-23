@@ -1,7 +1,0 @@
-C Functions entry/exit (VERBOSE DEBUG)
-XAP Messages (DEBUG)
-Serial TX/RX (DEBUG)
-Silently ignored XAP errors (VERBOSE)
-Endpoints added (VERBOSE)
-Ini content dumping (VERBOSE)
-Ini parsing errors (INFO)

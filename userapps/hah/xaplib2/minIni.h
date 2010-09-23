@@ -18,7 +18,7 @@
  *      misrepresented as being the original software.
  *  3.  This notice may not be removed or altered from any source distribution.
  *
- *  Version: $Id: minIni.h 10 2010-01-15 18:44:18Z dbzoo.com $
+ *  Version: $Id$
  */
 #ifndef MININI_H
 #define MININI_H

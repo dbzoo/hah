@@ -12,15 +12,15 @@
 #include "xap.h"
 
 /// Return the type of xAP packet
-int xapGetType(xAP *this) {
-	if (this->parsedMsgCount==0) return XAP_MSG_NONE;
-	if (strcasecmp(this->parsedMsg[0].section,"xap-hbeat")==0) return XAP_MSG_HBEAT;
-	if (strcasecmp(this->parsedMsg[0].section,"xap-header")==0) return XAP_MSG_ORDINARY;
+int xapGetType() {
+	if (gXAP->parsedMsgCount==0) return XAP_MSG_NONE;
+	if (strcasecmp(gXAP->parsedMsg[0].section,"xap-hbeat")==0) return XAP_MSG_HBEAT;
+	if (strcasecmp(gXAP->parsedMsg[0].section,"xap-header")==0) return XAP_MSG_ORDINARY;
 	// Patrick had these in his xaplib are these valid?
-	if (strcasecmp(this->parsedMsg[0].section,"xap-config-request")==0) return XAP_MSG_CONFIG_REQUEST;
-	if (strcasecmp(this->parsedMsg[0].section,"xap-cache-request")==0) return XAP_MSG_CACHE_REQUEST;
-	if (strcasecmp(this->parsedMsg[0].section,"xap-cache-reply")==0) return XAP_MSG_CACHE_REPLY;
-	if (strcasecmp(this->parsedMsg[0].section,"xap-config-reply")==0) return XAP_MSG_CONFIG_REPLY;
+	if (strcasecmp(gXAP->parsedMsg[0].section,"xap-config-request")==0) return XAP_MSG_CONFIG_REQUEST;
+	if (strcasecmp(gXAP->parsedMsg[0].section,"xap-cache-request")==0) return XAP_MSG_CACHE_REQUEST;
+	if (strcasecmp(gXAP->parsedMsg[0].section,"xap-cache-reply")==0) return XAP_MSG_CACHE_REPLY;
+	if (strcasecmp(gXAP->parsedMsg[0].section,"xap-config-reply")==0) return XAP_MSG_CONFIG_REPLY;
 	return XAP_MSG_UNKNOWN;
 }
 
@@ -28,13 +28,13 @@ int xapGetType(xAP *this) {
 * NULL will be returned if the section/key is not found
 * otherwise a pointer to the value.
 */
-char *xapGetValue(xAP *this, char *section, char *key) {
+char *xapGetValue(char *section, char *key) {
 	int i;
 	debug("section=%s key=%s", section, key);
-	for(i=0; i < this->parsedMsgCount; i++) {
-		if(strcasecmp(section, this->parsedMsg[i].section) == 0 && 
-		   strcasecmp(key, this->parsedMsg[i].key) == 0) {
-			char *val = this->parsedMsg[i].value;
+	for(i=0; i < gXAP->parsedMsgCount; i++) {
+		if(strcasecmp(section, gXAP->parsedMsg[i].section) == 0 &&
+		   strcasecmp(key, gXAP->parsedMsg[i].key) == 0) {
+			   char *val = gXAP->parsedMsg[i].value;
 			debug("found value=%s", val);
 			return val;
 		   }
@@ -45,8 +45,8 @@ char *xapGetValue(xAP *this, char *section, char *key) {
 /** Test if a section/key is equal to a value.
 * Returns 1 is a match is found otherwise 0
 */
-int xapIsValue(xAP *this, char *section, char *key, char *value) {
-	char *kvalue = xapGetValue(this, section, key);
+int xapIsValue(char *section, char *key, char *value) {
+	char *kvalue = xapGetValue(section, key);
 	return kvalue && strcasecmp(kvalue, value) == 0;
 }
 

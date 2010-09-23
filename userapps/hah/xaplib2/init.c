@@ -59,7 +59,7 @@ void discoverHub(int *rxport, int *rxfd, struct sockaddr_in *txAddr)
 }
 
 /// Setup for Tx XAP Packets
-void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char *interfaceName)
+void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char **ip, char *interfaceName)
 {
         struct ifreq interface;
         struct sockaddr_in myinterface;
@@ -95,8 +95,10 @@ void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char *inter
                 die_strerror("Unable to determine interface interface for interface %s", interfaceName);
         }
         myinterface.sin_addr.s_addr=((struct sockaddr_in*)&interface.ifr_broadaddr)->sin_addr.s_addr;
+	
 
-        info("%s: address %s", interfaceName, inet_ntoa(((struct sockaddr_in *)&interface.ifr_addr)->sin_addr));
+	*ip = strdup(inet_ntoa(((struct sockaddr_in *)&interface.ifr_addr)->sin_addr));
+        info("%s: address %s", interfaceName, *ip);
 
         // Find netmask
         interface.ifr_addr.sa_family = AF_INET;
@@ -120,7 +122,7 @@ void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char *inter
 
 /** Timeout handler to send heartbeats.
 */
-void heartbeatHandler(xAP *this, int interval, void *data)
+void heartbeatHandler(int interval, void *data)
 {
         char buff[XAP_DATA_LEN];
         sprintf(buff, "xap-hbeat\n"
@@ -132,15 +134,15 @@ void heartbeatHandler(xAP *this, int interval, void *data)
                 "source=%s\n"
                 "interval=%d\n"
                 "port=%d\n"
-                "}\n", this->uid, this->source, interval, this->rxPort);
-        xapSend(this, buff);
+                "}\n", gXAP->uid, gXAP->source, interval, gXAP->rxPort);
+        xapSend(buff);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** select() on other descriptors whilst in the xapProcess() loop.
 */
-void xapAddSocketListener(xAP *xap, int fd, void (*callback)(xAP *, int, void *), void *data)
+void xapAddSocketListener(int fd, void (*callback)(int, void *), void *data)
 {
         die_if(fd < 0, "Invalid socket %d", fd);
         debug("socket=%d", fd);
@@ -149,8 +151,8 @@ void xapAddSocketListener(xAP *xap, int fd, void (*callback)(xAP *, int, void *)
         cb->user_data = data;
         cb->fd = fd;
 
-        cb->next = xap->connectionList;
-        xap->connectionList = cb;
+	cb->next = gXAP->connectionList;
+        gXAP->connectionList = cb;
 }
 
 /** Create a new xAP object.
@@ -158,20 +160,18 @@ void xapAddSocketListener(xAP *xap, int fd, void (*callback)(xAP *, int, void *)
 * Registers a heartbeat timeout callback.
 * Registers the Rx packet handler for xAP data.
 */
-xAP *xapNew(char *source, char *uid, char *interfaceName)
+void xapInit(char *source, char *uid, char *interfaceName)
 {
         die_if(uid == NULL || strlen(uid) != 8, "UID must be of length 8");
 
-        xAP *self = (xAP *)calloc(sizeof(xAP), 1);
+        gXAP = (xAP *)calloc(sizeof(xAP), 1);
 
-        discoverBroadcastNetwork(&self->txAddress, &self->txSockfd, interfaceName);
-        discoverHub(&self->rxPort, &self->rxSockfd, &self->txAddress);
+	discoverBroadcastNetwork(&gXAP->txAddress, &gXAP->txSockfd, &gXAP->ip, interfaceName);
+	discoverHub(&gXAP->rxPort, &gXAP->rxSockfd, &gXAP->txAddress);
 
-        self->source = strdup(source);
-        self->uid = strdup(uid);
+	gXAP->source = strdup(source);
+	gXAP->uid = strdup(uid);
 
-        xapAddTimeoutAction(self, &heartbeatHandler, XAP_HEARTBEAT_INTERVAL, NULL);
-        xapAddSocketListener(self, self->rxSockfd, handleXapPacket, NULL);
-
-        return self;
+        xapAddTimeoutAction(&heartbeatHandler, XAP_HEARTBEAT_INTERVAL, NULL);
+        xapAddSocketListener(gXAP->rxSockfd, handleXapPacket, NULL);
 }

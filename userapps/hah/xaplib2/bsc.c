@@ -17,7 +17,7 @@ static char *io_str[] = {"input","output"};
 static char *state_str[] = {"off","on","?","?"};
 
 /// Decode allowable values for a "state=value" key pair.
-static int decode_state(char *msg)
+int bscDecodeState(char *msg)
 {
         int i;
         static char *value[] = {
@@ -55,7 +55,7 @@ void setbscText(bscEndpoint *e, char *text)
         if(e->text)
                 free(e->text);
         e->text = strdup(text);
-	info("text=%d", e->text);	
+	info("text=%s", e->text);
 }
 
 /// Set the value of a BSC LEVEL device type.
@@ -64,11 +64,25 @@ inline void setbscLevel(bscEndpoint *e, char *level)
         setbscText(e, level);
 }
 
+// Set some bscText and action it
+void setbscTextNow(bscEndpoint *e, char *msg) {
+	setbscText(e, msg);
+	if(*e->cmd) (*e->cmd)(e);
+	if(*e->infoEvent) (*e->infoEvent)(e, "xapBSC.event");
+}
+
 /// Set the value of a BSC BINARY device type.
 inline void setbscState(bscEndpoint *e, int state)
 {
         e->state = state & 0x3;
 	info("state=%d", e->state);
+}
+
+// Set some bscText and action it
+void setbscStateNow(bscEndpoint *e, int state) {
+	setbscState(e, state);
+	if(*e->cmd) (*e->cmd)(e);
+	if(*e->infoEvent) (*e->infoEvent)(e, "xapBSC.event");
 }
 
 /// Return a string representation of the state
@@ -92,7 +106,7 @@ bscEndpoint *findbscEndpoint(bscEndpoint *head, char *name, char *subaddr)
                 if(strcmp(e->name, name) == 0 &&
                                 ((e->subaddr == NULL && subaddr == NULL) ||
                                  (e->subaddr && subaddr && strcmp(e->subaddr, subaddr) == 0))) {
-	                info("Found ", e->source);
+	                debug("Found ", e->source);
                         return e;
                 }
         }
@@ -119,7 +133,7 @@ int bscParseLevel(char *str)
 /** Handle an incoming xapBSC.cmd class control message
  * directed at an endpoint or a set of endpoints.
  */
-static void bscIncomingCmd(xAP *xap, void *data)
+static void bscIncomingCmd(void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
 	info("xapBSC.cmd detected for %s", e->source);
@@ -135,14 +149,14 @@ static void bscIncomingCmd(xAP *xap, void *data)
         for(i=1; i<99; i++) {
                 sprintf(section, "output.state.%d", i);
                 // State/ID are mandatory items for ALL BSC commands
-                char *state = xapGetValue(xap, section, "state");
-                char *id = xapGetValue(xap, section, "id");
+                char *state = xapGetValue(section, "state");
+                char *id = xapGetValue(section, "id");
                 if(state == NULL || id == NULL)
                         break;  // malformed section.
 
                 // Match the ENDPOINT ID (UID sub-address) and process.
                 if(*id == '*' || strcmp(e->id, id) == 0) {
-                        int istate = decode_state(state);
+                        int istate = bscDecodeState(state);
                         if(istate == -1)
                                 continue; // invalid state
                         if(istate == 2) // toggle
@@ -150,29 +164,29 @@ static void bscIncomingCmd(xAP *xap, void *data)
                         e->state = istate;
 
                         if(e->type == BSC_LEVEL) {
-                                setbscLevel(e, xapGetValue(xap, section, "level"));
+                                setbscLevel(e, xapGetValue(section, "level"));
                         } else if(e->type == BSC_STREAM) {
-                                setbscText(e, xapGetValue(xap, section, "text"));
+                                setbscText(e, xapGetValue(section, "text"));
                         }
 
                         // Perform Endpoint action.
                         if(e->cmd)
-                                (*e->cmd)(xap, e);
+                                (*e->cmd)(e);
                         // Send event.
                         if(e->infoEvent)
-                                (*e->infoEvent)(xap, e, "xapBSC.event");
+                                (*e->infoEvent)(e, "xapBSC.event");
                 }
         }
 }
 
 /// Send an xapBSC.info message for this endpoint.
-static void bscIncomingQuery(xAP *xap, void *data)
+static void bscIncomingQuery(void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
 	info("xapBSC.query detected for %s", e->source);	
 	if(e->infoEvent) {
                 e->last_report = time(NULL);
-                (*e->infoEvent)(xap, e, "xapBSC.info");
+                (*e->infoEvent)(e, "xapBSC.info");
         }
 }
 
@@ -182,20 +196,20 @@ static void bscIncomingQuery(xAP *xap, void *data)
 * the regular INFO message until the INTERVAL time has elasped and no
 * xapBSC.query or xapBSC.event has been seen.
 */
-static void bscInfoTimeout(xAP *xap, int interval, void *data)
+static void bscInfoTimeout(int interval, void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
         time_t now = time(NULL);
         if(e->infoEvent && (e->last_report = 0 || e->last_report + interval < now )) {
 	        info("Timeout for %s", e->source);
 	        e->last_report = now;
-                (*e->infoEvent)(xap, e, "xapBSC.info");
+                (*e->infoEvent)(e, "xapBSC.info");
         }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-void bscInfoEvent(xAP *xap, bscEndpoint *e, char *clazz)
+void bscInfoEvent(bscEndpoint *e, char *clazz)
 {
         int len;
 
@@ -226,64 +240,77 @@ void bscInfoEvent(xAP *xap, bscEndpoint *e, char *clazz)
         if(len > XAP_DATA_LEN)
                 err("xAP message buffer truncated - not sending\n");
         else
-                xapSend(xap, buff);
+                xapSend(buff);
 }
 
 /// Create a BSC endpoint these are use for automation control.
-void bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, char *id, unsigned int dir, unsigned int typ,
-                    void (*cmd)(xAP *xap, struct _bscEndpoint *self),
-                    void (*infoEvent)(xAP *xap, struct _bscEndpoint *self, char *clazz)
+bscEndpoint *bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, unsigned int dir, unsigned int typ,
+                    void (*cmd)(struct _bscEndpoint *self),
+                    void (*infoEvent)(struct _bscEndpoint *self, char *clazz)
                    )
 {
+	static int id = 1;
+	char s_id[3];
 	die_if(name == NULL, "Name is mandatory");
-        die_if(id == NULL || strlen(id) != 2,"Endpoint ID must be length 2");
         bscEndpoint *e = (bscEndpoint *)calloc(1, sizeof(bscEndpoint));
 
 	e->name = strdup(name);
         if(subaddr)
                 e->subaddr = strdup(subaddr);
-        e->id = strdup(id);
+
+	// Each endpoint added gets unique a UID id
+	sprintf(s_id,"%02X", ++id);
+        e->id = strdup(s_id);
+
         e->io = dir;
         e->type = typ;
-        e->state = STATE_ON;
-        if(e->io == BSC_OUTPUT)
+	// Is this logic too restrictive for a library?
+        if(e->io == BSC_INPUT)
                 e->state = STATE_UNKNOWN;
+	else // BSC_OUTPUT
+		e->state = typ == BSC_BINARY ? STATE_OFF : STATE_ON;
         e->cmd = cmd;
         // If the user hasn't supplied handlers use the defaults.
-        e->infoEvent = infoEvent == NULL ? bscInfoEvent : infoEvent;
+        e->infoEvent = infoEvent == NULL ? &bscInfoEvent : infoEvent;
+
+	// LEVEL & STREAM initialize to unknown
+	if(e->type != BSC_BINARY) { 
+		e->text = strdup("?");
+	}
 
 	LL_PREPEND(*head, e);
+	return e;
 }
 
 /// Add CMD and QUERY filter callbacks for the BSC endpoints.
-void xapAddBscEndpointFilters(xAP *xap, bscEndpoint *head, int info_interval)
+void xapAddBscEndpointFilters(bscEndpoint *head, int info_interval)
 {
         xAPFilter *filter;
-	die_if(xap == NULL, "xAP xap==NULL");
+	die_if(gXAP == NULL, "xAP xap==NULL");
 	notice_if(head == NULL, "No endpoints to add!?");
         while(head) {
                 // UID of the endpoint is the xAP UID with the latest 2 digits replaced with the endpoint ID.
-                head->uid = strdup(xap->uid);
+                head->uid = strdup(gXAP->uid);
                 strncpy(&head->uid[6], head->id, 2);
 
                 // Compute ENDPOINTS source name.
-                head->source = bscFQEN(xap->source, head);
+                head->source = bscFQEN(gXAP->source, head);
         	info("source=%s", head->source);
 
                 if(head->io == BSC_OUTPUT) {
                         filter = NULL;
                         xapAddFilter(&filter, "xap-header","class","xapBSC.cmd");
                         xapAddFilter(&filter, "xap-header","target", head->source);
-                        xapAddFilterAction(xap, &bscIncomingCmd, filter, head);
+                        xapAddFilterAction(&bscIncomingCmd, filter, head);
                 }
 
                 filter = NULL;
                 xapAddFilter(&filter, "xap-header","class","xapBSC.query");
                 xapAddFilter(&filter, "xap-header","target", head->source);
-                xapAddFilterAction(xap, &bscIncomingQuery, filter, head);
+                xapAddFilterAction(&bscIncomingQuery, filter, head);
 
                 if(info_interval > 0) {
-                        xapAddTimeoutAction(xap, &bscInfoTimeout, info_interval, head);
+                        xapAddTimeoutAction(&bscInfoTimeout, info_interval, head);
                 }
 
                 head = head->next;

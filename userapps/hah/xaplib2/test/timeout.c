@@ -13,7 +13,9 @@
 #include <unistd.h>
 #include "xap.h"
 
-void cb(xAP *this, int interval, void *data) {
+xAP *gXAP;
+
+void cb(int interval, void *data) {
 	char *s = (char *)data;
 	time_t now = time(NULL);
 	char *t = ctime(&now);
@@ -21,25 +23,25 @@ void cb(xAP *this, int interval, void *data) {
 	printf("%s - Interval %d - %s\n", t, interval, s);
 }
 
-void hello(xAP *this, int interval, void *data) {
+void hello(int interval, void *data) {
 	static int i = 0;
-	cb(this, interval, data);
+	cb(interval, data);
 	i++;
 	if(i == 2) { // After being invoked 2 times speed up.
-		xapDelTimeoutActionByFunc(this, &hello);
+		xapDelTimeoutActionByFunc(&hello);
 		interval -= 2; // Make it 2 seconds quicker.
 		printf("removing Hello timeout - Resubmitting every %d sec\n", interval);
-		xapAddTimeoutAction(this, &cb, interval, "hello");
+		xapAddTimeoutAction(&cb, interval, "hello");
 	}
 }
 
 int main(int argc, char *argv[]) {
-	xAP *me = (xAP *)calloc(sizeof(xAP), 1);
-	xapAddTimeoutAction(me, &hello, 5, "hello");
-	xapAddTimeoutAction(me, &cb, 7, "there");
+	gXAP = (xAP *)calloc(sizeof(xAP), 1);
+	xapAddTimeoutAction(&hello, 5, "hello");
+	xapAddTimeoutAction(&cb, 7, "there");
 	int i;
 	for(i=0; i<20; i++) {
-		timeoutDispatch(me);
+		timeoutDispatch();
 		sleep(1);
 	}
 	return 0;

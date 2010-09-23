@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include "xap.h"
 
+xAP *gXAP;
+
 int main(int argc, char *argv[]) {
 	char *msg="xap-header\n"
 	"{\n"
@@ -27,21 +29,21 @@ int main(int argc, char *argv[]) {
 	"Level= 64/255\n"
 	"}\n";
 
-	xAP *me = (xAP *)calloc(sizeof(xAP), 1);
+	gXAP = (xAP *)calloc(sizeof(xAP), 1);
 
-	strcpy((char *)me->dataPacket, msg);
-	me->parsedMsgCount = parseMsg(me->parsedMsg, XAP_MSG_ELEMENTS, me->dataPacket);
+	strcpy((char *)gXAP->dataPacket, msg);
+	gXAP->parsedMsgCount = parseMsg(gXAP->parsedMsg, XAP_MSG_ELEMENTS, gXAP->dataPacket);
 	
 	char newmsg[XAP_DATA_LEN];
-	parsedMsgToRaw(me->parsedMsg, me->parsedMsgCount, newmsg, sizeof(newmsg));
+	parsedMsgToRaw(gXAP->parsedMsg, gXAP->parsedMsgCount, newmsg, sizeof(newmsg));
 	printf("%s\n", newmsg);
 
-	printf("state is %s\n", xapGetValue(me, "input.state","state"));
-	int state = xapIsValue(me,"input.state","state","on");
+	printf("state is %s\n", xapGetValue("input.state","state"));
+	int state = xapIsValue("input.state","state","on");
 	printf("Is state on? %s\n", (state ? "YES" : "NO"));
 
 	char *types[] = {"unknown", "heartbeat", "ordinary"};
-	printf("Message type %s\n", types[xapGetType(me)]);
+	printf("Message type %s\n", types[xapGetType()]);
 	return 0;
 }
 

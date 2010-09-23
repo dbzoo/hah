@@ -1,5 +1,5 @@
 /**
- $Id: tcurl.h 10 2010-01-15 18:44:18Z dbzoo.com $
+ $Id$
 
  Brett England
  No commercial use.

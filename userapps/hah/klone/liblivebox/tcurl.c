@@ -1,5 +1,5 @@
 /**
-   $Id: tcurl.c 10 2010-01-15 18:44:18Z dbzoo.com $
+   $Id$
  
    Minimalist Twitter interface
 
@@ -18,7 +18,7 @@
 #include <oauth.h>
 
 #ifdef IDENT
-#ident "@(#) $Id: tcurl.c 10 2010-01-15 18:44:18Z dbzoo.com $"
+#ident "@(#) $Id$"
 #endif
 
 static void clearCallbackBuffers(tcurl *c) {

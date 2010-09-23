@@ -44,8 +44,8 @@ typedef struct _bscEndpoint {
 		char *text;
 	};	
 
-	void (*cmd)(xAP *xap, struct _bscEndpoint *self);
-	void (*infoEvent)(xAP *xap, struct _bscEndpoint *self, char *clazz);
+	void (*cmd)(struct _bscEndpoint *self);
+	void (*infoEvent)(struct _bscEndpoint *self, char *clazz);
 	
 	// Computed fields
 	char *displayText;
@@ -53,21 +53,27 @@ typedef struct _bscEndpoint {
 	char *uid;
 	char *source; // vendor.device.instance:name.subaddr
 	
+	// User supplied object
+	void *userData;
+
 	struct _bscEndpoint *next;
 } bscEndpoint;
 
-void bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, char *id, unsigned int dir, unsigned int typ,
-                    void (*cmd)(xAP *xap, struct _bscEndpoint *self),
-                    void (*infoEvent)(xAP *xap, struct _bscEndpoint *self, char *clazz)
+bscEndpoint *bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, unsigned int dir, unsigned int typ,
+                    void (*cmd)(struct _bscEndpoint *self),
+                    void (*infoEvent)(struct _bscEndpoint *self, char *clazz)
                    );
-void xapAddBscEndpointFilters(xAP *xap, bscEndpoint *head, int info_interval);
-void bscInfoEvent(xAP *xap, bscEndpoint *e, char *clazz);
+void xapAddBscEndpointFilters(bscEndpoint *head, int info_interval);
+void bscInfoEvent(bscEndpoint *e, char *clazz);
 void setbscLevel(bscEndpoint *e, char *level);
 void setbscText(bscEndpoint *e, char *level);
+void setbscTextNow(bscEndpoint *e, char *msg);
 void setbscState(bscEndpoint *e, int state);
+void setbscStateNow(bscEndpoint *e, int state);
 bscEndpoint *findbscEndpoint(bscEndpoint *head, char *name, char *subaddr);
 int bscParseLevel(char *str);
 char *bscStateToString(bscEndpoint *e);
 char *bscIOToString(bscEndpoint *e);
+int bscDecodeState(char *msg);
 
 #endif

@@ -1,4 +1,4 @@
-/* $Id: utils.c 43 2009-11-21 16:42:02Z brett $
+/* $Id$
  */
 #include <unistd.h>
 #include <stdlib.h>

@@ -10,15 +10,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/select.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include "xap.h"
 
 /// Receive xAP packet data
-static int readXapData(xAP *xap) {
-	int i = recvfrom(xap->rxSockfd, xap->dataPacket, XAP_DATA_LEN-1, 0, 0, 0);
+static int readXapData() {
+	int i = recvfrom(gXAP->rxSockfd, gXAP->dataPacket, XAP_DATA_LEN-1, 0, 0, 0);
 	if (i > 0) {
 		 // terminate the buffer so we can treat it as a conventional string
-		xap->dataPacket[i] = '\0';
-		info("Rx xAP packet\n%s", xap->dataPacket);
+		gXAP->dataPacket[i] = '\0';
+		debug("Rx xAP packet\n%s", gXAP->dataPacket);
 	}
 	return i;
 }
@@ -26,14 +28,14 @@ static int readXapData(xAP *xap) {
 /** Rx socket handler callback for registration.
 * Registered via function xapAddSocketListener()
 */
-void handleXapPacket(xAP *xap, int fd, void *data) {
+void handleXapPacket(int fd, void *data) {
 	// If we have no filters then we don't care about xAP packets!
 	// When the receive buffer overflows as we are using UDP the data will
 	// just be dropped.
-	if(xap->filterList == NULL) return;	
-	if(readXapData(xap) > 0) {
-		xap->parsedMsgCount = parseMsg(xap->parsedMsg, XAP_MSG_ELEMENTS, xap->dataPacket);
-		filterDispatch(xap);
+	if(gXAP->filterList == NULL) return;
+	if(readXapData() > 0) {
+		gXAP->parsedMsgCount = parseMsg(gXAP->parsedMsg, XAP_MSG_ELEMENTS, gXAP->dataPacket);
+		filterDispatch();
 	}
 }
 
@@ -52,24 +54,24 @@ static int buildSelectList(xAPSocketConnection *list, fd_set *socks) {
 	return highsock;
 }
 /// Check if data is present on the SOCKET if so dispatch to its handler.
-static void readSockets(xAP *xap, fd_set *socks) {
-	xAPSocketConnection *list = xap->connectionList;
+static void readSockets(fd_set *socks) {
+	xAPSocketConnection *list = gXAP->connectionList;
 	while(list) {
 		if (FD_ISSET(list->fd, socks))
-			(*list->callback)(xap, list->fd, list->user_data);
+			(*list->callback)(list->fd, list->user_data);
 		list = list->next;
 	}
 }
 
 /** xAP main processing loop.
 */
-void xapProcess(xAP *xap) {
+void xapProcess() {
 	fd_set socks; // Socket file descriptors we want to wake up for, using select()
 	int readsocks; // number of sockets ready for reading
 	struct timeval timeout;  // Timeout for select()
 
-	while(xap) {
-		int highsock = buildSelectList(xap->connectionList, &socks);
+	while(gXAP) {
+		int highsock = buildSelectList(gXAP->connectionList, &socks);
 		timeout.tv_sec = 1;
 		timeout.tv_usec = 0;
 		readsocks = select(highsock+1, &socks, NULL, NULL, &timeout);
@@ -78,8 +80,8 @@ void xapProcess(xAP *xap) {
 			err_strerror("select()");
 		}
 		if (readsocks == 0) { // Nothing ready to read
-			timeoutDispatch(xap);
+			timeoutDispatch();
 		} else
-			readSockets(xap, &socks);		
+			readSockets(&socks);
 	}
 }

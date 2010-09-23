@@ -21,7 +21,7 @@
  *      misrepresented as being the original software.
  *  3.  This notice may not be removed or altered from any source distribution.
  *
- *  Version: $Id: minIni.c 10 2010-01-15 18:44:18Z dbzoo.com $
+ *  Version: $Id$
  */
 
 #include <assert.h>

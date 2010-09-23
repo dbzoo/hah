@@ -1,4 +1,4 @@
-/* $Id: comms.c 3 2009-11-09 12:19:52Z brett $
+/* $Id$
  
   Livebox Communication protocol
  */

@@ -13,9 +13,9 @@
 #include <sys/socket.h>
 #include "xap.h"
 
-void xapSend(xAP *this, const char *mess)
+void xapSend(const char *mess)
 {
 	info("send\n%s", mess);
-	if(sendto(this->txSockfd, mess, strlen(mess), 0, (struct sockaddr *)&(this->txAddress), sizeof(struct sockaddr_in)) < 0)
+	if(sendto(gXAP->txSockfd, mess, strlen(mess), 0, (struct sockaddr *)&(gXAP->txAddress), sizeof(struct sockaddr_in)) < 0)
 		err_strerror("Tx xAP packet");
 }

@@ -6,52 +6,41 @@
    This is used to satisfy local web server page queries without having to 
    XAP enable the webserver too.
 */
-#include "xapdef.h"
-#include "appdef.h"
-#include "server.h"
-#include "debug.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
+#include <unistd.h>
 #include <sys/un.h>
-#include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include "server.h"
+#include "bsc.h"
+#include "log.h"
 
-#define DEBUG
+extern bscEndpoint *endpointList;
 
-extern endpoint_t endpoint_s[];
-
-/* CMD: query <endpoint> [<endpoint>...]
- * Ret: <state> [<state>...]
+/* CMD: query <endpoint>
+ * Ret: <state>
  *
  * Example
- *   Cmd: query rf.1 rf.2
+ *   Cmd: query rf.1
  *   Ret: on off
  */
-static char g_ret[256]; // Not re-entrant.
 static char *msg_query(char *args) {
-	endpoint_t *endpoint;
-	char *arg = strtok(args," ");
+	debug("endpoint: %s", args);
 
-	memset(g_ret, 0, sizeof(g_ret));
-	while(arg != NULL) {
-		// The LCD can't be processed like the other endpoints
-		// as it may itself contain spaces which will make
-		// processing on the other end difficult.
-		// If its found its STATE will be returned immediately.
-		if(strcmp("lcd", arg) == 0)
-			return g_lcd_text;
+	char *name = strtok(args,".");
+	char *subaddr = strtok(NULL,"");
 
-		if(g_debuglevel >=4) printf("endpoint: %s\n", arg);
-		endpoint = find_endpoint(arg);
-		if (endpoint == NULL) return "bad endpoint";
-
-		// Prepend a space to all but the first result
-		if(g_ret[0]) {
-			strlcat(g_ret, " ", sizeof(g_ret));
-		}
-		strlcat(g_ret, endpoint->state, sizeof(g_ret));
-		arg = strtok(NULL," ");
+	bscEndpoint *endpoint = findbscEndpoint(endpointList, name, subaddr);
+	if (endpoint) {
+		if(endpoint->type == BSC_BINARY)
+			return bscStateToString(endpoint);
+		else
+			return endpoint->text;
 	}
-	return g_ret;
+	return "bad endpoint";
 }
 
 /* Relay action
@@ -66,25 +55,24 @@ static char *msg_query(char *args) {
  *   Ret: ok
  */
 static char *msg_action(char *arg) {
-	// Break the arg into tuples the process each
 	char *tuple_ptr;
 	char *tuple = strtok_r(arg," ", &tuple_ptr);
-		
-	while( tuple != NULL ) {
-		char *name = strtok(tuple, ",");
-		char *state = strtok(NULL,",");
 
-		// Validate arguments
-		// State validation occurs in cmd_relay()
+	while(tuple) {
+		char *name = strtok(tuple,".");
+		char *subaddr = strtok(NULL,",");
+		char *state = strtok(NULL," ");
+		
+		info("name=%s subaddr=%s state=%s", name, subaddr, state);
 		if (name == NULL || state == NULL) {
 			return "malformed argument";
 		}
-		endpoint_t *endpoint = find_endpoint(name);
-		if (endpoint == NULL) return "bad endpoint";
-
-		// Take action
-		if(cmd_relay(endpoint, state) == -1) {
-			return "invalid command pair";
+		
+		bscEndpoint *endpoint = findbscEndpoint(endpointList, name, subaddr);
+		if (endpoint) {
+			setbscStateNow(endpoint, bscDecodeState(state)); // Take action
+		} else {
+			err("bad endpoint: %s", arg);
 		}
 		// Next action pair
 		tuple = strtok_r(NULL," ",&tuple_ptr);
@@ -92,17 +80,12 @@ static char *msg_action(char *arg) {
 	return "ok";
 }
 
-static char *msg_lcd(char *msg) {
-	 cmd_lcd(msg);
-	 return "ok";
-}
-
 /* Break into: <cmd> <args>
    Arguments will be procesed by the appropriate command handler.
 */
 static char *msg_handler(char *a_cmd) {
 	char *cmd = strtok(a_cmd," ");
-	char *args = strtok(NULL,"");
+	char *args = strtok(NULL, "");
 
 	// Everything needs at least 1 argument
 	if(!(args && *args)) {
@@ -110,17 +93,16 @@ static char *msg_handler(char *a_cmd) {
 	}
 
 	// Process command: each will return either "ok" or an error message.
-	if(strcmp(cmd,"query") == 0) 
-	{
+	if(strcmp(cmd,"query") == 0) {
 		return msg_query(args);
 	} 
-	else if(strcmp(cmd,"action") == 0) 
-	{
+	else if(strcmp(cmd,"action") == 0) {
 		return msg_action(args);
 	} 
-	else if(strcmp(cmd,"lcd") == 0) 
-	{
-		 return msg_lcd(args);
+	else if(strcmp(cmd,"lcd") == 0) {
+		bscEndpoint *lcd = findbscEndpoint(endpointList, "lcd", NULL);
+		if(lcd) setbscTextNow(lcd, args);
+		return "ok";
 	} 
 	else // Invalid command
 		return "fail";
@@ -130,7 +112,7 @@ static char *msg_handler(char *a_cmd) {
  * Server SOCKET setup.
  */
 
-int sendall(int s, char *buf, int *len)
+static int sendall(int s, char *buf, int *len)
 {
 	 int total = 0;        // how many bytes we've sent
 	 int bytesleft = *len; // how many we have left to send
@@ -149,14 +131,14 @@ int sendall(int s, char *buf, int *len)
 
 
 /* Server message handler */
-void svr_process( int fd ) {
+static void svr_process( int fd ) {
 	int n;
 	char buff[512];
 
 	while((n = recv(fd, buff, sizeof(buff), 0)) != 0) {		
-		 if(g_debuglevel >= 4) printf("Server got <%s>\n", buff);
+		 debug("Server got <%s>", buff);
 		 char *reply = msg_handler(buff);
-		 if(g_debuglevel >= 4) printf("Server sent <%s>\n", reply);
+		 debug("Server sent <%s>", reply);
 		 int len = strlen(reply);
 		 len ++; // include NULL terminator too.
 		 // What happens if we can't send all the packets
@@ -168,7 +150,7 @@ void svr_process( int fd ) {
 /* Called when data is detected.
    Return FD is passed to svr_process() 
 */
-int svr_accept(int a_fd)
+static int svr_accept(int a_fd)
 {
 	int newfd;
 	socklen_t addr_size;
@@ -176,9 +158,7 @@ int svr_accept(int a_fd)
 
 	addr_size = sizeof(remote);
 	newfd = accept (a_fd, (struct sockaddr *)&remote, &addr_size);
-
-	if(g_debuglevel >= 4)
-		 printf("server: got connection from %s\n", inet_ntoa(remote.sin_addr));
+	debug("got connection from %s", inet_ntoa(remote.sin_addr));
 
 	return newfd;
 }
@@ -188,45 +168,50 @@ int svr_bind(int port) {
 	int status;
 	struct addrinfo hints;
 	struct addrinfo *servinfo, *p;  // will point to the results
-	in("svr_bind");
+	char s_port[6];
 
 	memset(&hints, 0, sizeof hints); // make sure the struct is empty
 	hints.ai_family = AF_INET;       // IPv4
 	hints.ai_socktype = SOCK_STREAM; // TCP stream sockets
 	hints.ai_flags = AI_PASSIVE;     // fill in my IP for me
 
-	if ((status = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
-		 fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
-		 exit(1);
+	snprintf(s_port, sizeof(s_port), "%d", port);
+	if ((status = getaddrinfo(NULL, s_port, &hints, &servinfo)) != 0) {
+		die_strerror("getaddrinfo");
 	}
 
 	int sockfd;
 	int yes=1;
-    // loop through all the results and bind to the first we can
-    for(p = servinfo; p != NULL; p = p->ai_next) {
+	// loop through all the results and bind to the first we can
+	for(p = servinfo; p != NULL; p = p->ai_next) {
 		 if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
-			  perror("server: socket");
+			  warning("socket");
 			  continue;
 		 }
 		 if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
-			  perror("setsockopt");
-			  exit(1);
+			 die_strerror("setsockopt");
 		 }
 		 if (bind(sockfd, p->ai_addr, p->ai_addrlen) == 0) { /* success */
 			  break;
 		 }
 		 close(sockfd);
-    }
-	if (p == NULL) { /* No address succeeded */
-		 fprintf(stderr,"Could not bind to port %s\n", PORT);
-		 exit(1);
 	}
+	die_if(p == NULL, "Could not bind to port %d\n", port);
+	
 	freeaddrinfo(servinfo); /* No longer needed */
-
+	
 	if (listen(sockfd, 5) == -1) {
-		perror("listen");
-		exit(2);
+		die_strerror("listen");
 	}
-	out("svr_bind");
-	return (sockfd);
+	return sockfd;
+}
+
+
+void webHandler(int fd, void *data) {
+	int in_sockfd = svr_accept(fd);
+	if (in_sockfd == -1) {
+		return;
+	}
+	svr_process(in_sockfd);
+	close(in_sockfd);
 }

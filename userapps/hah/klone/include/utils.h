@@ -1,4 +1,4 @@
-/* $Id: utils.h 43 2009-11-21 16:42:02Z brett $
+/* $Id$
  */
 void upperstr(char *s);
 int subprocess(char **arg);

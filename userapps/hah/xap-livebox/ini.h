@@ -8,6 +8,6 @@ extern bscEndpoint *endpointList;
 extern const char inifile[];
 
 void addIniEndpoints();
-void infoEventRFnRelay(bscEndpoint *e, char *clazz);
+void infoEventBinary(bscEndpoint *e, char *clazz);
 
 #endif

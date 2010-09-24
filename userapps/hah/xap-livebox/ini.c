@@ -10,6 +10,7 @@ INI file processing
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ctype.h>
 #include "bsc.h"
 #include "ini.h"
 #include "minIni.h"
@@ -25,8 +26,9 @@ const char inifile[] = "/etc/xap-livebox.ini";
 * @param e Endpoint to generate the xap message for
 * @param clazz either xapBSC.info or xapBSC.event
 * @param prefix [INI] file key processing prefix.
+* @param value String to include in the display texts
 */
-static void infoEventLabeled(bscEndpoint *e, char *clazz, char *prefix)
+static void infoEventLabeled(bscEndpoint *e, char *clazz, char *prefix, char *value)
 {
         if(e->displayText == NULL)
                 e->displayText = (char *)malloc(64);
@@ -35,7 +37,7 @@ static void infoEventLabeled(bscEndpoint *e, char *clazz, char *prefix)
         char key[30], buf[64];
         snprintf(key, sizeof(key), "%s%s.label", prefix, e->subaddr);
         if(ini_gets(e->name, key, "", buf, sizeof(buf), inifile) > 0) {
-                snprintf(e->displayText, 64, "%s %s", buf, e->text);
+                snprintf(e->displayText, 64, "%s %s", buf, value);
         } else {
                 *e->displayText = '\0';
         }
@@ -43,19 +45,17 @@ static void infoEventLabeled(bscEndpoint *e, char *clazz, char *prefix)
         bscInfoEvent(e, clazz);
 }
 /** Augment default xapBSC.info & xapBSC.event handler.
-* Adds displaytext for RF and Relay endpoints.
+* Adds displaytext for Binary endpoints.
 *
 * @param e Endpoint to generate the xap message for
 * @param clazz either the string "xapBSC.info" or "xapBSC.event"
 */
-void infoEventRFnRelay(bscEndpoint *e, char *clazz)
+void infoEventBinary(bscEndpoint *e, char *clazz)
 {
-        // Locate a label of the form.
-        // [rf]
-        // rf1.label=
-        // [relay]
-        // relay2.label=
-        infoEventLabeled(e, clazz, e->name);
+        // Locate an INI label of the form, where X is the endpoint name.
+        // [X]
+        // X1.label=
+	infoEventLabeled(e, clazz, e->name, bscStateToString(e));
 }
 
 /** Augment default xapBSC.info & xapBSC.event handler.
@@ -67,7 +67,7 @@ static void infoEvent1wire (bscEndpoint *e, char *clazz)
 {
         // [1wire]
         // sensor1.label=
-        infoEventLabeled(e, clazz, "sensor");
+        infoEventLabeled(e, clazz, "sensor", e->name);
 }
 
 /** Handle xapBSC.cmd for the RF endpoints.
@@ -81,7 +81,6 @@ static void cmdRF(bscEndpoint *e)
         snprintf(buf, sizeof(buf), "%s %d", bscStateToString(e), i+4);
         serialSend(buf);
 }
-
 
 /** Check each 1wire device has transmitted from the AVR within the timeout period.
  * If timed out mark in an UNKOWN state and adjust its current value to be also unknown.
@@ -107,7 +106,61 @@ void timeoutCheck1wire(int interval, void *data)
                         }
                 }
         }
+}
 
+/** Drive an I2C PPE in PIN mode for a targeted xAPBSC.cmd
+*
+* output.state.1
+* {
+* state=on
+* }
+*/
+static void cmdPPEpin(bscEndpoint *e)
+{
+        char serialCmd[32];
+        // Subaddr is of the form: <addr>.<pin>
+	char *addr = strtok(e->subaddr,".");
+	char *pin = strtok(NULL,"");
+        // We invert the STATE.  Logical ON is a LOW PPE state 0.
+	snprintf(serialCmd, sizeof(serialCmd),"i2c P%s%s%d", addr, pin, e->state == STATE_ON ? STATE_OFF : STATE_ON);
+	serialSend(serialCmd);
+}
+
+/** Drive an I2C PPE in BYTE mode for a targeted xAPBSC.cmd
+*
+* output.state.1
+* {
+* text=4F
+* }
+*/
+static void cmdPPEbyte(bscEndpoint *e)
+{
+	char serialCmd[32];
+	if(isxdigit(e->text[0]) && isxdigit(e->text[1]) && strlen(e->text) == 2) {
+		snprintf(serialCmd, sizeof(serialCmd),"i2c B%s%s", e->subaddr, e->text);
+		serialSend(serialCmd);
+	} else {
+		warning("CMD must be 2 hex digits: supplied %s", e->text);
+	}
+}
+
+/** Register each I2C address so that it will be monitored.  This
+*   inserts the address into the firmware's internal array list
+*   periodically each i2c device will be polled for a change in state.
+*/
+static void setup_i2c_ppe(int addr) {
+	char arg[10];
+	snprintf(arg, sizeof(arg), "i2c M%02X", addr);
+	serialSend(arg);
+}
+
+/** Send an instruction to reset the number of PPE device's registered.
+*   We do this as the xap-adapter could be stopped and started with the
+*  .ini file being modified between invocations and we don't want to
+*   register the same i2c address more than once.
+*/
+static void reset_i2c_ppe() {
+	serialSend("i2c R");
 }
 
 /** Parse the .ini file and dynamically create XAP endpoints.
@@ -118,7 +171,11 @@ void addIniEndpoints()
         long n;
         int s;
         char buff[30];
+	char s_addr[5];
+	int addr;
+	char mode[5];	
 
+	reset_i2c_ppe();
         for (s = 0; ini_getsection(s, section, sizeof(section), inifile) > 0; s++) {
                 info("section: %s");
 
@@ -127,8 +184,40 @@ void addIniEndpoints()
                    ppe as long as its unique to distinguish one entry from
                    another.
                 */
-
-                if(strcmp("1wire", section) == 0) {
+	        if(strncmp("ppe", section, 3) == 0) {
+		        n = ini_gets(section, "address", "", s_addr, sizeof(s_addr), inifile);
+		        if (n == 0) {
+			        err(section,"Missing address=[0x40-0x47]");
+			        continue;
+		        }
+		        sscanf(s_addr,"%x", &addr);
+		        if(addr < 0x40 || addr > 0x47) {
+			        err(section,"Invalid address %s", s_addr);
+			        continue;
+		        }
+		        n = ini_gets(section, "mode", "", mode, sizeof(mode), inifile);
+		        if(n == 0) {
+			        err(section,"Missing mode=[byte|pin]");
+			        continue;
+		        }
+		        if(strcmp(mode,"byte") == 0) {
+			        snprintf(buff,sizeof buff,"%02X", addr);
+			        bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_STREAM, &cmdPPEbyte, NULL);
+			        setup_i2c_ppe(addr);
+		        } else if(strcmp(mode,"pin") == 0) {
+			        int pin;
+			        for(pin=0; pin<7; pin++) {
+				        snprintf(buff,sizeof buff,"%02X.%d", addr, pin);
+				        bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_BINARY, &cmdPPEpin, NULL);
+			        }
+			        setup_i2c_ppe(addr);
+		        }
+		        else {
+		                err(section,"Invalid mode: %s", mode);
+			        continue;
+		        }
+	        }  // Handle section: [1wire]
+	        else if(strcmp("1wire", section) == 0) {
                         n = ini_getl(section, "devices", -1, inifile);
                         if (n > 15)
                                 n = 15;
@@ -156,7 +245,7 @@ void addIniEndpoints()
                                 n = MAXCHANNEL-4;
                         for(i = 1; i <= devices; i++) {
                                 snprintf(buff,sizeof buff,"%d", i);
-                                bscAddEndpoint(&endpointList, "rf", buff, BSC_OUTPUT, BSC_BINARY, &cmdRF, &infoEventRFnRelay);
+	                        bscAddEndpoint(&endpointList, "rf", buff, BSC_OUTPUT, BSC_BINARY, &cmdRF, &infoEventBinary);
 
                                 // Look for RF configuration for this relay.
                                 for(j=0; j<2; j++) {

@@ -63,7 +63,8 @@ bscEndpoint *bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, unsig
                     void (*cmd)(struct _bscEndpoint *self),
                     void (*infoEvent)(struct _bscEndpoint *self, char *clazz)
                    );
-void xapAddBscEndpointFilters(bscEndpoint *head, int info_interval);
+void xapAddBscEndpointFilter(bscEndpoint *head, int info_interval);
+void xapAddBscEndpointFilterList(bscEndpoint *head, int info_interval);
 void bscInfoEvent(bscEndpoint *e, char *clazz);
 void setbscLevel(bscEndpoint *e, char *level);
 void setbscText(bscEndpoint *e, char *level);

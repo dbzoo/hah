@@ -1,5 +1,5 @@
 /* $Id$
-
+ 
 Serial interfacing to the external AVR hardware
 */
 #ifdef IDENT
@@ -32,11 +32,11 @@ static void serin_ppe(cmd_t *, bscEndpoint *, char **);
 
 // incoming serial command dispatch table.
 static cmd_t cmd[] = {
-                      {"input", &serin_input},
-                      {"1wire", &serin_1wire},
-                      {"i2c-ppe", &serin_ppe},
-                      { NULL, NULL }
-              };
+                             {"input", &serin_input},
+                             {"1wire", &serin_1wire},
+                             {"i2c-ppe", &serin_ppe},
+                             { NULL, NULL }
+                     };
 
 /** Process inbound SERIAL command for an INPUT endpoint.
 *
@@ -57,19 +57,19 @@ static void serin_input(cmd_t *s, bscEndpoint *head, char *argv[])
         if(argv[0] == NULL || argv[1] == NULL) // Bad input shouldn't happen?!
                 return;
 
-	bzero(buff, sizeof(buff));
-	old = atoi(argv[0]);
+        bzero(buff, sizeof(buff));
+        old = atoi(argv[0]);
         new = atoi(argv[1]);
 
         // Find out which bit(s) changed
         // The 4 bits that can be set are: 00111100
-	for(i=0; i<4; i++) {
+        for(i=0; i<4; i++) {
                 bit = i + 2;
                 if ((old ^ new) & (1 << bit)) {
-	                buff[0] = '1' + i;
+                        buff[0] = '1' + i;
                         bscEndpoint *e = findbscEndpoint(head, "input", buff);
                         if(e) {
-                        	setbscStateNow(e, new & (1<<bit) ? STATE_ON : STATE_OFF);
+                                setbscStateNow(e, new & (1<<bit) ? STATE_ON : STATE_OFF);
                         }
                 }
         }
@@ -89,48 +89,52 @@ static void serin_1wire(cmd_t *s, bscEndpoint *head, char *argv[])
                 return;  // Bad input shouldn't happen?!
         bscEndpoint *e = findbscEndpoint(head, "1wire", argv[0]);
         if(e) {
-	        setbscState(e, STATE_ON);  // got a serial event we know its alive.
+                setbscState(e, STATE_ON);  // got a serial event we know its alive.
                 setbscTextNow(e, argv[1]);
-	        // record the last time this 1wire device reported in.
-	        *(time_t *)e->userData = time(NULL);
+                // record the last time this 1wire device reported in.
+                *(time_t *)e->userData = time(NULL);
         }
 }
 
-// i2c-ppe A O N
-//
-// A - Address of PPE chip (in hex 2 digits only)
-// O - Original value before state change
-// N - Value after state change
-static void serin_ppe(cmd_t *s, bscEndpoint *head, char *argv[]) {
-	 // We need to do a bit more work to find the endpoint.
-	 // As the user may have configure a single ENDPOINT or ONE per PIN
-	 char buff[30];
-	 char *addr = argv[0];  // PPE address
-	 char *old = argv[1];
-	 char *new = argv[2];
+/** Processing inbound SERIAL command from the I2C PPE chip.
+*
+* i2c-ppe A O N
+*
+* A - Address of PPE chip (in hex 2 digits only)
+* O - Original value before state change
+* N - Value after state change
+*/
+static void serin_ppe(cmd_t *s, bscEndpoint *head, char *argv[])
+{
+        // We need to do a bit more work to find the endpoint.
+        // As the user may have configure a single ENDPOINT or ONE per PIN
+        char buff[30];
+        char *addr = argv[0];  // PPE address
+        char *old = argv[1];
+        char *new = argv[2];
 
-	 info("addr %s new %s old %s", addr, new, old);
-	 if(new == NULL || old == NULL || addr == NULL) // Bad input shouldn't happen?!
-		  return;
+        info("addr %s new %s old %s", addr, new, old);
+        if(new == NULL || old == NULL || addr == NULL) // Bad input shouldn't happen?!
+                return;
 
-	 bscEndpoint *e = findbscEndpoint(head, "i2c", addr);
-	 if(e) {
-		 setbscText(e, new);
-		 (*e->infoEvent)(e, "xapBSC.event");
-	 } else {
-		  int pin;
-		  int newi = atoi(new);
-		  int oldi = atoi(old);
-		  for(pin=0; pin<8; pin++) {
-			   // Figure out what changed in the PPE
-			   if ((oldi ^ newi) & (1 << pin)) {
-					// Compute an ENDPOINT name
-					snprintf(buff,sizeof buff,"%s.%d", addr, pin);
-					e = findbscEndpoint(head, "i2c", buff);
-					setbscStateNow(e, newi & (1<<pin) ? STATE_ON : STATE_OFF);
-			   }
-		  }
-	 }
+        bscEndpoint *e = findbscEndpoint(head, "i2c", addr);
+        if(e) {
+                setbscText(e, new);
+                (*e->infoEvent)(e, "xapBSC.event");
+        } else {
+                int pin;
+                int newi = atoi(new);
+                int oldi = atoi(old);
+                for(pin=0; pin<8; pin++) {
+                        // Figure out what changed in the PPE
+                        if ((oldi ^ newi) & (1 << pin)) {
+                                // Compute an ENDPOINT name
+                                snprintf(buff,sizeof buff,"%s.%d", addr, pin);
+                                e = findbscEndpoint(head, "i2c", buff);
+                                setbscStateNow(e, newi & (1<<pin) ? STATE_ON : STATE_OFF);
+                        }
+                }
+        }
 }
 
 /** Tokenize a serial command and dispatch.
@@ -195,31 +199,34 @@ void serialInputHandler(int fd, void *data)
 /// Send a message to the serial port.
 void serialSend(char *buf)
 {
-	if(gSerialfd > 0) {
-		info("Serial Tx: %s", buf);
-		char nbuf[128];
-		snprintf(nbuf, sizeof(nbuf), "\n%s\n", buf);
-		write(gSerialfd, nbuf, strlen(nbuf));
-	}
+        if(gSerialfd > 0) {
+                info("Serial Tx: %s", buf);
+                char nbuf[128];
+                snprintf(nbuf, sizeof(nbuf), "\n%s\n", buf);
+                write(gSerialfd, nbuf, strlen(nbuf));
+        }
 }
 
-/// Setup the serial port.
+/** Setup the serial port.
+* @param serialport Path to serial device
+* @param baud a TERMIOS baud rate value
+*/
 int setupSerialPort(char *serialport, int baud)
 {
         struct termios newtio;
         int fd = open(serialport, O_RDWR | O_NDELAY);
-	if (fd < 0) {
-		err_strerror("Failed to open serial port %s", serialport);
+        if (fd < 0) {
+                err_strerror("Failed to open serial port %s", serialport);
                 return -1;
-	}
+        }
         cfmakeraw(&newtio);
         newtio.c_cflag = baud | CS8 | CLOCAL | CREAD ;
         newtio.c_iflag = IGNPAR;
         newtio.c_lflag = ~ICANON;
-        newtio.c_cc[VTIME] = 0; /* ignore timer */
-        newtio.c_cc[VMIN] = 0; /* no blocking read */
+        newtio.c_cc[VTIME] = 0; // ignore timer
+        newtio.c_cc[VMIN] = 0; // no blocking read
         tcflush(fd, TCIFLUSH);
         tcsetattr(fd, TCSANOW, &newtio);
-	gSerialfd = fd;
+        gSerialfd = fd;
         return fd;
 }

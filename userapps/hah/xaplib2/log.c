@@ -1,9 +1,6 @@
 /* $Id$
    Copyright (c) Brett England, 2010
  
-   Demonstration usage for the xAP and BSC library calls.
-   Based around a stripped down xap-livebox daemon.
- 
    No commercial use.
    No redistribution at profit.
    All derivative work must retain this message and

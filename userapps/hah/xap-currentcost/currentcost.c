@@ -10,355 +10,238 @@
 #ident "@(#) $Id$"
 #endif
 
-#include "xapdef.h"
-#include "xapGlobals.h"
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <termios.h>
+#include <unistd.h>
 #include <libxml/parser.h>
+#include "xap.h"
+#include "bsc.h"
 
-const char* XAP_ME = "dbzoo";
-const char* XAP_SOURCE = "livebox"; 
-const char* XAP_GUID;
-const char* XAP_DEFAULT_INSTANCE;
+// Seconds between xapBSC.info messages.
+#define INFO_INTERVAL 120
 
-#define SEND_INTERVAL 60  // in seconds
+xAP *gXAP;
 const char inifile[] = "/etc/xap-livebox.ini";
-
-// Globals
-static int g_serial_fd;
-
-struct {
-	 int channel[3];
-	 float temp;
-         char unit;
-	 float hrs[13];
-	 int days[31];
-	 int months[12];
-	 int years[4];
-	 int sensor;    
-} cc, prevcc;
-
-enum {NONE,HRS,DAYS,MTHS,YRS,CHANNEL1,CHANNEL2,CHANNEL3,TEMP,SENSOR};
-int idx;
-int state;
+char serialPort[20];
 int hysteresis;
+char *interfaceName = "eth0";
 
-#define CC128 0
-#define CLASSIC 1
-int model;
+enum {CC128, CLASSIC} model;
 
-/* SAX element (TAG) callback
- */
+bscEndpoint *endpointList = NULL;
+bscEndpoint *currentTag = NULL;
+
+/// BSC callback - Only emit info/event for Channels that adjust outside of the hysteresis amount.
+static void infoEventChannel(bscEndpoint *e, char *clazz)
+{
+	int old = atoi((char *)e->userData);
+	int new = atoi(e->text);
+	if(new > old + hysteresis || new < old - hysteresis) {
+		if(e->displayText == NULL)
+			e->displayText = (char *)malloc(15);
+		snprintf(e->displayText, 15, "%d watts", new);
+		bscInfoEvent(e, clazz);
+	}
+}
+
+/// BSC callback - Emit info/event for Temperature endpoints.
+static void infoEventTemp(bscEndpoint *e, char *clazz)
+{
+	if(e->displayText == NULL)
+		e->displayText = (char *)malloc(15);
+	char unit = strcmp(e->name,"tmpr") == 0 ? 'C' : 'F'; // tmpr/tmprF
+	snprintf(e->displayText, 15, "Temp %s %c", e->text, unit);
+	bscInfoEvent(e, clazz);
+}
+
+/// SAX element (TAG) callback
+static char *xmlTag[] = {"ch1","ch2","ch3","tmpr","tmprF",NULL};
 static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
 {
-     if(strcmp(name,"hrs") == 0) {
-	  state = HRS;
-	  idx = 0;
-     } else if(strcmp(name,"days") == 0) {
-	  state = DAYS;
-	  idx = 0;
-     } else if(strcmp(name,"mths") == 0) {
-	  state = MTHS;
-	  idx = 0;
-     } else if(strcmp(name,"yrs") == 0) {
-	  state = YRS;
-	  idx = 0;
-     } else if (strcmp(name,"ch1") == 0) {
-	  state = CHANNEL1;
-     } else if (strcmp(name,"ch2") == 0) {
-	  state = CHANNEL2;
-     } else if (strcmp(name,"ch3") == 0) {
-	  state = CHANNEL3;
-     } else if (strcmp(name,"tmpr") == 0) {
-	  cc.unit = 'C';
-	  state = TEMP;
-     } else if (strcmp(name,"tmprF") == 0) {  // For the US model
-	  cc.unit = 'F';
-	  state = TEMP;
-     } else if (strcmp(name,"sensor") == 0) { // cc128 model
-	  state = SENSOR;
-     }
+        char **p;
+        for(p=&xmlTag[0]; *p; p++) {
+                if(strcmp(name, *p) == 0) {
+                        currentTag = findbscEndpoint(endpointList, (char *)name, NULL);
+                        // Dynamic endpoints are useful for <tmpr> and <tmprF>
+                        // We defer creation until we see it in the XML to handle UK/US variants.
+                        if(currentTag == NULL) {
+                                // Add to the list we want to search and manage
+	                        currentTag = bscAddEndpoint(&endpointList, (char *)name, NULL, BSC_INPUT, BSC_STREAM, NULL, &infoEventTemp);
+                                xapAddBscEndpointFilter(currentTag, INFO_INTERVAL);
+                        }
+                }
+        }
 }
 
-/* SAX cdata callback
- */
+/// SAX cdata callback
 static void cdataBlockCB(void *ctx, const xmlChar *value, int len)
 {
-     switch(state) {
-     case SENSOR:
-	  cc.sensor = atoi(value);
-	  break;
-     case CHANNEL1:
-	  cc.channel[0] = atoi(value);
-	  break;
-     case CHANNEL2:
-	  cc.channel[1] = atoi(value);
-	  break;
-     case CHANNEL3:
-	  cc.channel[2] = atoi(value);
-	  break;
-     case TEMP:
-	  cc.temp = atof(value);
-	  break;
-     case HRS:
-	  sscanf(value,"%f", &(cc.hrs[idx]));
-	  break;
-     case DAYS:
-	  cc.days[idx] = atoi(value);
-	  break;
-     case MTHS:
-	  cc.months[idx] = atoi(value);
-	  break;
-     case YRS:
-	  cc.years[idx] = atoi(value);
-	  break;
-     }
+        if(currentTag == NULL)
+                return;
+        if(strcmp(value, currentTag->text)) { // If its different report it.
+                // Rotate the original data value through the user data field.
+                if(currentTag->userData)
+                        free(currentTag->userData);
+                currentTag->userData = (void *)currentTag->text;
+                currentTag->text = NULL;
+                setbscTextNow(currentTag, (char *)value);
+        }
+        currentTag = NULL;
 }
 
-/* SAX element (TAG) callback
- */
-static void endElementCB(void *ctx, const xmlChar *name) 
+/// Parse an Currentcost XML message.
+void parseXml(char *data, int size)
 {
-     switch(state) {
-     case SENSOR:
-     case CHANNEL1:
-     case CHANNEL2:
-     case CHANNEL3:
-     case TEMP:
-	  state = NONE;
-	  break;
-     case HRS: 
-	  if(idx < 13) idx++; break;
-     case DAYS:
-	  if(idx < 31) idx++; break;
-     case MTHS:
-	  if(idx < 12) idx++; break;
-     case YRS: 
-	  if(idx < 4) idx++; break;
-     }
+        xmlSAXHandler handler;
+
+        debug("%s", data);
+
+        memset(&handler, 0, sizeof(handler));
+        handler.initialized = XML_SAX2_MAGIC;
+        handler.startElement = startElementCB;
+        handler.characters = cdataBlockCB;
+
+        if(xmlSAXUserParseMemory(&handler, NULL, data, size) < 0) {
+                err("Document not parsed successfully.");
+                return;
+        }
 }
 
-static void xap_message(char *body, char *subtype, int id) {
-	 char i_xapmsg[1500];
-  	 char uid[8];
-	 int len;
+///. Read the XML stream from the currentcost unit.
+void serialInputHandler(int fd, void *data)
+{
+        char serial_buff[128];
+        char serial_xml[4096];
+        static int serial_cursor = 0;
+        int i;
+        int len;
 
-	 strlcpy(uid, g_uid, sizeof uid);
-	 sprintf(&uid[6], "%02x", id);  // create sub address
+        while((len = read(fd, serial_buff, sizeof(serial_buff))) > 0) {
+                for(i=0; i < len; i++) {
+                        if(serial_buff[i] == '\r' || serial_buff[i] == '\n')
+                                continue;
+	                // Prevent buffer overruns.
+	                if(serial_cursor == sizeof(serial_xml)-1) {
+		                serial_cursor = 0;
+	                }
+                        serial_xml[serial_cursor++] = serial_buff[i];
+                        serial_xml[serial_cursor] = 0;
 
-	 if(model == CC128) {
-		  // For the CC128 each sensor is a sub-subtype
-		  len = snprintf(i_xapmsg, sizeof(i_xapmsg),
-						 "xAP-header\n{\nv=12\nhop=1\nuid=%s\n"	\
-						 "class=xAPBSC.event\nsource=%s.%s.%s:%s.%d\n}"	\
-						 "\ninput.state\n{\n%s\n}\n",
-						 uid, XAP_ME, XAP_SOURCE, g_instance, subtype, cc.sensor, body);
-	 } else {
-		  len = snprintf(i_xapmsg, sizeof(i_xapmsg),
-						 "xAP-header\n{\nv=12\nhop=1\nuid=%s\n"	\
-						 "class=xAPBSC.event\nsource=%s.%s.%s:%s\n}"	\
-						 "\ninput.state\n{\n%s\n}\n",
-						 uid, XAP_ME, XAP_SOURCE, g_instance, subtype, body);
-	 }
-	 // If truncation of the buffer occurs don't send the message treat as malformed.
-	 if( len < sizeof(i_xapmsg)) {
-		  xap_send_message(i_xapmsg);
-	 }
+                        if(strstr(serial_xml,"</msg>")) {
+                                int xmlsize = serial_cursor;
+                                serial_cursor = 0;
+                                if(strncmp(serial_xml,"<msg>",5) == 0) {
+                                        parseXml(serial_xml, xmlsize);
+                                }
+                        }
+                }
+        }
 }
 
-// Report basic information - CC128 may have other channels/sensors if these are avilable they will
-// appear with the first EVENT, this is just initial "hay here we are" type information.
-static void xap_info_startup() {
-  // CC128, CLASSIC
-  static char *subtype[2][3] = {{"ch1.0","temp",0}, {"ch1","temp", 0}};
-  char i_xapmsg[1500];
-  int i;
-  char uid[8];
-
-  for(i=0; subtype[model][i]; i++) {
-    strlcpy(uid, g_uid, sizeof uid);
-    sprintf(&uid[6], "%02x", i+1);  // create sub address
-    snprintf(i_xapmsg, sizeof(i_xapmsg),
-	     "xAP-header\n{\nv=12\nhop=1\nuid=%s\n"			\
-	     "class=xAPBSC.info\nsource=%s.%s.%s:%s\n}"			\
-	     "\ninput.state\n{\nstate=on\ntext=0\n}\n",
-	     uid, XAP_ME, XAP_SOURCE, g_instance, subtype[model][i]);
-    xap_send_message(i_xapmsg);
-  }
+/// Setup the serial port.
+int setupSerialPort()
+{
+        struct termios newtio;
+        int fd = open(serialPort, O_RDONLY | O_NDELAY);
+        if (fd < 0) {
+                die_if("Failed to open serial port %s", serialPort);
+        }
+        cfmakeraw(&newtio);
+        if(model == CC128) {
+                newtio.c_cflag = B57600 | CS8 | CLOCAL | CREAD ;
+        } else { // classic and default
+                newtio.c_cflag = B9600 | CS8 | CLOCAL | CREAD ;
+        }
+        newtio.c_iflag = IGNPAR;
+        newtio.c_lflag = ~ICANON;
+        newtio.c_cc[VTIME] = 0; // ignore timer
+        newtio.c_cc[VMIN] = 0; // no blocking read
+        tcflush(fd, TCIFLUSH);
+        tcsetattr(fd, TCSANOW, &newtio);
+        return fd;
 }
 
-static void xap_watt_info(int ch) {
-	 char body[64];
-	 snprintf(body,sizeof(body),"state=on\ndisplaytext=%d watts\ntext=%d", cc.channel[ch], cc.channel[ch]);
-	 char subtype[10];
-	 snprintf(subtype, sizeof(subtype),"ch%d", ch+1);  // Convert ZERO index to base 1.
-	 xap_message(body, subtype, 1);
+/// Display usage information and exit.
+static void usage(char *prog)
+{
+        printf("%s: [options]\n",prog);
+        printf("  -i, --interface IF     Default %s\n", interfaceName);
+        printf("  -s, --serial DEV       Default %s\n", serialPort);
+        printf("  -d, --debug            0-7\n");
+        printf("  -h, --help\n");
+        exit(1);
 }
 
-static void xap_temp_info() {
-	 char body[64];
-	 snprintf(body,sizeof(body),"state=on\ndisplaytext=temp %3.1f %c\ntext=%3.1f", 
-		  cc.temp, cc.unit, cc.temp);
-	 xap_message(body, "temp", 2);
+/// Process the INI file for xAP control data and setup the global gXAP object.
+void setupXap()
+{
+        long n;
+        char i_uid[5];
+        char s_uid[10];
+
+        n = ini_gets("xap","uid","00DC",i_uid, sizeof(i_uid),inifile);
+
+        // validate that the UID can be read as HEX
+        if(! (n > 0
+                        && (isxdigit(i_uid[0]) && isxdigit(i_uid[1]) &&
+                            isxdigit(i_uid[2]) && isxdigit(i_uid[3]))
+                        && strlen(i_uid) == 4)) {
+                err("invalid uid %s", i_uid);
+                strcpy(i_uid,"00DC"); // not valid put back default.
+        }
+        snprintf(s_uid, sizeof(s_uid), "FF%s00", i_uid);
+
+        char i_control[64];
+        char s_control[128];
+        n = ini_gets("xap","instance","CurrentCost",i_control,sizeof(i_control),inifile);
+        snprintf(s_control, sizeof(s_control), "dbzoo.livebox.%s", i_control);
+
+        xapInit(s_control, s_uid, interfaceName);
+        die_if(gXAP == NULL,"Failed to init xAP");
+
+        hysteresis = ini_getl("currentcost", "hysteresis", 10, inifile);
+
+        ini_gets("currentcost","usbserial","/dev/ttyUSB0", serialPort, sizeof(serialPort), inifile);
+
+        char model_s[20];
+        model = CLASSIC;
+        ini_gets("currentcost","model","classic", model_s, sizeof(model_s), inifile);
+        if(strcasecmp(model_s,"CC128") == 0) {
+                model = CC128;
+        }
 }
 
-// Send and xAP event when the data values change
-void send_all_info() {
-	 int i;
-	 for(i=0; i<3; i++) {
-		  // Watt reporting hysteresis
-		  if(cc.channel[i] > prevcc.channel[i]+hysteresis || cc.channel[i] < prevcc.channel[i]-hysteresis)
-			   xap_watt_info(i);
-	 }
-	 if(cc.temp != prevcc.temp)
-		  xap_temp_info();
-	 memcpy(&prevcc, &cc, sizeof(cc));
-}
+/// Setup Endpoints, the Serial port, a callback for the serial port and process xAP messages.
+int main(int argc, char *argv[])
+{
+        int i;
+        printf("\nCurrent Cost Connector for xAP v12\n");
+        printf("Copyright (C) DBzoo, 2009-2010\n\n");
 
-void parseXml(char *data, int size) {
-     xmlSAXHandler handler;
+        for(i=0; i<argc; i++) {
+                if(strcmp("-i", argv[i]) == 0 || strcmp("--interface",argv[i]) == 0) {
+                        interfaceName = argv[++i];
+                } else if(strcmp("-s", argv[i]) == 0 || strcmp("--serial", argv[i]) == 0) {
+                        strlcpy(serialPort, argv[++i], sizeof(serialPort));
+                } else if(strcmp("-d", argv[i]) == 0 || strcmp("--debug", argv[i]) == 0) {
+                        setLoglevel(atoi(argv[++i]));
+                } else if(strcmp("-h", argv[i]) == 0 || strcmp("--help", argv[i]) == 0) {
+                        usage(argv[0]);
+                }
+        }
 
-     if (g_debuglevel >=5 ) printf("Parsing... %s\n", data);
+        setupXap();
 
-     memset(&handler, 0, sizeof(handler));
-     handler.initialized = XML_SAX2_MAGIC;
-     handler.startElement = startElementCB;
-     handler.endElement = endElementCB;
-     handler.characters = cdataBlockCB;
-     
-     if(xmlSAXUserParseMemory(&handler, NULL, data, size) < 0) {
-	  if(g_debuglevel) printf("Document not parsed successfully.\n");
-	  return;
-     }
-}
+        bscAddEndpoint(&endpointList, "ch1", NULL, BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
+        bscAddEndpoint(&endpointList, "ch2", NULL, BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
+        bscAddEndpoint(&endpointList, "ch3", NULL, BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
+        xapAddBscEndpointFilterList(endpointList, INFO_INTERVAL);
 
-void process_event() {
-	 struct timeval i_tv;       // Unblock serial READ
-	 fd_set master, i_rdfs;
-	 int i_retval;
-#define BUFFER_LEN 250
-#define SERIAL_XML 4096
-	 char serial_buff[BUFFER_LEN+1];
-	 char serial_xml[SERIAL_XML+1];
-	 int serial_cursor = 0;
-	 int i;
+        xapAddSocketListener(setupSerialPort(), &serialInputHandler, endpointList);
+        xapProcess();
 
-	 // Setup the select() sets.
-	 FD_ZERO(&master);
-	 FD_SET(g_serial_fd, &master);
-	 
-	 while (1)
-	 {
-		  i_tv.tv_sec=HBEAT_INTERVAL;
-		  i_tv.tv_usec=0;
-	 
-		  i_rdfs = master; // copy it - select() alters this each call.
-		  i_retval = select(g_serial_fd+1, &i_rdfs, NULL, NULL, &i_tv);
-
-		  // If incoming serial data...
-		  if (FD_ISSET(g_serial_fd, &i_rdfs)) {
-			   int serial_data_len = read(g_serial_fd, serial_buff, BUFFER_LEN);
-			   if(serial_data_len) {
-					for(i=0; i < serial_data_len; i++) {
-						 if(serial_buff[i] == '\r' || serial_buff[i] == '\n') continue;
-						 serial_xml[serial_cursor++] = serial_buff[i];
-						 serial_xml[serial_cursor] = 0;
-
-						 if(strstr(serial_xml,"</msg>")) {
-						      int xmlsize = serial_cursor;
-						      serial_cursor = 0;
-						      if(strncmp(serial_xml,"<msg>",5) == 0) {
-							   parseXml(serial_xml, xmlsize);
-						      }
-						 }
-					}
-			   }
-		  }
-
-		  // Send EVENT every TICK
-		  if (xap_send_tick(SEND_INTERVAL)) {
-			   send_all_info();
-		  }
-
-		  // Send heartbeat periodically
-		  xap_heartbeat_tick(HBEAT_INTERVAL);
-	 }
-}
-
-void setup_serial_port() {
-	 struct termios newtio;
-	 /* Open the serial port
-		O_NDELAY: Don't wait for DCD signal line when opening the port.
-		O_RDWR: Open for read and write
-	 */
-	 printf("\nUsing serial device %s\n\n", g_serialport);
-	 g_serial_fd = open(g_serialport, O_RDONLY | O_NDELAY);
-	 if (g_serial_fd < 0)
-	 {
-		  printf("Unable to open the serial port %s\n",g_serialport);
-		  exit(4);
-	 }
-	 /* port settings: 9600, 8bit
-		CREAD enables port to read data
-		CLOCAL indicates device is not a modem
-	 */
-	 cfmakeraw(&newtio);
-	 if(model == CC128) {
-		  newtio.c_cflag = B57600 | CS8 | CLOCAL | CREAD ;
-	 } else { // classic and default
-		  newtio.c_cflag = B9600 | CS8 | CLOCAL | CREAD ;
-	 }
-	 newtio.c_iflag = IGNPAR;
-	 newtio.c_lflag = ~ICANON;
-	 newtio.c_cc[VTIME] = 0; /* ignore timer */
-	 newtio.c_cc[VMIN] = 0; /* no blocking read */
-	 tcflush(g_serial_fd, TCIFLUSH);
-	 tcsetattr(g_serial_fd, TCSANOW, &newtio);
-}
-
-void setupXAPini() {
-	 char uid[5];
-	 char guid[9];
-	 long n;
-
-	 // default to 00DC if not present
-	 n = ini_gets("currentcost","uid","00DC",uid,sizeof(uid),inifile);
-
-	 // validate that the UID can be read as HEX
-	 if(n == 0 || !(isxdigit(uid[0]) && isxdigit(uid[1]) && 
-					isxdigit(uid[2]) && isxdigit(uid[3]))) 
-	 {
-		  strlcpy(uid,"00DC",sizeof uid);
-	 }
-	 snprintf(guid,sizeof guid,"FF%s00", uid);
-	 XAP_GUID = strdup(guid);
-
-	 char control[30];
-	 n = ini_gets("currentcost","instance","CurrentCost",control,sizeof(control),inifile);
-	 if(n == 0 || strlen(control) == 0) 
-	 {
-		  strlcpy(control,"CurrentCost",sizeof control);
-	 }
-	 XAP_DEFAULT_INSTANCE = strdup(control);
-
-	 hysteresis = ini_getl("currentcost", "hysteresis", 10, inifile);
-
-	 ini_gets("currentcost","usbserial","/dev/ttyUSB0", g_serialport, sizeof(g_serialport), inifile);
-
-	 char model_s[20];
-	 model = CLASSIC;
-	 ini_gets("currentcost","model","classic", model_s, sizeof(model_s), inifile);
-	 if(strcasecmp(model_s,"CC128") == 0) {
-		  model = CC128;
-	 }
-}
-
-int main(int argc, char *argv[]) {
-	 FILE *fp;
-
-	 printf("\nCurrent Cost Connector for xAP v12\n");
-	 printf("Copyright (C) DBzoo, 2009\n\n");
-	 setupXAPini();
-	 xap_init(argc, argv, 0);
-	 setup_serial_port();
-	 xap_info_startup();
-	 process_event();
+        return 0;  // not reached
 }

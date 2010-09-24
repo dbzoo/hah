@@ -232,7 +232,7 @@ void bscInfoEvent(bscEndpoint *e, char *clazz)
         } else if(e->type == BSC_STREAM) {
                 len += snprintf(&buff[len], XAP_DATA_LEN-len, "text=%s\n", e->level);
         }
-        if(e->displayText) {
+        if(e->displayText && *e->displayText) {
                 len += snprintf(&buff[len], XAP_DATA_LEN-len, "displaytext=%s\n", e->displayText);
         }
         len += snprintf(&buff[len], XAP_DATA_LEN-len, "}\n");
@@ -282,37 +282,41 @@ bscEndpoint *bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, unsig
 	return e;
 }
 
-/// Add CMD and QUERY filter callbacks for the BSC endpoints.
-void xapAddBscEndpointFilters(bscEndpoint *head, int info_interval)
-{
-        xAPFilter *filter;
-	die_if(gXAP == NULL, "xAP xap==NULL");
+/// Add a linked-list of BSC endpoints
+void xapAddBscEndpointFilterList(bscEndpoint *head, int info_interval) {
 	notice_if(head == NULL, "No endpoints to add!?");
-        while(head) {
-                // UID of the endpoint is the xAP UID with the latest 2 digits replaced with the endpoint ID.
-                head->uid = strdup(gXAP->uid);
-                strncpy(&head->uid[6], head->id, 2);
+	while(head) {
+		xapAddBscEndpointFilter(head, info_interval);
+		head = head->next;
+	}
+}
 
-                // Compute ENDPOINTS source name.
-                head->source = bscFQEN(gXAP->source, head);
-        	info("source=%s", head->source);
+/// Add CMD and QUERY filter callbacks for a BSC endpoint
+void xapAddBscEndpointFilter(bscEndpoint *head, int info_interval)
+{
+	xAPFilter *filter;
 
-                if(head->io == BSC_OUTPUT) {
-                        filter = NULL;
-                        xapAddFilter(&filter, "xap-header","class","xapBSC.cmd");
-                        xapAddFilter(&filter, "xap-header","target", head->source);
-                        xapAddFilterAction(&bscIncomingCmd, filter, head);
-                }
-
-                filter = NULL;
-                xapAddFilter(&filter, "xap-header","class","xapBSC.query");
-                xapAddFilter(&filter, "xap-header","target", head->source);
-                xapAddFilterAction(&bscIncomingQuery, filter, head);
-
-                if(info_interval > 0) {
-                        xapAddTimeoutAction(&bscInfoTimeout, info_interval, head);
-                }
-
-                head = head->next;
-        }
+	// UID of the endpoint is the xAP UID with the latest 2 digits replaced with the endpoint ID.
+	head->uid = strdup(gXAP->uid);
+	strncpy(&head->uid[6], head->id, 2);
+	
+	// Compute ENDPOINTS source name.
+	head->source = bscFQEN(gXAP->source, head);
+	info("source=%s", head->source);
+	
+	if(head->io == BSC_OUTPUT) {
+		filter = NULL;
+		xapAddFilter(&filter, "xap-header","class","xapBSC.cmd");
+		xapAddFilter(&filter, "xap-header","target", head->source);
+		xapAddFilterAction(&bscIncomingCmd, filter, head);
+	}
+	
+	filter = NULL;
+	xapAddFilter(&filter, "xap-header","class","xapBSC.query");
+	xapAddFilter(&filter, "xap-header","target", head->source);
+	xapAddFilterAction(&bscIncomingQuery, filter, head);
+	
+	if(info_interval > 0) {
+		xapAddTimeoutAction(&bscInfoTimeout, info_interval, head);
+	}
 }

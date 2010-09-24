@@ -105,19 +105,19 @@ int main(int argc, char *argv[])
 	setupXap();
 	setupSerialPort(serialPort, B115200);
 
-        bscAddEndpoint(&endpointList, "input", "1", BSC_INPUT, BSC_BINARY, NULL, NULL);
-        bscAddEndpoint(&endpointList, "input", "2", BSC_INPUT, BSC_BINARY, NULL, NULL);
-        bscAddEndpoint(&endpointList, "input", "3", BSC_INPUT, BSC_BINARY, NULL, NULL);
-        bscAddEndpoint(&endpointList, "input", "4", BSC_INPUT, BSC_BINARY, NULL, NULL);
-	bscAddEndpoint(&endpointList, "relay", "1", BSC_OUTPUT, BSC_BINARY, &cmdRelay, &infoEventRFnRelay);
-	bscAddEndpoint(&endpointList, "relay", "2", BSC_OUTPUT, BSC_BINARY, &cmdRelay, &infoEventRFnRelay);
-	bscAddEndpoint(&endpointList, "relay", "3", BSC_OUTPUT, BSC_BINARY, &cmdRelay, &infoEventRFnRelay);
-	bscAddEndpoint(&endpointList, "relay", "4", BSC_OUTPUT, BSC_BINARY, &cmdRelay, &infoEventRFnRelay);
+	bscAddEndpoint(&endpointList, "input", "1", BSC_INPUT, BSC_BINARY, NULL, &infoEventBinary);
+	bscAddEndpoint(&endpointList, "input", "2", BSC_INPUT, BSC_BINARY, NULL, &infoEventBinary);
+	bscAddEndpoint(&endpointList, "input", "3", BSC_INPUT, BSC_BINARY, NULL, &infoEventBinary);
+	bscAddEndpoint(&endpointList, "input", "4", BSC_INPUT, BSC_BINARY, NULL, &infoEventBinary);
+	bscAddEndpoint(&endpointList, "relay", "1", BSC_OUTPUT, BSC_BINARY, &cmdRelay, &infoEventBinary);
+	bscAddEndpoint(&endpointList, "relay", "2", BSC_OUTPUT, BSC_BINARY, &cmdRelay, &infoEventBinary);
+	bscAddEndpoint(&endpointList, "relay", "3", BSC_OUTPUT, BSC_BINARY, &cmdRelay, &infoEventBinary);
+	bscAddEndpoint(&endpointList, "relay", "4", BSC_OUTPUT, BSC_BINARY, &cmdRelay, &infoEventBinary);
 	lcd = bscAddEndpoint(&endpointList, "lcd",  NULL, BSC_OUTPUT, BSC_STREAM, &cmdLCD, NULL);
 	addIniEndpoints();
 
 	// Register the endpoints
-        xapAddBscEndpointFilters(endpointList, INFO_INTERVAL);
+        xapAddBscEndpointFilterList(endpointList, INFO_INTERVAL);
 
 	// If the serial port is setup register a listener
 	if(gSerialfd > 0)

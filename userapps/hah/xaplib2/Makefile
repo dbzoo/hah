@@ -8,11 +8,8 @@ libxap2.so: $(OBJECTS)
 libxap2.a: $(OBJECTS)
 	$(AR) rcv libxap2.a $(OBJECTS)
 
-demo: demo.o libxap2.so
-	$(CC) -o demo demo.o -L. -lxap2
-
 clean:
-	rm -f $(OBJECTS) libxap2.a libxap2.so demo.o
+	rm -f $(OBJECTS) libxap2.a libxap2.so
 
 init.o: init.c xap.h
 parse.o: parse.c xap.h
@@ -23,5 +20,3 @@ filter.o: filter.c xap.h
 bsc.o: bsc.c xap.h bsc.h
 log.o: log.c log.h
 minIni.o: minIni.c minGlue.h
-
-demo.o: demo.c xap.h bsc.h

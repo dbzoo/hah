@@ -37,13 +37,15 @@ bscEndpoint *currentTag = NULL;
 /// BSC callback - Only emit info/event for Channels that adjust outside of the hysteresis amount.
 static void infoEventChannel(bscEndpoint *e, char *clazz)
 {
-	int old = atoi((char *)e->userData);
+	int old = 0;
+	if(e->userData)
+	  old = atoi((char *)e->userData);
 	int new = atoi(e->text);
-	if(new > old + hysteresis || new < old - hysteresis) {
-		if(e->displayText == NULL)
-			e->displayText = (char *)malloc(15);
-		snprintf(e->displayText, 15, "%d watts", new);
-		bscInfoEvent(e, clazz);
+	if(old == 0 || new > old + hysteresis || new < old - hysteresis) {
+	  if(e->displayText == NULL)
+	    e->displayText = (char *)malloc(15);
+	  snprintf(e->displayText, 15, "%d watts", new);
+	  bscInfoEvent(e, clazz);
 	}
 }
 
@@ -87,6 +89,7 @@ static void cdataBlockCB(void *ctx, const xmlChar *value, int len)
                         free(currentTag->userData);
                 currentTag->userData = (void *)currentTag->text;
                 currentTag->text = NULL;
+		setbscState(currentTag, STATE_ON);
                 setbscTextNow(currentTag, (char *)value);
         }
         currentTag = NULL;
@@ -147,7 +150,7 @@ int setupSerialPort()
         struct termios newtio;
         int fd = open(serialPort, O_RDONLY | O_NDELAY);
         if (fd < 0) {
-                die_if("Failed to open serial port %s", serialPort);
+                die_strerror("Failed to open serial port %s", serialPort);
         }
         cfmakeraw(&newtio);
         if(model == CC128) {
@@ -170,6 +173,7 @@ static void usage(char *prog)
         printf("%s: [options]\n",prog);
         printf("  -i, --interface IF     Default %s\n", interfaceName);
         printf("  -s, --serial DEV       Default %s\n", serialPort);
+        printf("  -m, --model [CLASSIC|CC128]  Default CLASSIC\n");
         printf("  -d, --debug            0-7\n");
         printf("  -h, --help\n");
         exit(1);
@@ -210,8 +214,11 @@ void setupXap()
         model = CLASSIC;
         ini_gets("currentcost","model","classic", model_s, sizeof(model_s), inifile);
         if(strcasecmp(model_s,"CC128") == 0) {
+	        info("Selecting CC128 model");
                 model = CC128;
-        }
+        } else {
+	        info("Selecting CLASSIC model");
+	}
 }
 
 /// Setup Endpoints, the Serial port, a callback for the serial port and process xAP messages.
@@ -234,6 +241,16 @@ int main(int argc, char *argv[])
         }
 
         setupXap();
+
+	// The model switch if provided overrides the INI setting.
+        for(i=0; i<argc; i++) {
+                if(strcmp("-m", argv[i]) == 0 || strcmp("--model",argv[i]) == 0) {
+		  if(strcasecmp(argv[++i], "CC128") == 0) {
+		     info("Command line override selecting CC128 model");
+		     model = CC128;
+		  }
+		}
+        }
 
         bscAddEndpoint(&endpointList, "ch1", NULL, BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
         bscAddEndpoint(&endpointList, "ch2", NULL, BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);

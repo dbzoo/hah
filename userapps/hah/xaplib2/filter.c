@@ -82,7 +82,8 @@ int xapCompareFilters(xAPFilter *head) {
 }
 
 xAPFilterCallback *xapAddFilterAction(void (*func)(void *), xAPFilter *filter, void *data) {
-	debug("Add filter. section=%s key=%s value=%s", filter->section, filter->key, filter->value);
+	if(filter)  // a NULL filter will match everything.
+		debug("Add filter. section=%s key=%s value=%s", filter->section, filter->key, filter->value);
 	xAPFilterCallback *cb = (xAPFilterCallback *)malloc(sizeof(xAPFilterCallback));
 	cb->callback = func;
 	cb->user_data = data;

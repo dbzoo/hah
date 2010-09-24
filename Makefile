@@ -195,7 +195,7 @@ xap-sms: xaplib
 	install -m 755 $(HAH_DIR)/xap-sms/xap-sms $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-sms
 
-xap-snoop: xaplib
+xap-snoop: xaplib2
 	$(MAKE) -C $(HAH_DIR)/xap-snoop
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/xap-snoop/xap-snoop $(INSTALL_DIR)/usr/bin
@@ -207,7 +207,7 @@ xap-pachube: xaplib libcurl
 	install -m 755 $(HAH_DIR)/xap-pachube/xap-pachube $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-pachube
 
-xap-currentcost: xaplib libxml2
+xap-currentcost: xaplib2 libxml2
 	$(MAKE) -C $(HAH_DIR)/xap-currentcost
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/xap-currentcost/xap-currentcost $(INSTALL_DIR)/usr/bin

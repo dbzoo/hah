@@ -122,7 +122,7 @@ static void serin_ppe(cmd_t *s, bscEndpoint *head, char *argv[])
         bscEndpoint *e = bscFindEndpoint(head, "i2c", addr);
         if(e) {
                 bscSetText(e, new);
-                (*e->infoEvent)(e, "xapBSC.event");
+                (*e->infoEvent)(e, BSC_EVENT_CLASS);
         } else {
                 int pin;
                 int newi = atoi(new);
@@ -134,7 +134,8 @@ static void serin_ppe(cmd_t *s, bscEndpoint *head, char *argv[])
                                 snprintf(buff,sizeof buff,"%s.%d", addr, pin);
                                 e = bscFindEndpoint(head, "i2c", buff);
                                 bscSetState(e, newi & (1<<pin) ? BSC_STATE_ON : BSC_STATE_OFF);
-	                        bscSendCmdEvent(e);
+				(*e->infoEvent)(e, BSC_EVENT_CLASS);
+
                         }
                 }
         }

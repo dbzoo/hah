@@ -43,7 +43,7 @@ static void infoEventChannel(bscEndpoint *e, char *clazz)
 	int new = atoi(e->text);
 	// Alway report INFO events so we can repond to xAPBSC.query + Timeouts.
 	// xapBSC.event are only emitted based on the hystersis
-	if(strcmp(clazz,"xapBSC.info") == 0 || new > old + hysteresis || new < old - hysteresis) {
+	if(strcasecmp(clazz, BSC_INFO_CLASS) == 0 || new > old + hysteresis || new < old - hysteresis) {
 	  if(e->displayText == NULL)
 	    e->displayText = (char *)malloc(15);
 	  snprintf(e->displayText, 15, "%d watts", new);
@@ -62,18 +62,33 @@ static void infoEventTemp(bscEndpoint *e, char *clazz)
 }
 
 /// SAX element (TAG) callback
-static char *xmlTag[] = {"ch1","ch2","ch3","tmpr","tmprF",NULL};
+
+// Lookup table that converts an XML tag into a bscEndpoint.
+// Once a tag is matched the next CDATA section will be its value.
+static struct _ccTag {
+	char *xmltag;
+	void (*infoEvent)(bscEndpoint *, char *);
+	char *name;
+	char *subaddr;
+} ccTag[] = {
+	{"ch1", &infoEventChannel, "ch", "1"},
+	{"ch2", &infoEventChannel, "ch", "2"},
+	{"ch3", &infoEventChannel, "ch", "3"},
+	{"tmpr", &infoEventTemp, "tmpr", NULL},
+	{"tmprF", &infoEventTemp, "tmprF", NULL},
+	{NULL, NULL, NULL, NULL}
+};
+
 static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
 {
-        char **p;
-        for(p=&xmlTag[0]; *p; p++) {
-                if(strcmp(name, *p) == 0) {
-                        currentTag = bscFindEndpoint(endpointList, (char *)name, NULL);
-                        // Dynamic endpoints are useful for <tmpr> and <tmprF>
-                        // We defer creation until we see it in the XML to handle UK/US variants.
+        struct _ccTag *p;
+        for(p=&ccTag[0]; p->xmltag; p++) {
+                if(strcmp(name, p->xmltag) == 0) {
+                        currentTag = bscFindEndpoint(endpointList, p->name, p->subaddr);
+                        // Dynamic endpoints. We defer creation until we see the tag in the XML
                         if(currentTag == NULL) {
                                 // Add to the list we want to search and manage
-	                        currentTag = bscAddEndpoint(&endpointList, (char *)name, NULL, BSC_INPUT, BSC_STREAM, NULL, &infoEventTemp);
+	                        currentTag = bscAddEndpoint(&endpointList, p->name, p->subaddr, BSC_INPUT, BSC_STREAM, NULL, p->infoEvent);
                                 bscAddEndpointFilter(currentTag, INFO_INTERVAL);
                         }
                 }
@@ -86,15 +101,15 @@ static void cdataBlockCB(void *ctx, const xmlChar *value, int len)
         if(currentTag == NULL)
                 return;
         if(strncmp(value, currentTag->text, len)) { // If its different report it.
-                // Rotate the original data value through the user data field.
+                // Rotate the text data value through the user data field and free it on update.
                 if(currentTag->userData)
                         free(currentTag->userData);
                 currentTag->userData = (void *)currentTag->text;
-                currentTag->text = NULL;
-		bscSetState(currentTag, BSC_STATE_ON);
-		if(currentTag->text) free(currentTag->text);
+
 		currentTag->text = (char *)malloc(len+1);
 		strncpy(currentTag->text, value, len);
+
+		bscSetState(currentTag, BSC_STATE_ON);
 	        bscSendCmdEvent(currentTag);
         }
         currentTag = NULL;
@@ -257,11 +272,6 @@ int main(int argc, char *argv[])
 		  }
 		}
         }
-
-        bscAddEndpoint(&endpointList, "ch1", NULL, BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
-        bscAddEndpoint(&endpointList, "ch2", NULL, BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
-        bscAddEndpoint(&endpointList, "ch3", NULL, BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
-        bscAddEndpointFilterList(endpointList, INFO_INTERVAL);
 
         xapAddSocketListener(setupSerialPort(), &serialInputHandler, endpointList);
         xapProcess();

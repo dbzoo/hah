@@ -21,8 +21,10 @@
 #define BSC_STATE_ON 1
 #define BSC_STATE_UNKNOWN 3
 
-#define BSC_INFO 0
-#define BSC_EVENT 1
+#define BSC_INFO_CLASS "xAPBSC.info"
+#define BSC_EVENT_CLASS "xAPBSC.event"
+#define BSC_CMD_CLASS "xAPBSC.cmd"
+#define BSC_QUERY_CLASS "xAPBSC.query"
 
 #ifndef _BSC_H
 #define _BSC_H

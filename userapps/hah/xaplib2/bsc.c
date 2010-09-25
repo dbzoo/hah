@@ -66,7 +66,10 @@ inline void bscSetLevel(bscEndpoint *e, char *level)
 
 void bscSendCmdEvent(bscEndpoint *e) {
 	if(*e->cmd) (*e->cmd)(e);
-	if(*e->infoEvent) (*e->infoEvent)(e, "xapBSC.event");
+	if(*e->infoEvent) {
+		e->last_report = time(NULL);
+		(*e->infoEvent)(e, BSC_EVENT_CLASS);
+	}
 }
 
 /// Set the value of a BSC BINARY device type.
@@ -173,7 +176,7 @@ static void bscIncomingQuery(void *data)
 	info("xapBSC.query detected for %s", e->source);	
 	if(e->infoEvent) {
                 e->last_report = time(NULL);
-                (*e->infoEvent)(e, "xapBSC.info");
+                (*e->infoEvent)(e, BSC_INFO_CLASS);
         }
 }
 
@@ -187,10 +190,10 @@ static void bscInfoTimeout(int interval, void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
         time_t now = time(NULL);
-        if(e->infoEvent && (e->last_report = 0 || e->last_report + interval < now )) {
+        if(e->infoEvent && (e->last_report == 0 || e->last_report + interval < now )) {
 	        info("Timeout for %s", e->source);
 	        e->last_report = now;
-                (*e->infoEvent)(e, "xapBSC.info");
+                (*e->infoEvent)(e, BSC_INFO_CLASS);
         }
 }
 
@@ -293,13 +296,13 @@ void bscAddEndpointFilter(bscEndpoint *head, int info_interval)
 	
 	if(head->io == BSC_OUTPUT) {
 		filter = NULL;
-		xapAddFilter(&filter, "xap-header","class","xapBSC.cmd");
+		xapAddFilter(&filter, "xap-header","class",BSC_CMD_CLASS);
 		xapAddFilter(&filter, "xap-header","target", head->source);
 		xapAddFilterAction(&bscIncomingCmd, filter, head);
 	}
 	
 	filter = NULL;
-	xapAddFilter(&filter, "xap-header","class","xapBSC.query");
+	xapAddFilter(&filter, "xap-header","class",BSC_QUERY_CLASS);
 	xapAddFilter(&filter, "xap-header","target", head->source);
 	xapAddFilterAction(&bscIncomingQuery, filter, head);
 	

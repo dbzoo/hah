@@ -33,7 +33,7 @@ static char *msg_query(char *args) {
 	char *name = strtok(args,".");
 	char *subaddr = strtok(NULL,"");
 
-	bscEndpoint *endpoint = findbscEndpoint(endpointList, name, subaddr);
+	bscEndpoint *endpoint = bscFindEndpoint(endpointList, name, subaddr);
 	if (endpoint) {
 		if(endpoint->type == BSC_BINARY)
 			return bscStateToString(endpoint);
@@ -68,9 +68,10 @@ static char *msg_action(char *arg) {
 			return "malformed argument";
 		}
 		
-		bscEndpoint *endpoint = findbscEndpoint(endpointList, name, subaddr);
+		bscEndpoint *endpoint = bscFindEndpoint(endpointList, name, subaddr);
 		if (endpoint) {
-			setbscStateNow(endpoint, bscDecodeState(state)); // Take action
+			bscSetState(endpoint, bscDecodeState(state)); // Take action
+			bscSendCmdEvent(endpoint);
 		} else {
 			err("bad endpoint: %s", arg);
 		}
@@ -100,8 +101,11 @@ static char *msg_handler(char *a_cmd) {
 		return msg_action(args);
 	} 
 	else if(strcmp(cmd,"lcd") == 0) {
-		bscEndpoint *lcd = findbscEndpoint(endpointList, "lcd", NULL);
-		if(lcd) setbscTextNow(lcd, args);
+		bscEndpoint *lcd = bscFindEndpoint(endpointList, "lcd", NULL);
+		if(lcd) {
+			bscSetText(lcd, args);
+			bscSendCmdEvent(lcd);
+		}
 		return "ok";
 	} 
 	else // Invalid command

@@ -18,7 +18,7 @@
 #include "xap.h"
 
 xAP *gXAP;
-char *interfaceName = "eth0";
+char *interfaceName = "br0";
 
 void packetDump(void *userData) {
 	char newmsg[XAP_DATA_LEN];

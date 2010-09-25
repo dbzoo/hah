@@ -66,13 +66,13 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
         char **p;
         for(p=&xmlTag[0]; *p; p++) {
                 if(strcmp(name, *p) == 0) {
-                        currentTag = findbscEndpoint(endpointList, (char *)name, NULL);
+                        currentTag = bscFindEndpoint(endpointList, (char *)name, NULL);
                         // Dynamic endpoints are useful for <tmpr> and <tmprF>
                         // We defer creation until we see it in the XML to handle UK/US variants.
                         if(currentTag == NULL) {
                                 // Add to the list we want to search and manage
 	                        currentTag = bscAddEndpoint(&endpointList, (char *)name, NULL, BSC_INPUT, BSC_STREAM, NULL, &infoEventTemp);
-                                xapAddBscEndpointFilter(currentTag, INFO_INTERVAL);
+                                bscAddEndpointFilter(currentTag, INFO_INTERVAL);
                         }
                 }
         }
@@ -89,8 +89,9 @@ static void cdataBlockCB(void *ctx, const xmlChar *value, int len)
                         free(currentTag->userData);
                 currentTag->userData = (void *)currentTag->text;
                 currentTag->text = NULL;
-		setbscState(currentTag, STATE_ON);
-                setbscTextNow(currentTag, (char *)value);
+		bscSetState(currentTag, BSC_STATE_ON);
+                bscSetText(currentTag, (char *)value);
+	        bscSendCmdEvent(currentTag);
         }
         currentTag = NULL;
 }
@@ -255,7 +256,7 @@ int main(int argc, char *argv[])
         bscAddEndpoint(&endpointList, "ch1", NULL, BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
         bscAddEndpoint(&endpointList, "ch2", NULL, BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
         bscAddEndpoint(&endpointList, "ch3", NULL, BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
-        xapAddBscEndpointFilterList(endpointList, INFO_INTERVAL);
+        bscAddEndpointFilterList(endpointList, INFO_INTERVAL);
 
         xapAddSocketListener(setupSerialPort(), &serialInputHandler, endpointList);
         xapProcess();

@@ -101,8 +101,8 @@ void timeoutCheck1wire(int interval, void *data)
         LL_FOREACH(endpointList, e) {
                 if(strcmp("1wire", e->name) == 0) {
                         if(now > *(time_t *)e->userData + t) {
-                                setbscState(e, STATE_UNKNOWN);
-                                setbscText(e, "?");
+                                bscSetState(e, BSC_STATE_UNKNOWN);
+                                bscSetText(e, "?");
                         }
                 }
         }
@@ -122,7 +122,7 @@ static void cmdPPEpin(bscEndpoint *e)
 	char *addr = strtok(e->subaddr,".");
 	char *pin = strtok(NULL,"");
         // We invert the STATE.  Logical ON is a LOW PPE state 0.
-	snprintf(serialCmd, sizeof(serialCmd),"i2c P%s%s%d", addr, pin, e->state == STATE_ON ? STATE_OFF : STATE_ON);
+	snprintf(serialCmd, sizeof(serialCmd),"i2c P%s%s%d", addr, pin, e->state == BSC_STATE_ON ? BSC_STATE_OFF : BSC_STATE_ON);
 	serialSend(serialCmd);
 }
 

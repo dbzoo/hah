@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 	addIniEndpoints();
 
 	// Register the endpoints
-        xapAddBscEndpointFilterList(endpointList, INFO_INTERVAL);
+        bscAddEndpointFilterList(endpointList, INFO_INTERVAL);
 
 	// If the serial port is setup register a listener
 	if(gSerialfd > 0)
@@ -126,7 +126,8 @@ int main(int argc, char *argv[])
 	// Handle WEB server requests
 	xapAddSocketListener(svr_bind(WEB_PORT), &webHandler, endpointList);
 	
-	setbscTextNow(lcd, gXAP->ip);  // Display our IP address on the LCD
+	bscSetText(lcd, gXAP->ip);  // Display our IP address on the LCD
+	bscSendCmdEvent(lcd);
 
 	serialSend("report"); // Ask AVR firmware to report current endpoints states
         xapProcess();  // Loop and run the program.

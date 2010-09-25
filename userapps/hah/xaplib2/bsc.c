@@ -50,7 +50,7 @@ static char *bscFQEN(char *target, bscEndpoint *e)
 }
 
 /// Set the value of a BSC STREAM device type
-void setbscText(bscEndpoint *e, char *text)
+void bscSetText(bscEndpoint *e, char *text)
 {
         if(e->text)
                 free(e->text);
@@ -59,30 +59,21 @@ void setbscText(bscEndpoint *e, char *text)
 }
 
 /// Set the value of a BSC LEVEL device type.
-inline void setbscLevel(bscEndpoint *e, char *level)
+inline void bscSetLevel(bscEndpoint *e, char *level)
 {
-        setbscText(e, level);
+        bscSetText(e, level);
 }
 
-// Set some bscText and action it
-void setbscTextNow(bscEndpoint *e, char *msg) {
-	setbscText(e, msg);
+void bscSendCmdEvent(bscEndpoint *e) {
 	if(*e->cmd) (*e->cmd)(e);
 	if(*e->infoEvent) (*e->infoEvent)(e, "xapBSC.event");
 }
 
 /// Set the value of a BSC BINARY device type.
-inline void setbscState(bscEndpoint *e, int state)
+inline void bscSetState(bscEndpoint *e, int state)
 {
         e->state = state & 0x3;
 	info("state=%d", e->state);
-}
-
-// Set some bscText and action it
-void setbscStateNow(bscEndpoint *e, int state) {
-	setbscState(e, state);
-	if(*e->cmd) (*e->cmd)(e);
-	if(*e->infoEvent) (*e->infoEvent)(e, "xapBSC.event");
 }
 
 /// Return a string representation of the state
@@ -98,7 +89,7 @@ inline char *bscIOToString(bscEndpoint *e)
 }
 
 /// Locate an Endpoint given its name and optional sub-address.
-bscEndpoint *findbscEndpoint(bscEndpoint *head, char *name, char *subaddr)
+bscEndpoint *bscFindEndpoint(bscEndpoint *head, char *name, char *subaddr)
 {
 	debug("name %s subaddr %s", subaddr);
         bscEndpoint *e;
@@ -160,21 +151,17 @@ static void bscIncomingCmd(void *data)
                         if(istate == -1)
                                 continue; // invalid state
                         if(istate == 2) // toggle
-                                istate = e->state == STATE_ON ? STATE_OFF : STATE_ON;
+                                istate = e->state == BSC_STATE_ON ? BSC_STATE_OFF : BSC_STATE_ON;
                         e->state = istate;
 
                         if(e->type == BSC_LEVEL) {
-                                setbscLevel(e, xapGetValue(section, "level"));
+                                bscSetLevel(e, xapGetValue(section, "level"));
                         } else if(e->type == BSC_STREAM) {
-                                setbscText(e, xapGetValue(section, "text"));
+                                bscSetText(e, xapGetValue(section, "text"));
                         }
 
                         // Perform Endpoint action.
-                        if(e->cmd)
-                                (*e->cmd)(e);
-                        // Send event.
-                        if(e->infoEvent)
-                                (*e->infoEvent)(e, "xapBSC.event");
+	                bscSendCmdEvent(e);
                 }
         }
 }
@@ -266,9 +253,9 @@ bscEndpoint *bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, unsig
         e->type = typ;
 	// Is this logic too restrictive for a library?
         if(e->io == BSC_INPUT)
-                e->state = STATE_UNKNOWN;
+                e->state = BSC_STATE_UNKNOWN;
 	else // BSC_OUTPUT
-		e->state = typ == BSC_BINARY ? STATE_OFF : STATE_ON;
+		e->state = typ == BSC_BINARY ? BSC_STATE_OFF : BSC_STATE_ON;
         e->cmd = cmd;
         // If the user hasn't supplied handlers use the defaults.
         e->infoEvent = infoEvent == NULL ? &bscInfoEvent : infoEvent;
@@ -283,16 +270,16 @@ bscEndpoint *bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, unsig
 }
 
 /// Add a linked-list of BSC endpoints
-void xapAddBscEndpointFilterList(bscEndpoint *head, int info_interval) {
+void bscAddEndpointFilterList(bscEndpoint *head, int info_interval) {
 	notice_if(head == NULL, "No endpoints to add!?");
 	while(head) {
-		xapAddBscEndpointFilter(head, info_interval);
+		bscAddEndpointFilter(head, info_interval);
 		head = head->next;
 	}
 }
 
 /// Add CMD and QUERY filter callbacks for a BSC endpoint
-void xapAddBscEndpointFilter(bscEndpoint *head, int info_interval)
+void bscAddEndpointFilter(bscEndpoint *head, int info_interval)
 {
 	xAPFilter *filter;
 

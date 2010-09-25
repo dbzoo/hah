@@ -67,9 +67,10 @@ static void serin_input(cmd_t *s, bscEndpoint *head, char *argv[])
                 bit = i + 2;
                 if ((old ^ new) & (1 << bit)) {
                         buff[0] = '1' + i;
-                        bscEndpoint *e = findbscEndpoint(head, "input", buff);
+                        bscEndpoint *e = bscFindEndpoint(head, "input", buff);
                         if(e) {
-                                setbscStateNow(e, new & (1<<bit) ? STATE_ON : STATE_OFF);
+                                bscSetState(e, new & (1<<bit) ? BSC_STATE_ON : BSC_STATE_OFF);
+	                        bscSendCmdEvent(e);
                         }
                 }
         }
@@ -87,10 +88,11 @@ static void serin_1wire(cmd_t *s, bscEndpoint *head, char *argv[])
 {
         if(argv[0] == NULL)
                 return;  // Bad input shouldn't happen?!
-        bscEndpoint *e = findbscEndpoint(head, "1wire", argv[0]);
+        bscEndpoint *e = bscFindEndpoint(head, "1wire", argv[0]);
         if(e) {
-                setbscState(e, STATE_ON);  // got a serial event we know its alive.
-                setbscTextNow(e, argv[1]);
+                bscSetState(e, BSC_STATE_ON);  // got a serial event we know its alive.
+                bscSetText(e, argv[1]);
+	        bscSendCmdEvent(e);
                 // record the last time this 1wire device reported in.
                 *(time_t *)e->userData = time(NULL);
         }
@@ -117,9 +119,9 @@ static void serin_ppe(cmd_t *s, bscEndpoint *head, char *argv[])
         if(new == NULL || old == NULL || addr == NULL) // Bad input shouldn't happen?!
                 return;
 
-        bscEndpoint *e = findbscEndpoint(head, "i2c", addr);
+        bscEndpoint *e = bscFindEndpoint(head, "i2c", addr);
         if(e) {
-                setbscText(e, new);
+                bscSetText(e, new);
                 (*e->infoEvent)(e, "xapBSC.event");
         } else {
                 int pin;
@@ -130,8 +132,9 @@ static void serin_ppe(cmd_t *s, bscEndpoint *head, char *argv[])
                         if ((oldi ^ newi) & (1 << pin)) {
                                 // Compute an ENDPOINT name
                                 snprintf(buff,sizeof buff,"%s.%d", addr, pin);
-                                e = findbscEndpoint(head, "i2c", buff);
-                                setbscStateNow(e, newi & (1<<pin) ? STATE_ON : STATE_OFF);
+                                e = bscFindEndpoint(head, "i2c", buff);
+                                bscSetState(e, newi & (1<<pin) ? BSC_STATE_ON : BSC_STATE_OFF);
+	                        bscSendCmdEvent(e);
                         }
                 }
         }

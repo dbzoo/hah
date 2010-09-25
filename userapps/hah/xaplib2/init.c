@@ -92,7 +92,7 @@ void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char **ip, 
         strcpy(interface.ifr_name, interfaceName);
         if (ioctl(*txfd, SIOCGIFADDR, &interface) == -1)
         {
-                die_strerror("Unable to determine interface interface for interface %s", interfaceName);
+                die_strerror("Unable to query capabilities of interface %s", interfaceName);
         }
         myinterface.sin_addr.s_addr=((struct sockaddr_in*)&interface.ifr_broadaddr)->sin_addr.s_addr;
 	

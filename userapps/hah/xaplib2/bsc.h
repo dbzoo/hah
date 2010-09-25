@@ -17,9 +17,9 @@
 #define BSC_INPUT 0
 #define BSC_OUTPUT 1
 
-#define STATE_OFF 0
-#define STATE_ON 1
-#define STATE_UNKNOWN 3
+#define BSC_STATE_OFF 0
+#define BSC_STATE_ON 1
+#define BSC_STATE_UNKNOWN 3
 
 #define BSC_INFO 0
 #define BSC_EVENT 1
@@ -63,15 +63,14 @@ bscEndpoint *bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, unsig
                     void (*cmd)(struct _bscEndpoint *self),
                     void (*infoEvent)(struct _bscEndpoint *self, char *clazz)
                    );
-void xapAddBscEndpointFilter(bscEndpoint *head, int info_interval);
-void xapAddBscEndpointFilterList(bscEndpoint *head, int info_interval);
+void bscAddEndpointFilter(bscEndpoint *head, int info_interval);
+void bscAddEndpointFilterList(bscEndpoint *head, int info_interval);
 void bscInfoEvent(bscEndpoint *e, char *clazz);
-void setbscLevel(bscEndpoint *e, char *level);
-void setbscText(bscEndpoint *e, char *level);
-void setbscTextNow(bscEndpoint *e, char *msg);
-void setbscState(bscEndpoint *e, int state);
-void setbscStateNow(bscEndpoint *e, int state);
-bscEndpoint *findbscEndpoint(bscEndpoint *head, char *name, char *subaddr);
+void bscSetLevel(bscEndpoint *e, char *level);
+void bscSetText(bscEndpoint *e, char *level);
+void bscSetState(bscEndpoint *e, int state);
+void bscSendCmdEvent(bscEndpoint *e);
+bscEndpoint *bscFindEndpoint(bscEndpoint *head, char *name, char *subaddr);
 int bscParseLevel(char *str);
 char *bscStateToString(bscEndpoint *e);
 char *bscIOToString(bscEndpoint *e);

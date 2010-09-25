@@ -91,7 +91,7 @@ inline char *bscIOToString(bscEndpoint *e)
 /// Locate an Endpoint given its name and optional sub-address.
 bscEndpoint *bscFindEndpoint(bscEndpoint *head, char *name, char *subaddr)
 {
-	debug("name %s subaddr %s", subaddr);
+        debug("name %s subaddr %s", name, subaddr);
         bscEndpoint *e;
 	LL_FOREACH(head, e) {
                 if(strcmp(e->name, name) == 0 &&

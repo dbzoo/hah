@@ -41,7 +41,9 @@ static void infoEventChannel(bscEndpoint *e, char *clazz)
 	if(e->userData)
 	  old = atoi((char *)e->userData);
 	int new = atoi(e->text);
-	if(old == 0 || new > old + hysteresis || new < old - hysteresis) {
+	// Alway report INFO events so we can repond to xAPBSC.query + Timeouts.
+	// xapBSC.event are only emitted based on the hystersis
+	if(strcmp(clazz,"xapBSC.info") == 0 || new > old + hysteresis || new < old - hysteresis) {
 	  if(e->displayText == NULL)
 	    e->displayText = (char *)malloc(15);
 	  snprintf(e->displayText, 15, "%d watts", new);
@@ -83,14 +85,16 @@ static void cdataBlockCB(void *ctx, const xmlChar *value, int len)
 {
         if(currentTag == NULL)
                 return;
-        if(strcmp(value, currentTag->text)) { // If its different report it.
+        if(strncmp(value, currentTag->text, len)) { // If its different report it.
                 // Rotate the original data value through the user data field.
                 if(currentTag->userData)
                         free(currentTag->userData);
                 currentTag->userData = (void *)currentTag->text;
                 currentTag->text = NULL;
 		bscSetState(currentTag, BSC_STATE_ON);
-                bscSetText(currentTag, (char *)value);
+		if(currentTag->text) free(currentTag->text);
+		currentTag->text = (char *)malloc(len+1);
+		strncpy(currentTag->text, value, len);
 	        bscSendCmdEvent(currentTag);
         }
         currentTag = NULL;
@@ -228,6 +232,7 @@ int main(int argc, char *argv[])
         int i;
         printf("\nCurrent Cost Connector for xAP v12\n");
         printf("Copyright (C) DBzoo, 2009-2010\n\n");
+	strcpy(serialPort,"/dev/ttyUSB0");
 
         for(i=0; i<argc; i++) {
                 if(strcmp("-i", argv[i]) == 0 || strcmp("--interface",argv[i]) == 0) {

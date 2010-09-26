@@ -5,20 +5,16 @@ Unless otherwise stated a name/value pair is assumed to be mandatory.
 
 Class=Serial.Comms
 
+INPUT MESSAGES
+
 Serial.Setup
 {
 Port=(ie /dev/ttyUSB0)
 Baud=(bits per second e.g. 9600)
-Stop=(1 | 1.5 | 2)
-DataBits=(4 | 5 | 6 | 7 | 8)
+Stop=(1 | 2)
+DataBits=( 5 | 6 | 7 | 8)
 Parity=(none | even | odd | mark | space)
 Flow=(None | XOnXOff | Hardware)
-}
-
-Serial.Received
-{
-Port=(ie /dev/ttyUSB0)
-Data=(Data received on the serial port)
 }
 
 Serial.Send
@@ -30,4 +26,17 @@ Data=(Data to be sent on the serial port)
 Serial.Close
 {
 Port=(ie /dev/ttyUSB0)
+}
+
+OUTPUT MESSAGES
+
+Serial.Received
+{
+Port=(ie /dev/ttyUSB0)
+Data=(Data received on the serial port)
+}
+
+Serial.Error
+{
+text=
 }

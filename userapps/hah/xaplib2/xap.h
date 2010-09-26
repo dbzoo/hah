@@ -21,6 +21,8 @@
 #define XAP_MSG_ELEMENTS 50
 #define XAP_HEARTBEAT_INTERVAL 60
 
+#define XAP_FILTER_ANY 0
+
 // Allow 100 sockets from default port.
 #define XAP_PORT_L 3639
 #define XAP_PORT_H 4639

@@ -1,12 +1,11 @@
 # $Id$
 
 XAP=serial
-#CFLAGS=-g -DIDENT -I$(INSTALL_DIR)/include
-#LDFLAGS=-L$(INSTALL_DIR)/lib -lxap
-
+CFLAGS=-I$(INSTALL_DIR)/include
+LDFLAGS=-L$(INSTALL_DIR)/lib -lxap2
 #DEV
-CFLAGS=-g -Wall -DIDENT -I../xaplib2
-LDFLAGS=-L../xaplib2 -lxap2
+#CFLAGS+=-g -I../xaplib2
+#LDFLAGS+=-L../xaplib2 -lxap2
 
 OBJECTS=$(XAP).o
 

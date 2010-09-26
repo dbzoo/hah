@@ -1,4 +1,4 @@
-/* $Id
+/* $Id$
    Copyright (c) Brett England, 2010
 
    Serial communication using the Serial.Comm Schema
@@ -18,6 +18,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
+#include <stdarg.h>
 #include "xap.h"
 #define INFO_INTERVAL 120
 
@@ -37,15 +38,15 @@ void xapSerialRx(int fd, void *userData)
 {
 	struct serialPort *p = (struct serialPort *)userData;
 	
-	char sdata[1024];
+	char sdata[512];
 	int slen = read(fd, sdata, sizeof(sdata));
 
-        char buff[XAP_DATA_LEN];
-        int len = snprintf(buff, XAP_DATA_LEN, "xap-header\n"
+        char buff[XAP_DATA_LEN];  // nominally 1500 bytes
+        int len = sprintf(buff, "xap-header\n"
 			   "{\n"
 			   "v=12\n"
 			   "hop=1\n"
-			   "uid=FF00DF01\n"
+			   "uid=FF00DF00\n"
 			   "class=Serial.Comms\n"
 			   "source=%s\n"
 			   "}\n"
@@ -55,17 +56,49 @@ void xapSerialRx(int fd, void *userData)
 			   "data=", gXAP->source, p->device);
 	strncpy(&buff[len], sdata, slen);
 	len += slen;
-	len += snprintf(&buff[len], XAP_DATA_LEN-len, "}\n");
+	strcat(&buff[len], "\n}\n");
 
-	if(len > XAP_DATA_LEN)
-                err("xAP message buffer truncated - not sending\n");
-        else
-                xapSend(buff);
+	xapSend(buff);
+}
+
+
+void serialError(const char *fmt, ...)
+{
+        char buff[XAP_DATA_LEN];
+	va_list ap;
+
+	va_start(ap, fmt);
+	err(fmt, ap); // Log it
+
+        int len = sprintf(buff, "xap-header\n"
+			   "{\n"
+			   "v=12\n"
+			   "hop=1\n"
+			   "uid=FF00DF00\n"
+			   "class=Serial.Comms\n"
+			   "source=%s\n"
+			   "}\n"
+			   "Serial.Error\n"
+			   "{\n"
+			   "text=", gXAP->source);
+	len += vsnprintf(&buff[len], XAP_DATA_LEN-len, fmt, ap);
+	va_end(ap);
+	len += snprintf(&buff[len], XAP_DATA_LEN-len, "\n}\n");
+
+	if(len < XAP_DATA_LEN) {
+		xapSend(buff);
+	} else {
+		err("Buffer overflow %d/%d", len, XAP_DATA_LEN);
+	}
 }
 
 struct serialPort *findDevice(char *idevice) {
 	struct serialPort *e = NULL;
-	LL_SEARCH_SCALAR(serialList, e, device, idevice);
+
+	LL_FOREACH(serialList, e) {
+		if(strcmp(e->device, idevice) == 0)
+			break;
+	}	
 	return e;
 }
 
@@ -74,16 +107,18 @@ void closeSerialPort(char *port) {
 
 	struct serialPort *p = findDevice(port);
 	if(p) {
+		info("Closing port %s", port);
+		close(p->fd);
 		xAPSocketConnection *cb = xapFindSocketListenerByFD(p->fd);
 		xapDelSocketListener(&cb);
-		close(p->fd);
 		LL_DELETE(serialList, p);
-	}	
+	} else {
+		info("Port %s not found", port);
+	}
 }
 
 void xapSerialClose(void *userData) {
-	char *s_port = xapGetValue("serial.close","port");
-	closeSerialPort(s_port);
+	closeSerialPort(xapGetValue("serial.close","port"));
 }
 
 void xapSerialSetup(void *userData) {
@@ -100,7 +135,8 @@ void xapSerialSetup(void *userData) {
 	int fd;
 	if ((fd = open(s_port, O_RDWR | O_NONBLOCK )) < 0)
 	{
-		err_strerror("Error opening Device %s", s_port);
+		log_write(LOG_ALERT, strerror(errno));
+		serialError("Error opening Device %s", s_port);
 		return;
 	}
 	else
@@ -109,7 +145,8 @@ void xapSerialSetup(void *userData) {
 		if (((mflgs = fcntl(fd, F_GETFL, 0)) == -1) ||
 		    (fcntl(fd, F_SETFL, mflgs | O_NONBLOCK ) == -1))
 		{
-			err_strerror("Error Setting O_NONBLOCK on device %s", s_port);
+			log_write(LOG_ALERT, strerror(errno));
+			serialError("Error Setting O_NONBLOCK on device %s", s_port);
 			close(fd);
 		}
 	}
@@ -135,6 +172,8 @@ void xapSerialSetup(void *userData) {
 	tcsetattr(p->fd, TCSANOW, &tios);
 	tcflush(p->fd, TCIFLUSH);
 
+	p->tios.c_cflag = CREAD | CLOCAL;
+	
 	// BAUD
 	switch (atoi(s_baud))
 	{
@@ -156,7 +195,7 @@ void xapSerialSetup(void *userData) {
 	case 57600: p->speed = B57600; break;
 	case 115200: p->speed = B115200; break;
 	default:
-		err("Invalid speed %s", s_baud);
+		serialError("Invalid speed %s", s_baud);
 		return;
 	}  
 	
@@ -170,7 +209,7 @@ void xapSerialSetup(void *userData) {
 		p->tios.c_cflag |= CNEW_RTSCTS;
 	} */ 
 	else {
-		err("Invalid flow control '%s'", s_flow);
+		serialError("Invalid value flow=%s", s_flow);
 		return;
 	}
 
@@ -201,7 +240,7 @@ void xapSerialSetup(void *userData) {
 		p->tios.c_cflag |= CSTOPB;
 		break;
 	default:
-		err("Invalid stop '%s'", s_stop);
+		serialError("Invalid value stop=%s", s_stop);
 		return;
 	}
 
@@ -212,7 +251,7 @@ void xapSerialSetup(void *userData) {
 	case 7: p->tios.c_cflag |= CS7; break;
 	case 8: p->tios.c_cflag |= CS8; break;
 	default:
-		err("Invalid databits '%s'", s_databits);
+		serialError("Invalid value databit=%s", s_databits);
 		return;
 	}
 
@@ -227,11 +266,12 @@ void xapSerialSetup(void *userData) {
 
 /* Send a packet down the serial port.  As the port is NON-BLOCKING a
  * write() failure will return EAGAIN; we increasing back-off until
- * the retry count is expired then port tranmissions are disabled.
+ * the retry count is expired.
  */
 int sendSerialMsg(struct serialPort* p, char *msg) {
      const int retries = 6;  // sum(1..5)*300ms = 4.5sec
      int i, rv, size;
+     info("send to %s '%s'", p->device, msg);
      for(i=1; i<retries; i++) {
           size = strlen(msg);
           rv = write(p->fd, msg, size);
@@ -256,7 +296,7 @@ void xapSerialTx(void *userData) {
 
 	struct serialPort *p = findDevice(port);
 	if(p == NULL) {
-		warning("Device %s not configured", port);
+		serialError("Device %s not configured", port);
 		return;
 	}		
 	sendSerialMsg(p, data);
@@ -286,8 +326,7 @@ int main(int argc, char *argv[])
 		} else if(strcmp("-h", argv[i]) == 0 || strcmp("--help", argv[i]) == 0) {
 			usage(argv[0]);
 		}
-	}	
-
+	}
 
 	xapInit("dbzoo.livebox.Serial", "FF00DF00", interfaceName);
 	die_if(gXAP == NULL,"Failed to init xAP");
@@ -296,23 +335,23 @@ int main(int argc, char *argv[])
 
 	// Mandatory elements are part of the filter
 	xapAddFilter(&f, "xap-header", "class", "Serial.Comms");
-	xapAddFilter(&f, "Serial.Setup", "port", NULL);
-	xapAddFilter(&f, "Serial.Setup", "baud", NULL);
-	xapAddFilter(&f, "Serial.Setup", "stop", NULL);
-	xapAddFilter(&f, "Serial.Setup", "databits", NULL);
-	xapAddFilter(&f, "Serial.Setup", "parity", NULL);
-	xapAddFilter(&f, "Serial.Setup", "flow", NULL);
+	xapAddFilter(&f, "Serial.Setup", "port", XAP_FILTER_ANY);
+	xapAddFilter(&f, "Serial.Setup", "baud", XAP_FILTER_ANY);
+	xapAddFilter(&f, "Serial.Setup", "stop", XAP_FILTER_ANY);
+	xapAddFilter(&f, "Serial.Setup", "databits", XAP_FILTER_ANY);
+	xapAddFilter(&f, "Serial.Setup", "parity", XAP_FILTER_ANY);
+	xapAddFilter(&f, "Serial.Setup", "flow", XAP_FILTER_ANY);
 	xapAddFilterAction(&xapSerialSetup, f, NULL);
 
 	f = NULL;
 	xapAddFilter(&f, "xap-header", "class", "Serial.Comms");
-	xapAddFilter(&f, "Serial.Send", "port", NULL);
-	xapAddFilter(&f, "Serial.Send", "data", NULL);
+	xapAddFilter(&f, "Serial.Send", "port", XAP_FILTER_ANY);
+	xapAddFilter(&f, "Serial.Send", "data", XAP_FILTER_ANY);
 	xapAddFilterAction(&xapSerialTx, f, NULL);
 
 	f = NULL;
 	xapAddFilter(&f, "xap-header", "class", "Serial.Comms");
-	xapAddFilter(&f, "Serial.Close", "port", NULL);
+	xapAddFilter(&f, "Serial.Close", "port", XAP_FILTER_ANY);
 	xapAddFilterAction(&xapSerialClose, f, NULL);
 
         xapProcess();

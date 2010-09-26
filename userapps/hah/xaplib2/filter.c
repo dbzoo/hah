@@ -74,7 +74,19 @@ int xapCompareFilters(xAPFilter *head) {
 			match = 0;
 			break;
 		}
-		match &= xapFilterAddrSubaddress(value, f->value);
+		
+		if(f->value == XAP_FILTER_ANY) {
+			match = 1;
+			break;
+		}
+
+		if(strcasecmp("xap-header", f->section) == 0 &&
+		   strcasecmp("target", f->key) == 0) {
+			match &= xapFilterAddrSubaddress(value, f->value);
+		} else {
+			match &= strcasecmp(value, f->value) == 0 ? 1 : 0;
+		}
+
 		f = f->next;
 	}
 	debug("match=%d",match);

@@ -35,6 +35,12 @@ void xapDelTimeoutAction(xAPTimeoutCallback **cb)
 	*cb = NULL;
 }
 
+xAPTimeoutCallback *xapFindTimeoutByFunc(void (*func)(int, void*)) {
+        xAPTimeoutCallback *e;
+	LL_SEARCH_SCALAR(gXAP->timeoutList, e, callback, func);
+	return e;
+}
+
 /** Remove a timeout using the callback func as a lookup key.
 * If multiple timeouts are registered for the same callback func
 * ALL will be deleted.

@@ -58,14 +58,14 @@ crit("errno %d (%s)", errno, strerror(errno));\
 die(__VA_ARGS__);\
 } while(0)
 
-#define debug_strerror(...) msg_strerror(debug, __VA_ARGS)
-#define info_strerror(...) msg_strerror(info, __VA_ARGS)
-#define notice_strerror(...) msg_strerror(notice, __VA_ARGS)
-#define warning_strerror(...) msg_strerror(warning, __VA_ARGS)
+#define debug_strerror(...) msg_strerror(debug, __VA_ARGS__)
+#define info_strerror(...) msg_strerror(info, __VA_ARGS__)
+#define notice_strerror(...) msg_strerror(notice, __VA_ARGS__)
+#define warning_strerror(...) msg_strerror(warning, __VA_ARGS__)
 #define err_strerror(...) msg_strerror(err,__VA_ARGS__)
-#define crit_strerror(...) msg_strerror(crit, __VA_ARGS)
-#define alert_strerror(...) msg_strerror(alert, __VA_ARGS)
-#define emerg_strerror(...) msg_strerror(emerg, __VA_ARGS)
+#define crit_strerror(...) msg_strerror(crit, __VA_ARGS__)
+#define alert_strerror(...) msg_strerror(alert, __VA_ARGS__)
+#define emerg_strerror(...) msg_strerror(emerg, __VA_ARGS__)
 
 void log_write_ex(int level, const char *file, int line, const char *func, const char *fmt, ...);
 void setLoglevel(int level);

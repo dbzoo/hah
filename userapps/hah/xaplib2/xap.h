@@ -96,13 +96,16 @@ extern xAP *gXAP;
 
 // init.c
 void xapInit(char *source, char *uid, char *interfaceName);
-void xapAddSocketListener(int fd, void (*callback)(int, void *), void *data);
+xAPSocketConnection *xapAddSocketListener(int fd, void (*callback)(int, void *), void *data);
+xAPSocketConnection *xapFindSocketListenerByFD(int ifd);
+void xapDelSocketListener(xAPSocketConnection **);
 
 // tx.c
 void xapSend(const char *mess);
 
 // timeout.c
 xAPTimeoutCallback *xapAddTimeoutAction(void (*func)(int, void *), int interval, void *data);
+xAPTimeoutCallback *xapFindTimeoutByFunc(void (*func)(int, void*));
 void timeoutDispatch();
 void xapDelTimeoutAction(xAPTimeoutCallback **cb);
 void xapDelTimeoutActionByFunc(void (*func)(int, void *));

@@ -140,9 +140,21 @@ void heartbeatHandler(int interval, void *data)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
+xAPSocketConnection *xapFindSocketListenerByFD(int ifd) {
+        xAPSocketConnection *e;
+	LL_SEARCH_SCALAR(gXAP->connectionList, e, fd, ifd);
+	return e;
+}
+
+void xapDelSocketListener(xAPSocketConnection **cb) {
+	LL_DELETE(gXAP->connectionList, *cb);
+	free(*cb);
+	*cb = NULL;
+}
+
 /** select() on other descriptors whilst in the xapProcess() loop.
 */
-void xapAddSocketListener(int fd, void (*callback)(int, void *), void *data)
+xAPSocketConnection *xapAddSocketListener(int fd, void (*callback)(int, void *), void *data)
 {
         die_if(fd < 0, "Invalid socket %d", fd);
         debug("socket=%d", fd);
@@ -151,8 +163,8 @@ void xapAddSocketListener(int fd, void (*callback)(int, void *), void *data)
         cb->user_data = data;
         cb->fd = fd;
 
-	cb->next = gXAP->connectionList;
-        gXAP->connectionList = cb;
+	LL_PREPEND(gXAP->connectionList, cb);
+	return cb;
 }
 
 /** Create a new xAP object.

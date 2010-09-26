@@ -40,3 +40,45 @@ Serial.Error
 {
 text=
 }
+
+
+= EXAMPLES =
+
+== Setting up a SERIAL PORT ==
+
+xap-header
+{
+v=12
+hop=1
+uid=FF00DD00
+class=serial.comms
+source=dbzoo.test.demo
+target=dbzoo.livebox.serial
+}
+serial.setup
+{
+port=/dev/ttyS0
+baud=9600
+stop=1
+databits=8
+parity=none
+flow=none
+}
+
+== Sending a MESSAGE ==
+
+xap-header
+{
+v=12
+hop=1
+uid=FF00DD00
+class=serial.comms
+source=dbzoo.test.demo
+target=dbzoo.livebox.serial
+}
+serial.send
+{
+port=/dev/ttyS0
+data=There
+}
+

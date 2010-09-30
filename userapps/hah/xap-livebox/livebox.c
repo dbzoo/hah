@@ -97,20 +97,29 @@ int main(int argc, char *argv[])
 		} else if(strcmp("-h", argv[i]) == 0 || strcmp("--help", argv[i]) == 0) {
 			usage(argv[0]);
 		}
-	}	
+	}
 
 	setupXap();
 	setupSerialPort(serialPort, B115200);
 
+	/* Endpoint UID mapping - Identifies a particular hardware device for life.
+	   As endpoints can be dynamically added we define ranges so this remains true.
+	  LCD / Inputs  (0-63)     - 1 LCD + 4 INPUT on current hardware.
+	  I2C           (64-95)    - PPE chips map at 64-71 natively on the i2c bus.
+	  Relays        (96-127)   - 32 devices (firmware can only handle 4)
+	  1-Wire        (128-159)  - 32 devices (firmware can only handle 16)
+	  RF            (160+)     - 96 devices (firmware can only handle 12)
+	*/
+	lcd = bscAddEndpoint(&endpointList, "lcd",  NULL, BSC_OUTPUT, BSC_STREAM, &cmdLCD, NULL);
 	bscAddEndpoint(&endpointList, "input", "1", BSC_INPUT, BSC_BINARY, NULL, &infoEventBinary);
 	bscAddEndpoint(&endpointList, "input", "2", BSC_INPUT, BSC_BINARY, NULL, &infoEventBinary);
 	bscAddEndpoint(&endpointList, "input", "3", BSC_INPUT, BSC_BINARY, NULL, &infoEventBinary);
 	bscAddEndpoint(&endpointList, "input", "4", BSC_INPUT, BSC_BINARY, NULL, &infoEventBinary);
+	bscSetEndpointUID(96);
 	bscAddEndpoint(&endpointList, "relay", "1", BSC_OUTPUT, BSC_BINARY, &cmdRelay, &infoEventBinary);
 	bscAddEndpoint(&endpointList, "relay", "2", BSC_OUTPUT, BSC_BINARY, &cmdRelay, &infoEventBinary);
 	bscAddEndpoint(&endpointList, "relay", "3", BSC_OUTPUT, BSC_BINARY, &cmdRelay, &infoEventBinary);
 	bscAddEndpoint(&endpointList, "relay", "4", BSC_OUTPUT, BSC_BINARY, &cmdRelay, &infoEventBinary);
-	lcd = bscAddEndpoint(&endpointList, "lcd",  NULL, BSC_OUTPUT, BSC_STREAM, &cmdLCD, NULL);
 	addIniEndpoints();
 
 	// Register the endpoints

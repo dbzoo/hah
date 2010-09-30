@@ -15,6 +15,7 @@
 
 static char *io_str[] = {"input","output"};
 static char *state_str[] = {"off","on","?","?"};
+static unsigned char id = 1; // Endpoint UID -> FFxxxx(id)
 
 /// Decode allowable values for a "state=value" key pair.
 int bscDecodeState(char *msg)
@@ -233,13 +234,19 @@ void bscInfoEvent(bscEndpoint *e, char *clazz)
                 xapSend(buff);
 }
 
+/** Manual specify starting point for future Endpoints added.
+* Auto incremented as endpoints are added by bscAddEndpoint()
+*/
+void bscSetEndpointUID(int nid) {
+	id = nid;
+}
+
 /// Create a BSC endpoint these are use for automation control.
 bscEndpoint *bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, unsigned int dir, unsigned int typ,
                     void (*cmd)(struct _bscEndpoint *self),
                     void (*infoEvent)(struct _bscEndpoint *self, char *clazz)
                    )
 {
-	static int id = 1;
 	char s_id[3];
 	die_if(name == NULL, "Name is mandatory");
         bscEndpoint *e = (bscEndpoint *)calloc(1, sizeof(bscEndpoint));
@@ -249,7 +256,7 @@ bscEndpoint *bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, unsig
                 e->subaddr = strdup(subaddr);
 
 	// Each endpoint added gets unique a UID id
-	sprintf(s_id,"%02X", ++id);
+	sprintf(s_id,"%02X", id++);
         e->id = strdup(s_id);
 
         e->io = dir;

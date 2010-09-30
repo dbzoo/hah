@@ -30,42 +30,23 @@ int hysteresis;
 char *interfaceName = "eth0";
 
 enum {CC128, CLASSIC} model;
+int currentSensor = -1;
+
+#define ST_NONE 0
+#define ST_SENSOR 1
+#define ST_DATA 2
+unsigned char state = ST_NONE;
 
 bscEndpoint *endpointList = NULL;
 bscEndpoint *currentTag = NULL;
 
-/// BSC callback - Only emit info/event for Channels that adjust outside of the hysteresis amount.
-static void infoEventChannel(bscEndpoint *e, char *clazz)
-{
-	int old = 0;
-	if(e->userData)
-	  old = atoi((char *)e->userData);
-	int new = atoi(e->text);
-	// Alway report INFO events so we can repond to xAPBSC.query + Timeouts.
-	// xapBSC.event are only emitted based on the hystersis
-	if(strcasecmp(clazz, BSC_INFO_CLASS) == 0 || new > old + hysteresis || new < old - hysteresis) {
-	  if(e->displayText == NULL)
-	    e->displayText = (char *)malloc(15);
-	  snprintf(e->displayText, 15, "%d watts", new);
-	  bscInfoEvent(e, clazz);
-	}
-}
-
-/// BSC callback - Emit info/event for Temperature endpoints.
-static void infoEventTemp(bscEndpoint *e, char *clazz)
-{
-	if(e->displayText == NULL)
-		e->displayText = (char *)malloc(15);
-	char unit = strcmp(e->name,"tmpr") == 0 ? 'C' : 'F'; // tmpr/tmprF
-	snprintf(e->displayText, 15, "Temp %s %c", e->text, unit);
-	bscInfoEvent(e, clazz);
-}
-
-/// SAX element (TAG) callback
+static void infoEventChannel(bscEndpoint *, char *);
+static void infoEventTemp(bscEndpoint *, char *);
 
 // Lookup table that converts an XML tag into a bscEndpoint.
 // Once a tag is matched the next CDATA section will be its value.
-static struct _ccTag {
+struct _ccTag
+{
 	char *xmltag;
 	void (*infoEvent)(bscEndpoint *, char *);
 	char *name;
@@ -74,22 +55,74 @@ static struct _ccTag {
 	{"ch1", &infoEventChannel, "ch", "1"},
 	{"ch2", &infoEventChannel, "ch", "2"},
 	{"ch3", &infoEventChannel, "ch", "3"},
-	{"tmpr", &infoEventTemp, "tmpr", NULL},
-	{"tmprF", &infoEventTemp, "tmprF", NULL},
+	{"tmpr", &infoEventTemp, "temp", NULL},
+	{"tmprF", &infoEventTemp, "tempF", NULL},
 	{NULL, NULL, NULL, NULL}
 };
 
+/// BSC callback - Only emit info/event for Channels that adjust outside of the hysteresis amount.
+static void infoEventChannel(bscEndpoint *e, char *clazz)
+{
+        int old = 0;
+        if(e->userData)
+                old = atoi((char *)e->userData);
+        int new = atoi(e->text);
+        // Alway report INFO events so we can repond to xAPBSC.query + Timeouts.
+        // xapBSC.event are only emitted based on the hystersis
+        if(strcasecmp(clazz, BSC_INFO_CLASS) == 0 || new > old + hysteresis || new < old - hysteresis) {
+                if(e->displayText == NULL)
+                        e->displayText = (char *)malloc(15);
+                snprintf(e->displayText, 15, "%d watts", new);
+                bscInfoEvent(e, clazz);
+        }
+}
+
+/// BSC callback - Emit info/event for Temperature endpoints.
+static void infoEventTemp(bscEndpoint *e, char *clazz)
+{
+        if(e->displayText == NULL)
+                e->displayText = (char *)malloc(15);
+        char unit = strcmp(e->name,"tmpr") == 0 ? 'C' : 'F'; // tmpr/tmprF
+        snprintf(e->displayText, 15, "Temp %s %c", e->text, unit);
+        bscInfoEvent(e, clazz);
+}
+
+/// SAX element (TAG) callback
 static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
 {
         struct _ccTag *p;
-        for(p=&ccTag[0]; p->xmltag; p++) {
-                if(strcmp(name, p->xmltag) == 0) {
-                        currentTag = bscFindEndpoint(endpointList, p->name, p->subaddr);
-                        // Dynamic endpoints. We defer creation until we see the tag in the XML
-                        if(currentTag == NULL) {
-                                // Add to the list we want to search and manage
-	                        currentTag = bscAddEndpoint(&endpointList, p->name, p->subaddr, BSC_INPUT, BSC_STREAM, NULL, p->infoEvent);
-                                bscAddEndpointFilter(currentTag, INFO_INTERVAL);
+
+        if(strcmp("sensor", name) == 0) {
+                state = ST_SENSOR;
+        } else {
+                if (currentSensor == 0) {
+                        for(p=&ccTag[0]; p->xmltag; p++) {
+                                state = ST_DATA;
+                                if(strcmp(name, p->xmltag) == 0) {
+                                        currentTag = bscFindEndpoint(endpointList, p->name, p->subaddr);
+                                        // Dynamic endpoints. We defer creation until we see the tag in the XML
+                                        if(currentTag == NULL) {
+                                                // Add to the list we want to search and manage
+                                                currentTag = bscAddEndpoint(&endpointList, p->name, p->subaddr, BSC_INPUT, BSC_STREAM, NULL, p->infoEvent);
+                                                bscAddEndpointFilter(currentTag, INFO_INTERVAL);
+                                        }
+                                }
+                        }
+                } else {
+                        // All sensors > 0 have a single CH1 tag item.
+                        if(strcmp(name,"ch1") == 0) {
+                                state = ST_DATA;
+                                char sensor[3];
+                                snprintf(sensor, sizeof(sensor), "%d", currentSensor);
+                                currentTag = bscFindEndpoint(endpointList, "sensor", sensor);
+                                if(currentTag == NULL) {
+                                        // Add to the list we want to search and manage
+                                        bscSetEndpointUID(currentSensor+10);
+	                                // Lookup SENSOR from the INI file and create the appropriate type.
+	                                // All BSC_STREAM for now.  But Digital sensors should be BSC_STATE.
+                                        currentTag = bscAddEndpoint(&endpointList, "sensor", sensor, BSC_INPUT, BSC_STREAM, NULL, NULL);
+                                        bscAddEndpointFilter(currentTag, INFO_INTERVAL);
+                                }
                         }
                 }
         }
@@ -98,21 +131,31 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
 /// SAX cdata callback
 static void cdataBlockCB(void *ctx, const xmlChar *value, int len)
 {
-        if(currentTag == NULL)
-                return;
-        if(strncmp(value, currentTag->text, len)) { // If its different report it.
-                // Rotate the text data value through the user data field and free it on update.
-                if(currentTag->userData)
-                        free(currentTag->userData);
-                currentTag->userData = (void *)currentTag->text;
+        switch(state) {
+        case ST_SENSOR:
+                currentSensor = atoi(value);
+                break;
+        case ST_DATA:
+                if(strncmp(value, currentTag->text, len)) { // If its different report it.
+                        // Rotate the text data value through the user data field and free it on update.
+                        if(currentTag->userData)
+                                free(currentTag->userData);
+                        currentTag->userData = (void *)currentTag->text;
 
-		currentTag->text = (char *)malloc(len+1);
-		strncpy(currentTag->text, value, len);
+                        currentTag->text = (char *)malloc(len+1);
+	                strncpy(currentTag->text, value, len);
 
-		bscSetState(currentTag, BSC_STATE_ON);
-	        bscSendCmdEvent(currentTag);
+	                if(currentTag->type == BSC_BINARY) {
+		                // 0 is off, 500 is ON.  We'll use any value != 0 as ON.
+	                	bscSetState(currentTag, atoi(currentTag->text) ? BSC_STATE_ON : BSC_STATE_OFF);
+	                } else {
+		                bscSetState(currentTag, BSC_STATE_ON);
+	                }
+                        bscSendCmdEvent(currentTag);
+                }
+                break;
         }
-        currentTag = NULL;
+        state = ST_NONE;
 }
 
 /// Parse an Currentcost XML message.
@@ -127,6 +170,10 @@ void parseXml(char *data, int size)
         handler.startElement = startElementCB;
         handler.characters = cdataBlockCB;
 
+	state = ST_NONE;
+	currentSensor = 0;
+	currentTag = NULL;
+	
         if(xmlSAXUserParseMemory(&handler, NULL, data, size) < 0) {
                 err("Document not parsed successfully.");
                 return;
@@ -146,10 +193,10 @@ void serialInputHandler(int fd, void *data)
                 for(i=0; i < len; i++) {
                         if(serial_buff[i] == '\r' || serial_buff[i] == '\n')
                                 continue;
-	                // Prevent buffer overruns.
-	                if(serial_cursor == sizeof(serial_xml)-1) {
-		                serial_cursor = 0;
-	                }
+                        // Prevent buffer overruns.
+                        if(serial_cursor == sizeof(serial_xml)-1) {
+                                serial_cursor = 0;
+                        }
                         serial_xml[serial_cursor++] = serial_buff[i];
                         serial_xml[serial_cursor] = 0;
 
@@ -234,11 +281,11 @@ void setupXap()
         model = CLASSIC;
         ini_gets("currentcost","model","classic", model_s, sizeof(model_s), inifile);
         if(strcasecmp(model_s,"CC128") == 0) {
-	        info("Selecting CC128 model");
+                info("Selecting CC128 model");
                 model = CC128;
         } else {
-	        info("Selecting CLASSIC model");
-	}
+                info("Selecting CLASSIC model");
+        }
 }
 
 /// Setup Endpoints, the Serial port, a callback for the serial port and process xAP messages.
@@ -247,7 +294,7 @@ int main(int argc, char *argv[])
         int i;
         printf("\nCurrent Cost Connector for xAP v12\n");
         printf("Copyright (C) DBzoo, 2009-2010\n\n");
-	strcpy(serialPort,"/dev/ttyUSB0");
+        strcpy(serialPort,"/dev/ttyUSB0");
 
         for(i=0; i<argc; i++) {
                 if(strcmp("-i", argv[i]) == 0 || strcmp("--interface",argv[i]) == 0) {
@@ -263,14 +310,14 @@ int main(int argc, char *argv[])
 
         setupXap();
 
-	// The model switch if provided overrides the INI setting.
+        // The model switch if provided overrides the INI setting.
         for(i=0; i<argc; i++) {
                 if(strcmp("-m", argv[i]) == 0 || strcmp("--model",argv[i]) == 0) {
-		  if(strcasecmp(argv[++i], "CC128") == 0) {
-		     info("Command line override selecting CC128 model");
-		     model = CC128;
-		  }
-		}
+                        if(strcasecmp(argv[++i], "CC128") == 0) {
+                                info("Command line override selecting CC128 model");
+                                model = CC128;
+                        }
+                }
         }
 
         xapAddSocketListener(setupSerialPort(), &serialInputHandler, endpointList);

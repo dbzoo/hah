@@ -77,5 +77,6 @@ int bscParseLevel(char *str);
 char *bscStateToString(bscEndpoint *e);
 char *bscIOToString(bscEndpoint *e);
 int bscDecodeState(char *msg);
+void bscSetEndpointUID(int nid);
 
 #endif

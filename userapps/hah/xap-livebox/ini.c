@@ -200,12 +200,14 @@ void addIniEndpoints()
 			        err(section,"Missing mode=[byte|pin]");
 			        continue;
 		        }
+		        bscSetEndpointUID(addr);
 		        if(strcmp(mode,"byte") == 0) {
 			        snprintf(buff,sizeof buff,"%02X", addr);
 			        bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_STREAM, &cmdPPEbyte, NULL);
 			        setup_i2c_ppe(addr);
 		        } else if(strcmp(mode,"pin") == 0) {
 			        int pin;
+
 			        for(pin=0; pin<7; pin++) {
 				        snprintf(buff,sizeof buff,"%02X.%d", addr, pin);
 				        bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_BINARY, &cmdPPEpin, NULL);
@@ -225,6 +227,7 @@ void addIniEndpoints()
                                 // Every minute check the 1wire bus for timeouts.
                                 xapAddTimeoutAction(&timeoutCheck1wire, 60, NULL);
                         }
+		        bscSetEndpointUID(128);
                         while(n > 0) {
                                 snprintf(buff,sizeof buff,"%d", (int)n);
                                 bscEndpoint *e = bscAddEndpoint(&endpointList, "1wire", buff, BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);
@@ -243,6 +246,7 @@ void addIniEndpoints()
                         waitms = ini_getl(section, "eedelay", 100, inifile);
                         if (devices > MAXCHANNEL-4)
                                 n = MAXCHANNEL-4;
+	                bscSetEndpointUID(160);
                         for(i = 1; i <= devices; i++) {
                                 snprintf(buff,sizeof buff,"%d", i);
 	                        bscAddEndpoint(&endpointList, "rf", buff, BSC_OUTPUT, BSC_BINARY, &cmdRF, &infoEventBinary);

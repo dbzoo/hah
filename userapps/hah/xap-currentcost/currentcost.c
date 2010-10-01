@@ -110,6 +110,7 @@ static void sensorInfoEvent(bscEndpoint *e, char *clazz)
 	} else {
 		snprintf(e->displayText, 30, "%s %s", e->text, unit);
 	}
+        bscInfoEvent(e, clazz);
 }
 
 static void findOrAddSensor() 

@@ -169,7 +169,7 @@ void addIniEndpoints()
 {
         char section[30];
         long n;
-        int s;
+	int s, i;
         char buff[30];
 	char s_addr[5];
 	int addr;
@@ -228,15 +228,14 @@ void addIniEndpoints()
                                 xapAddTimeoutAction(&timeoutCheck1wire, 60, NULL);
                         }
 		        bscSetEndpointUID(128);
-                        while(n > 0) {
-                                snprintf(buff,sizeof buff,"%d", (int)n);
+		        for(i=1; i<=n; i++) {
+                                snprintf(buff,sizeof buff,"%d", i);
                                 bscEndpoint *e = bscAddEndpoint(&endpointList, "1wire", buff, BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);
                                 // extra data to hold last 1wire event serial time.
                                 e->userData = (void *)malloc(sizeof(time_t));
-                                n--;
                         }
                 } else if(strcmp("rf",section) == 0) {
-                        int i,j;
+                        int j;
                         char rf[20];
                         char serialrf[40];
                         int devices;

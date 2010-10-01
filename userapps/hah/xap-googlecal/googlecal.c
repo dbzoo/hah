@@ -61,9 +61,6 @@
 #include "xapdef.h"
 #include "xapGlobals.h"
 #include "svn_date.h"
-#ifdef XMLALIAS
-#include "alias.h"
-#endif
 
 #define XAP_CLASS "google.calendar"
 // Frequency in seconds that we check for a trigger event.
@@ -84,10 +81,6 @@ const char inifile[] = "/etc/xap-livebox.ini";
 //const char inifile[] = "sample.ini";
 
 static gcal_t gcal;
-#ifdef XMLALIAS
-static alias_t *aliases; // Google xap calendar aliases
-static char aliasfile[64];
-#endif
 
 // Debug helper: Display event
 void dump_event(gcal_event_t event) 
@@ -249,16 +242,12 @@ void fire_google_calendar_event(struct gcal_event_array *event_array)
 	       xapmsg = normalize_xap(description);
 	  } else {
 	       // pattern match the title against the aliases to find the xAP msg.
-#ifdef XMLALIAS
-	       xapmsg = matchAlias(aliases, gcal_event_get_title(event));
-#else
 	       xapmsg = (char *)malloc(sizeof(char)*1500);
 	       snprintf(xapmsg, sizeof(xapmsg),
 			"xap-header\n{\nv=12\nhop=1\nuid=%s\n"
 			"class=alias\nsource=%s.%s.%s\n}\n"
 			"command\n{\ntext=%s\n}\n", 
 			g_uid, XAP_ME, XAP_SOURCE, g_instance, gcal_event_get_title(event));
-#endif
 	       
 	  }
 	  if(xapmsg) {
@@ -483,9 +472,6 @@ void setupXAPini()
 	  printf("Error: passwd has not been setup\n");
 	  exit(1);
      }  
-#ifdef XMLALIAS
-     ini_gets("googlecal","aliasfile","/etc/xap-alias.xml",aliasfile,sizeof(aliasfile),inifile);
-#endif
 }
 
 int main(int argc, char *argv[]) 
@@ -495,11 +481,6 @@ int main(int argc, char *argv[])
   
      setupXAPini();  
      xap_init(argc, argv, 0);
-#ifdef XMLALIAS
-     if(g_debuglevel) printf("Reading aliases from %s\n", aliasfile);
-     aliases = parseAliasDoc(aliasfile);
-     if(g_debuglevel) dumpAliases(aliases);
-#endif
      /* Create a gcal 'object' and authenticate with server */
      if (!(gcal = gcal_new(GCALENDAR))) 
      {

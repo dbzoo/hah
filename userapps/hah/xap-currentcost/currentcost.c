@@ -189,6 +189,7 @@ void serialInputHandler(int fd, void *data)
         int i;
         int len;
 
+	info("serialInputHandler(fd:%d)", fd);
         while((len = read(fd, serial_buff, sizeof(serial_buff))) > 0) {
                 for(i=0; i < len; i++) {
                         if(serial_buff[i] == '\r' || serial_buff[i] == '\n')
@@ -253,7 +254,7 @@ void setupXap()
         char i_uid[5];
         char s_uid[10];
 
-        n = ini_gets("xap","uid","00DC",i_uid, sizeof(i_uid),inifile);
+        n = ini_gets("currentcost","uid","00DC",i_uid, sizeof(i_uid),inifile);
 
         // validate that the UID can be read as HEX
         if(! (n > 0
@@ -267,7 +268,7 @@ void setupXap()
 
         char i_control[64];
         char s_control[128];
-        n = ini_gets("xap","instance","CurrentCost",i_control,sizeof(i_control),inifile);
+        n = ini_gets("currentcost","instance","CurrentCost",i_control,sizeof(i_control),inifile);
         snprintf(s_control, sizeof(s_control), "dbzoo.livebox.%s", i_control);
 
         xapInit(s_control, s_uid, interfaceName);

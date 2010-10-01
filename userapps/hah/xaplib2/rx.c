@@ -29,11 +29,9 @@ static int readXapData() {
 * Registered via function xapAddSocketListener()
 */
 void handleXapPacket(int fd, void *data) {
-	// If we have no filters then we don't care about xAP packets!
-	// When the receive buffer overflows as we are using UDP the data will
-	// just be dropped.
-	if(gXAP->filterList == NULL) return;
 	if(readXapData() > 0) {
+	        // OK we got the data but we don't need to process it (yet).
+	        if(gXAP->filterList == NULL) return;
 		gXAP->parsedMsgCount = parseMsg(gXAP->parsedMsg, XAP_MSG_ELEMENTS, gXAP->dataPacket);
 		filterDispatch();
 	}

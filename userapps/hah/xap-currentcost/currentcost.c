@@ -92,13 +92,14 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
 {
         struct _ccTag *p;
 
+	debug("<%s>", name);
         if(strcmp("sensor", name) == 0) {
                 state = ST_SENSOR;
         } else {
                 if (currentSensor == 0) {
                         for(p=&ccTag[0]; p->xmltag; p++) {
-                                state = ST_DATA;
                                 if(strcmp(name, p->xmltag) == 0) {
+					state = ST_DATA;
                                         currentTag = bscFindEndpoint(endpointList, p->name, p->subaddr);
                                         // Dynamic endpoints. We defer creation until we see the tag in the XML
                                         if(currentTag == NULL) {
@@ -129,21 +130,28 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
 }
 
 /// SAX cdata callback
-static void cdataBlockCB(void *ctx, const xmlChar *value, int len)
+static void cdataBlockCB(void *ctx, const xmlChar *ch, int len)
 {
+	char output[40];
+	int i;
+
+	// Value to STRZ
+	for (i = 0; (i<len) && (i < sizeof(output)); i++)
+		output[i] = ch[i];
+	output[i] = 0;
+
+	debug("%s", output);
         switch(state) {
         case ST_SENSOR:
-                currentSensor = atoi(value);
+                currentSensor = atoi(output);
                 break;
         case ST_DATA:
-                if(strncmp(value, currentTag->text, len)) { // If its different report it.
+                if(strcmp(output, currentTag->text)) { // If its different report it.
                         // Rotate the text data value through the user data field and free it on update.
                         if(currentTag->userData)
                                 free(currentTag->userData);
                         currentTag->userData = (void *)currentTag->text;
-
-                        currentTag->text = (char *)malloc(len+1);
-	                strncpy(currentTag->text, value, len);
+                        currentTag->text = strdup(output);
 
 	                if(currentTag->type == BSC_BINARY) {
 		                // 0 is off, 500 is ON.  We'll use any value != 0 as ON.
@@ -158,6 +166,11 @@ static void cdataBlockCB(void *ctx, const xmlChar *value, int len)
         state = ST_NONE;
 }
 
+
+static void endElementCB(void *ctx, const xmlChar *name) {
+  debug("</%s>", name);
+}
+
 /// Parse an Currentcost XML message.
 void parseXml(char *data, int size)
 {
@@ -168,6 +181,7 @@ void parseXml(char *data, int size)
         memset(&handler, 0, sizeof(handler));
         handler.initialized = XML_SAX2_MAGIC;
         handler.startElement = startElementCB;
+        //handler.endElement = endElementCB;
         handler.characters = cdataBlockCB;
 
 	state = ST_NONE;

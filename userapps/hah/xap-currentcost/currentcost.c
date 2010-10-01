@@ -97,7 +97,8 @@ static long loadSensorINI(char *key, char *location, int size) {
 static void sensorInfoEvent(bscEndpoint *e, char *clazz)
 {
 	char unit[10];
-	
+
+	debug("Sensor event %s", e->name);
 	long n = loadSensorINI("unit", unit, sizeof(unit));
 	if(n == 0) return; // No units to display
 
@@ -182,16 +183,18 @@ static void cdataBlockCB(void *ctx, const xmlChar *ch, int len)
                 currentSensor = atoi(output);
                 break;
         case ST_DATA:
-                if(strcmp(output, currentTag->text)) { // If its different report it.
+	        // If its different report it.
+                if(currentTag->text == NULL || strcmp(output, currentTag->text)) {
                         // Rotate the text data value through the user data field and free it on update.
                         if(currentTag->userData)
                                 free(currentTag->userData);
                         currentTag->userData = (void *)currentTag->text;
                         currentTag->text = strdup(output);
 
+			debug("endpoint type %d", currentTag->type);
 	                if(currentTag->type == BSC_BINARY) {
 		                // 0 is off, 500 is ON.  We'll use any value != 0 as ON.
-	                	bscSetState(currentTag, atoi(currentTag->text) ? BSC_STATE_ON : BSC_STATE_OFF);
+	                	bscSetState(currentTag, atoi(output) ? BSC_STATE_ON : BSC_STATE_OFF);
 	                } else {
 		                bscSetState(currentTag, BSC_STATE_ON);
 	                }
@@ -217,7 +220,7 @@ void parseXml(char *data, int size)
         memset(&handler, 0, sizeof(handler));
         handler.initialized = XML_SAX2_MAGIC;
         handler.startElement = startElementCB;
-        //handler.endElement = endElementCB;
+        handler.endElement = endElementCB;
         handler.characters = cdataBlockCB;
 
 	state = ST_NONE;

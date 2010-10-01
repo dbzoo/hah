@@ -14,13 +14,7 @@ static struct {
 	 int devices1wire;
 	 int devicesrf;
          int timeout_1wire;
-	 char cc_uid[5];
-	 char cc_instance[30];
-	 char cc_enable[2];
-	 char cc_hysteresis[3];
-	 char cc_usbserial[16];
-	 char cc_model[20];
-     char sms_enable[2];
+         char sms_enable[2];
 	 char sms_usbserial[16];
 	 char sms_uid[5];
 	 char sms_instance[30];
@@ -130,51 +124,6 @@ static void submit_form() {
 		 ini.timeout_1wire = timeout_1wire;
 	 }
 
-	 int cc_restart = 0;
-
-	 const char *cc_uid = request_get_arg(request,"cc_uid");
-	 const char *cc_instance = request_get_arg(request,"cc_instance");
-	 if(cc_uid && strcmp(cc_uid,ini.cc_uid)) {
-		  upperstr((char *)cc_uid);
-		  ini_puts("currentcost","uid",cc_uid,con.inifile);
-		  cc_restart = 1;
-	 }
-	 if(cc_instance && strcmp(cc_instance,ini.cc_instance)) {
-		  ini_puts("currentcost","instance",cc_instance,con.inifile);
-		  cc_restart = 1;
-	 }
-
-	 const char *cc_meter = request_get_arg(request,"cc_meter");
-	 if(cc_meter) {
-		  if((*cc_meter == '1' && ini.cc_enable[0] == '0') ||
-			 (*cc_meter == '0' && ini.cc_enable[0] == '1')) {
-			   ini_puts("currentcost","enable",cc_meter,con.inifile);
-			   cc_restart = 1;
-		  }
-	 }
-
-	 const char *cc_hysteresis = request_get_arg(request, "cc_hysteresis");
-	 if(cc_hysteresis && strcmp(cc_hysteresis, ini.cc_hysteresis)) {
-		  ini_puts("currentcost","hysteresis", cc_hysteresis, con.inifile);
-		  cc_restart = 1;
-	 }
-
-	 const char *cc_usbserial = request_get_arg(request, "cc_usbserial");
-	 if(cc_usbserial && strcmp(cc_usbserial, ini.cc_usbserial)) {
-		  ini_puts("currentcost","usbserial", cc_usbserial, con.inifile);
-		  cc_restart = 1;
-	 }
-
-	 const char *cc_model = request_get_arg(request, "cc_model");
-	 if(cc_model && strcmp(cc_model, ini.cc_model)) {
-		  ini_puts("currentcost","model", cc_model, con.inifile);
-		  cc_restart = 1;
-	 }
-
-	 if(cc_restart) {
-	     char *argv[] = {"/etc/init.d/xap","restart","currentcost", NULL};
-	     subprocess(argv);
-	 }
 
 	 int sms_restart = 0;
 	 const char *sms_enable = request_get_arg(request,"sms_enable");
@@ -205,12 +154,6 @@ static void readIni() {
 	 ini.devicesrf = ini_getl("rf","devices", 0, con.inifile);
 	 ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), con.inifile);
 	 ini.timeout_1wire = ini_getl("1wire","timeout", 0, con.inifile);
-	 ini_gets("currentcost","enable","0",ini.cc_enable,sizeof(ini.cc_enable),con.inifile);
-	 ini_gets("currentcost","hysteresis","10",ini.cc_hysteresis,sizeof(ini.cc_hysteresis),con.inifile);
-	 ini_gets("currentcost","usbserial","/dev/ttyUSB0",ini.cc_usbserial,sizeof(ini.cc_usbserial),con.inifile);
-	 ini_gets("currentcost","model","CLASSIC",ini.cc_model,sizeof(ini.cc_model),con.inifile);
-	 ini_gets("currentcost","uid","00DC",ini.cc_uid,sizeof(ini.cc_uid),con.inifile);
-	 ini_gets("currentcost","instance","CurrentCost",ini.cc_instance,sizeof(ini.cc_instance),con.inifile);
 	 ini_gets("sms","enable","0",ini.sms_enable,sizeof(ini.sms_enable),con.inifile);
 	 ini_gets("sms","usbserial","/dev/ttyUSB0",ini.sms_usbserial,sizeof(ini.sms_usbserial),con.inifile);
 	 ini_gets("sms","uid","00DD",ini.sms_uid,sizeof(ini.sms_uid),con.inifile);
@@ -257,7 +200,6 @@ function reboot(F) {
 	 apply(F);
 }
 addEvent(window,"load",function() {
-	 show_layer_ext(document.frmControl.cc_meter, 'idcc', 1 == <%= ini.cc_enable %>);
 	 show_layer_ext(document.frmControl.sms_enable, 'idsms', 1 == <%= ini.sms_enable %>);
 	 });
 
@@ -388,44 +330,6 @@ io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"sensor
   <div class="label">Timeout check</div>
     <input class="num" type="text" name="timeout_1wire" onblur="valid_range(this,0,99,'Timeout')" value="<% io_printf(out,"%d",ini.timeout_1wire); %>" maxlength="2" size="2"/> Minute(s)
   </div>
-</fieldset>
-<fieldset>
-  <legend>Current Cost</legend>
-  <div class="setting">
-    <div class="label">USB attached</div>
-	<input class="spaceradio" type="radio" value="1" name="cc_meter" onclick="show_layer_ext(this, 'idcc', true);"<% if(ini.cc_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
-    <input class="spaceradio" type="radio" value="0" name="cc_meter" onclick="show_layer_ext(this, 'idcc', false);"<% if(ini.cc_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
-  </div>
-  <div class="setting" id="idcc">
-  <div class="setting">
-    <div class="label">xAP UID</div>
-    <input maxlength="4" size="4" name="cc_uid" value="<%= ini.cc_uid %>" onblur="isxdigit(this,'UID')"/>
-    <span class="default">(Default: 00DC, Range: 0000 - FFFF)</span>
-  </div>
-  <div class="setting">
-    <div class="label">xAP Instance</div>
-    <input maxlength="30" size="25" name="cc_instance" value="<%= ini.cc_instance %>"/>
-    <span class="default">(Default: CurrentCost)</span>
-  </div>
-   <div class="setting">
-    <div class="label">Model</div>
-     <select name="cc_model">
-     <option value="CLASSIC" <% if(strcmp(ini.cc_model,"CLASSIC")==0) { %>selected="selected"<% } %>>Classic</option>
-     <option value="CC128" <% if(strcmp(ini.cc_model,"CC128")==0) { %>selected="selected"<% } %>>CC128</option>
-     </select>
-   </div>
-   <div class="setting">
-    <div class="label">USB Serial Device</div>
-	<input type="text" name="cc_usbserial" value="<%= ini.cc_usbserial %>" maxlength="15" size="15"/>
-	 <span class="default">(Default: /dev/ttyUSB0)</span>
-   </div>
-   <div class="setting">
-    <div class="label">Sensor Hysteresis</div>
-	<input class="num" type="text" name="cc_hysteresis" onblur="is_digit(this,'Hysteresis')" value="<%= ini.cc_hysteresis %>" maxlength="3" size="3"/>
-	 <span class="default">(Default: 10 Watts)</span>
-   </div>
-  </div>
-
 </fieldset>
 
 <fieldset>

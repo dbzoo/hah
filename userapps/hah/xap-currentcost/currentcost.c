@@ -82,9 +82,54 @@ static void infoEventTemp(bscEndpoint *e, char *clazz)
 {
         if(e->displayText == NULL)
                 e->displayText = (char *)malloc(15);
-        char unit = strcmp(e->name,"tmpr") == 0 ? 'C' : 'F'; // tmpr/tmprF
+        char unit = strcmp(e->name,"temp") == 0 ? 'C' : 'F'; // tmpr/tmprF
         snprintf(e->displayText, 15, "Temp %s %c", e->text, unit);
         bscInfoEvent(e, clazz);
+}
+
+static long loadSensorINI(char *key, char *location, int size) {
+	 char buff[10];
+	 sprintf(buff,"%s%d",key,currentSensor-1);
+	 return ini_gets("currentcost", buff, "", location, size, inifile);
+}
+
+/// BSC callback - For Sensors
+static void sensorInfoEvent(bscEndpoint *e, char *clazz)
+{
+	char unit[10];
+	
+	long n = loadSensorINI("unit", unit, sizeof(unit));
+	if(n == 0) return; // No units to display
+
+	if(e->displayText == NULL) { // Lazy malloc
+		e->displayText = (char *)malloc(30);
+	}
+	
+	if(e->type == BSC_BINARY) {
+		strcpy(e->displayText, unit);
+	} else {
+		snprintf(e->displayText, 30, "%s %s", e->text, unit);
+	}
+}
+
+static void findOrAddSensor() 
+{
+	char sensor[3];
+	snprintf(sensor, sizeof(sensor), "%d", currentSensor);
+
+	currentTag = bscFindEndpoint(endpointList, "sensor", sensor);
+	if(currentTag == NULL) {
+		// Add to the list we want to search and manage
+		bscSetEndpointUID(currentSensor+10);
+		char stype[2]; // Analog/Digital
+		loadSensorINI("type", stype, sizeof(stype));
+		int bscType = stype[0] == 'D' ? BSC_BINARY : BSC_STREAM;
+		currentTag = bscAddEndpoint(&endpointList, "sensor", sensor, BSC_INPUT, 
+					    bscType, NULL, &sensorInfoEvent);
+		bscAddEndpointFilter(currentTag, INFO_INTERVAL);
+	}
+
+	state = ST_DATA;
 }
 
 /// SAX element (TAG) callback
@@ -100,6 +145,7 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
                         for(p=&ccTag[0]; p->xmltag; p++) {
                                 if(strcmp(name, p->xmltag) == 0) {
 					state = ST_DATA;
+					findOrAddSensor(p->name, p->subaddr);
                                         currentTag = bscFindEndpoint(endpointList, p->name, p->subaddr);
                                         // Dynamic endpoints. We defer creation until we see the tag in the XML
                                         if(currentTag == NULL) {
@@ -109,23 +155,10 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
                                         }
                                 }
                         }
-                } else {
+                } else if(strcmp(name,"ch1") == 0) {
                         // All sensors > 0 have a single CH1 tag item.
-                        if(strcmp(name,"ch1") == 0) {
-                                state = ST_DATA;
-                                char sensor[3];
-                                snprintf(sensor, sizeof(sensor), "%d", currentSensor);
-                                currentTag = bscFindEndpoint(endpointList, "sensor", sensor);
-                                if(currentTag == NULL) {
-                                        // Add to the list we want to search and manage
-                                        bscSetEndpointUID(currentSensor+10);
-	                                // Lookup SENSOR from the INI file and create the appropriate type.
-	                                // All BSC_STREAM for now.  But Digital sensors should be BSC_STATE.
-                                        currentTag = bscAddEndpoint(&endpointList, "sensor", sensor, BSC_INPUT, BSC_STREAM, NULL, NULL);
-                                        bscAddEndpointFilter(currentTag, INFO_INTERVAL);
-                                }
-                        }
-                }
+			findOrAddSensor();
+		}
         }
 }
 
@@ -135,8 +168,10 @@ static void cdataBlockCB(void *ctx, const xmlChar *ch, int len)
 	char output[40];
 	int i;
 
+	if(state == ST_NONE) return;
+
 	// Value to STRZ
-	for (i = 0; (i<len) && (i < sizeof(output)); i++)
+	for (i = 0; (i<len) && (i < sizeof(output)-1); i++)
 		output[i] = ch[i];
 	output[i] = 0;
 

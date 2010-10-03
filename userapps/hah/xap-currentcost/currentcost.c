@@ -107,7 +107,7 @@ static void sensorInfoEvent(bscEndpoint *e, char *clazz)
 	}
 	
 	if(e->type == BSC_BINARY) {
-		strcpy(e->displayText, unit);
+	        snprintf(e->displayText, 30, "%s %s", unit, bscStateToString(e));
 	} else {
 		snprintf(e->displayText, 30, "%s %s", e->text, unit);
 	}
@@ -130,8 +130,6 @@ static void findOrAddSensor()
 					    bscType, NULL, &sensorInfoEvent);
 		bscAddEndpointFilter(currentTag, INFO_INTERVAL);
 	}
-
-	state = ST_DATA;
 }
 
 /// SAX element (TAG) callback
@@ -142,26 +140,26 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
 	debug("<%s>", name);
         if(strcmp("sensor", name) == 0) {
                 state = ST_SENSOR;
-        } else {
-                if (currentSensor == 0) {
-                        for(p=&ccTag[0]; p->xmltag; p++) {
-                                if(strcmp(name, p->xmltag) == 0) {
-					state = ST_DATA;
-					findOrAddSensor(p->name, p->subaddr);
-                                        currentTag = bscFindEndpoint(endpointList, p->name, p->subaddr);
-                                        // Dynamic endpoints. We defer creation until we see the tag in the XML
-                                        if(currentTag == NULL) {
-                                                // Add to the list we want to search and manage
-                                                currentTag = bscAddEndpoint(&endpointList, p->name, p->subaddr, BSC_INPUT, BSC_STREAM, NULL, p->infoEvent);
-                                                bscAddEndpointFilter(currentTag, INFO_INTERVAL);
-                                        }
-                                }
-                        }
-                } else if(strcmp(name,"ch1") == 0) {
-                        // All sensors > 0 have a single CH1 tag item.
-			findOrAddSensor();
-		}
+		return;
         }
+
+	if (currentSensor == 0) {
+	  for(p=&ccTag[0]; p->xmltag; p++) {
+	    if(strcmp(name, p->xmltag) == 0) {
+	      state = ST_DATA;
+	      currentTag = bscFindEndpoint(endpointList, p->name, p->subaddr);
+	      // Dynamic endpoints. We defer creation until we see the tag in the XML
+	      if(currentTag == NULL) {
+		// Add to the list we want to search and manage
+		currentTag = bscAddEndpoint(&endpointList, p->name, p->subaddr, BSC_INPUT, BSC_STREAM, NULL, p->infoEvent);
+		bscAddEndpointFilter(currentTag, INFO_INTERVAL);
+	      }
+	    }
+	  }
+	} else if(strcmp(name,"ch1") == 0) {
+	  state = ST_DATA;
+	  findOrAddSensor();
+	}
 }
 
 /// SAX cdata callback

@@ -33,35 +33,6 @@ struct serialPort {
 	struct serialPort *next;
 } *serialList = NULL;
 
-
-void xapSerialRx(int fd, void *userData)
-{
-	struct serialPort *p = (struct serialPort *)userData;
-	
-	char sdata[512];
-	int slen = read(fd, sdata, sizeof(sdata));
-
-        char buff[XAP_DATA_LEN];  // nominally 1500 bytes
-        int len = sprintf(buff, "xap-header\n"
-			   "{\n"
-			   "v=12\n"
-			   "hop=1\n"
-			   "uid=FF00DF00\n"
-			   "class=Serial.Comms\n"
-			   "source=%s\n"
-			   "}\n"
-			   "Serial.Received\n"
-			   "{\n"
-			   "port=%s\n"
-			   "data=", gXAP->source, p->device);
-	strncpy(&buff[len], sdata, slen);
-	len += slen;
-	strcat(&buff[len], "\n}\n");
-
-	xapSend(buff);
-}
-
-
 void serialError(const char *fmt, ...)
 {
         char buff[XAP_DATA_LEN];
@@ -90,6 +61,59 @@ void serialError(const char *fmt, ...)
 	} else {
 		err("Buffer overflow %d/%d", len, XAP_DATA_LEN);
 	}
+}
+
+void processSerialCommand(void *data, struct serialPort *p)
+{	
+        char buff[XAP_DATA_LEN];  // nominally 1500 bytes
+        int len = sprintf(buff, "xap-header\n"
+			   "{\n"
+			   "v=12\n"
+			   "hop=1\n"
+			   "uid=FF00DF00\n"
+			   "class=Serial.Comms\n"
+			   "source=%s\n"
+			   "}\n"
+			   "Serial.Received\n"
+			   "{\n"
+			   "port=%s\n"
+			   "data=", gXAP->source, p->device);
+        int slen = strlen(data);
+	if(sizeof(buff) - len < slen) {
+	  serialError("Buffer overflow");
+	  return;
+	}
+	strlcpy(&buff[len], data, sizeof(buff)-slen);
+	len += slen;
+	strlcat(&buff[len], "\n}\n", sizeof(buff)-len);
+
+	xapSend(buff);
+}
+
+/** Read a buffer of serial text and process a line at a time.
+* if a CR/LF isn't seen continue to accumulate cmd data.
+*/
+void xapSerialRx(int fd, void *userData)
+{
+	struct serialPort *p = (struct serialPort *)userData;
+        char serial_buff[512];
+        int i, len;
+
+        static char cmd[128];
+        static int pos = 0;
+
+        len = read(fd, serial_buff, sizeof(serial_buff));
+        for(i=0; i < len; i++) {
+                cmd[pos] = serial_buff[i];
+                if (cmd[pos] == '\r' || cmd[pos] == '\n') {
+                        cmd[pos] = '\0';
+                        if(pos)
+                                processSerialCommand(cmd, p);
+                        pos = 0;
+                } else if(pos < sizeof(cmd)) {
+                        pos++;
+                }
+        }
 }
 
 struct serialPort *findDevice(char *idevice) {

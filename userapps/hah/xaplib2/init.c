@@ -98,7 +98,6 @@ void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char **ip, 
         }
         myinterface.sin_addr.s_addr=((struct sockaddr_in*)&interface.ifr_broadaddr)->sin_addr.s_addr;
 
-
         *ip = strdup(inet_ntoa(((struct sockaddr_in *)&interface.ifr_addr)->sin_addr));
         info("%s: address %s", interfaceName, *ip);
 
@@ -136,7 +135,8 @@ void heartbeatHandler(int interval, void *data)
                 "source=%s\n"
                 "interval=%d\n"
                 "port=%d\n"
-                "}\n", gXAP->uid, gXAP->source, interval, gXAP->rxPort);
+                "pid=%d\n"
+                "}\n", gXAP->uid, gXAP->source, interval, gXAP->rxPort, getpid());
         xapSend(buff);
 }
 

@@ -141,7 +141,7 @@ void xapSerialAccumulator(int fd, void *userData)
 int main(int argc, char *argv[])
 {
         printf("\nSMS Connector for xAP v12\n");
-        printf("Copyright (C) DBzoo, 2009\n");
+        printf("Copyright (C) DBzoo, 2009-2010\n\n");
 
         simpleCommandLine(argc, argv, &interfaceName);
         xapInitFromINI("sms","dbzoo.livebox","SMS","00DD",interfaceName,inifile);

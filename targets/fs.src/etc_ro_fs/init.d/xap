@@ -17,7 +17,7 @@ stop_web() {
 }
 
 start_hub() {
-    /usr/bin/xap-hub $MYDEV &
+    /usr/bin/xap-hub -i $MYDEV &
     sleep 1
 }
 

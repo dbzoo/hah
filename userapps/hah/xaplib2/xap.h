@@ -82,7 +82,7 @@ typedef struct _xAP {
 	int rxSockfd;
 
 	char *ip;
-	struct sockaddr_in txAddress;
+	struct sockaddr_in txAddress; // broadcast Address
 	int txSockfd;
 
 	unsigned char dataPacket[XAP_DATA_LEN];
@@ -104,6 +104,9 @@ xAPSocketConnection *xapAddSocketListener(int fd, void (*callback)(int, void *),
 xAPSocketConnection *xapFindSocketListenerByFD(int ifd);
 void xapDelSocketListener(xAPSocketConnection **);
 void simpleCommandLine(int argc, char *argv[], char **interfaceName);
+void discoverHub(int *rxport, int *rxfd, struct sockaddr_in *txAddr);
+void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char **ip, char *interfaceName);
+void heartbeatHandler(int interval, void *data);
 
 // tx.c
 void xapSend(const char *mess);

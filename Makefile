@@ -178,7 +178,7 @@ xaplib2:
 	install -m 755 -d $(INSTALL_DIR)/include
 	install -m 644 $(HAH_DIR)/xaplib2/*.h $(INSTALL_DIR)/include
 
-xap-hub: xaplib
+xap-hub: xaplib2
 	$(MAKE) -C $(HAH_DIR)/xap-hub
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/xap-hub/xap-hub $(INSTALL_DIR)/usr/bin

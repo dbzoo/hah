@@ -7,20 +7,25 @@
 static int reboot = 0;
 
 static struct {
-	 char cc_uid[5];
-	 char cc_instance[30];
 	 char cc_enable[2];
 	 char cc_hysteresis[3];
 	 char cc_usbserial[16];
 	 char cc_model[20];
 } ini;
 
-#define SENSOR_COUNT 9
+
+struct {
+	char *model;
+	int sensors;
+} modelSensor[] = { {"CLASSIC",0},{"CC128",9},{NULL,NULL}};
+
+int sensorCount = 0;
+
 struct {
 	char type[2]; // Analogue/Digital
 	char desc[40];
         char unit[10];
-} sensor[SENSOR_COUNT];
+} sensor[9];  // set to MAX.
 
 static const char *getdynkey(char *key, int id ) {
 	 char buff[30];
@@ -42,18 +47,6 @@ static void saveDynINI(char *key, int id, const char *value) {
 
 static void submit_form() {
 	 int cc_restart = 0;
-
-	 const char *cc_uid = request_get_arg(request,"cc_uid");
-	 const char *cc_instance = request_get_arg(request,"cc_instance");
-	 if(cc_uid && strcmp(cc_uid,ini.cc_uid)) {
-		  upperstr((char *)cc_uid);
-		  ini_puts("currentcost","uid",cc_uid,con.inifile);
-		  cc_restart = 1;
-	 }
-	 if(cc_instance && strcmp(cc_instance,ini.cc_instance)) {
-		  ini_puts("currentcost","instance",cc_instance,con.inifile);
-		  cc_restart = 1;
-	 }
 
 	 const char *cc_meter = request_get_arg(request,"cc_meter");
 	 if(cc_meter) {
@@ -83,7 +76,7 @@ static void submit_form() {
 	 }
 
 	 int i;
-	 for(i=0; i<SENSOR_COUNT; i++) {
+	 for(i=0; i<sensorCount; i++) {
 		  const char *type = getdynkey("type", i);
 		  const char *desc = getdynkey("desc", i);
 		  const char *unit = getdynkey("unit", i);
@@ -104,14 +97,17 @@ static void readIni() {
 	 ini_gets("currentcost","hysteresis","10",ini.cc_hysteresis,sizeof(ini.cc_hysteresis),con.inifile);
 	 ini_gets("currentcost","usbserial","/dev/ttyUSB0",ini.cc_usbserial,sizeof(ini.cc_usbserial),con.inifile);
 	 ini_gets("currentcost","model","CLASSIC",ini.cc_model,sizeof(ini.cc_model),con.inifile);
-	 ini_gets("currentcost","uid","00DC",ini.cc_uid,sizeof(ini.cc_uid),con.inifile);
-	 ini_gets("currentcost","instance","CurrentCost",ini.cc_instance,sizeof(ini.cc_instance),con.inifile);
-
 	 int i;
-	 for(i=0; i < SENSOR_COUNT; i++) {
+	 for(i=0; i < sensorCount; i++) {
 		  loadDynINI("type", i, sensor[i].type, sizeof(sensor[i].type));
 		  loadDynINI("desc", i, sensor[i].desc, sizeof(sensor[i].desc));
 		  loadDynINI("unit", i, sensor[i].unit, sizeof(sensor[i].unit));					 
+	 }
+
+	 for(i=0; modelSensor[i].model; i++) {
+		 if(strcmp(modelSensor[i].model, ini.cc_model) == 0) {
+			 sensorCount = modelSensor[i].sensors;
+		 }
 	 }
 }
 %>
@@ -136,6 +132,10 @@ if(action && strcmp(action,"Reboot") == 0) {
 <!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css" /><![endif]-->
 <script type="text/javascript" src="common.js"></script>
 <script type="text/javascript">
+function comboSubmit(F) {
+    F.action.value = "Apply";
+    F.submit();
+}
 function to_submit(F) {
 	F.save_button.value = "Saving";
 	F.action.value = "Apply";
@@ -173,19 +173,9 @@ addEvent(window,"load",function() {
     <input class="spaceradio" type="radio" value="0" name="cc_meter" onclick="show_layer_ext(this, 'idcc', false);"<% if(ini.cc_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
   </div>
   <div class="setting" id="idcc">
-  <div class="setting">
-    <div class="label">xAP UID</div>
-    <input maxlength="4" size="4" name="cc_uid" value="<%= ini.cc_uid %>" onblur="isxdigit(this,'UID')"/>
-    <span class="default">(Default: 00DC, Range: 0000 - FFFF)</span>
-  </div>
-  <div class="setting">
-    <div class="label">xAP Instance</div>
-    <input maxlength="30" size="25" name="cc_instance" value="<%= ini.cc_instance %>"/>
-    <span class="default">(Default: CurrentCost)</span>
-  </div>
    <div class="setting">
     <div class="label">Model</div>
-     <select name="cc_model">
+     <select name="cc_model" onchange="comboSubmit(this.form)">
      <option value="CLASSIC" <% if(strcmp(ini.cc_model,"CLASSIC")==0) { %>selected="selected"<% } %>>Classic</option>
      <option value="CC128" <% if(strcmp(ini.cc_model,"CC128")==0) { %>selected="selected"<% } %>>CC128</option>
      </select>
@@ -200,16 +190,15 @@ addEvent(window,"load",function() {
 	<input class="num" type="text" name="cc_hysteresis" onblur="is_digit(this,'Hysteresis')" value="<%= ini.cc_hysteresis %>" maxlength="3" size="3"/>
 	 <span class="default">(Default: 10 Watts)</span>
    </div>
-  </div>
-
-</fieldset>
-
+<%
+     if(sensorCount > 0) {
+%>
 <fieldset>
   <legend>Sensors</legend>
   <table>
 	   <tr><th>ID</th><th>Type</th><th>Units</th><th>Description</th></tr>
 <%
-	   for(i=0; i<SENSOR_COUNT; i++) {
+	   for(i=0; i<sensorCount; i++) {
 %>
 	   <tr>
          <td><% io_printf(out,"%d",i+1);%></td>
@@ -219,11 +208,18 @@ addEvent(window,"load",function() {
          <td><input name="desc<% io_printf(out,"%d",i); %>" maxlength="40" size="40" value="<%= sensor[i].desc %>"/></td>
        </tr>
 <%
-           }
+           } // foreach sensor
 %>
 
   </table>
 </fieldset>
+<%
+     } // If sensor count > 0
+%>
+  </div>
+
+</fieldset>
+
 
 <br/>
 

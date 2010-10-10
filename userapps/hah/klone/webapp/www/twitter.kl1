@@ -20,16 +20,12 @@ static struct {
 	 char key[128];
 	 char secret[128];
 	 char ufreq[5];
-	 char uid[5];
-	 char instance[30];
 	 char enable[2];
 	 char prefix[18];
 } ini;
 
 static void readIni() {
 	 ini_gets("twitter","enable","0",ini.enable,sizeof(ini.enable),con.inifile);
-	 ini_gets("twitter","uid","00D9",ini.uid,sizeof(ini.uid),con.inifile);
-	 ini_gets("twitter","instance","Twitter",ini.instance,sizeof(ini.instance),con.inifile);
 	 ini_gets("twitter","access_key","",ini.key,sizeof(ini.key),con.inifile);
 	 ini_gets("twitter","access_secret","",ini.secret,sizeof(ini.secret),con.inifile);
 	 ini_gets("twitter","ufreq","30",ini.ufreq,sizeof(ini.ufreq),con.inifile);
@@ -49,18 +45,6 @@ static int submit_form() {
 			 restart=1;
 		     }
 	     }
-
-	 const char *uid = request_get_arg(request,"uid");
-	 const char *instance = request_get_arg(request,"instance");
-	 if(uid && strcmp(uid,ini.uid)) {
-		  upperstr((char *)uid);
-		  ini_puts("twitter","uid",uid,con.inifile);
-		  restart = 1;
-	 }
-	 if(instance && strcmp(instance,ini.instance)) {
-	          ini_puts("twitter","instance",instance,con.inifile);
-		  restart = 1;
-	 }
 
 	 const char *ufreq = request_get_arg(request,"ufreq");
 	 if(ufreq && strcmp(ufreq,ini.ufreq)) {
@@ -141,18 +125,6 @@ addEvent(window,"load",function() {
 
 <fieldset>
   <legend>Configuration</legend>
-
-  <div class="setting">
-    <div class="label">xAP UID</div>
-    <input maxlength="4" size="4" name="uid" value="<%= ini.uid %>" onblur="isxdigit(this,'UID')"/>
-    <span class="default">(Default: 00D9, Range: 0000 - FFFF)</span>
-  </div>
-
-  <div class="setting">
-    <div class="label">xAP Instance</div>
-    <input maxlength="30" size="25" name="instance" value="<%= ini.instance %>"/>
-    <span class="default">(Default: Twitter)</span>
-  </div>
 
   <div class="setting">
     <div class="label">Update Frequency</div>

@@ -11,17 +11,13 @@
 #include <unistd.h>
 #include <string.h>
 #include "mem.h"
-#include "debug.h"
+#include "log.h"
 
 void *mem_malloc(size_t size, int flags)
 {
-	void *ptr;
+	void *ptr = malloc(size);
 
-	if ((ptr = malloc(size)) == NULL) {
-		debug(LOG_EMERG, "ERROR: Unable to allocate memory, aborting.\n");
-		exit(-1);
-	}
-
+	die_if(ptr == NULL, "ERROR: Unable to allocate memory, aborting.");
 	if (flags & M_ZERO)
 		memset(ptr, 0, size);
 
@@ -32,10 +28,8 @@ void *mem_realloc(void *ptr, size_t size, int flags)
 {
 	int change = (size - ((ptr == NULL) ? 0 : sizeof(*ptr)));
 
-	if ((ptr = realloc(ptr, size)) == NULL) {
-		debug(LOG_EMERG, "Unable to realloc() memory.\n");
-		exit(-1);
-	}
+	ptr = realloc(ptr, size);
+	die_if(ptr == NULL, "Unable to realloc() memory.");
 
 	if ((flags & M_ZERO) && (change > 0))
 		memset(ptr + (size - change), 0, change);

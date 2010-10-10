@@ -51,34 +51,6 @@ static void usage(char *prog) {
 	 exit(1);
 }
 
-/// Process the INI file for xAP control data and setup the global gXAP object.
-void setupXap() {
-	long n;
-	char i_uid[5];
-	char s_uid[10];
-
-	n = ini_gets("xap","uid","00DB",i_uid, sizeof(i_uid),inifile);
-
-	// validate that the UID can be read as HEX
-	if(! (n > 0 
-	      && (isxdigit(i_uid[0]) && isxdigit(i_uid[1]) && 
-		  isxdigit(i_uid[2]) && isxdigit(i_uid[3]))
-	      && strlen(i_uid) == 4))
-	{
-		err("invalid uid %s", i_uid);
-		strcpy(i_uid,"00DB"); // not valid put back default.
-	}
-	snprintf(s_uid, sizeof(s_uid), "FF%s00", i_uid);
-
-	char i_control[64];
-	char s_control[128];
-	n = ini_gets("xap","instance","Controller",i_control,sizeof(i_control),inifile);
-	snprintf(s_control, sizeof(s_control), "dbzoo.livebox.%s", i_control);
-
-	xapInit(s_control, s_uid, interfaceName);
-	die_if(gXAP == NULL,"Failed to init xAP");
-}
-
 /// Setup Endpoints, the Serial port, a callback for the serial port and process xAP messages.
 int main(int argc, char *argv[])
 {
@@ -99,7 +71,8 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	setupXap();
+	xapInitFromINI("xap","dbzoo.livebox","Controller","00DB",interfaceName,inifile);
+
 	setupSerialPort(serialPort, B115200);
 
 	/* Endpoint UID mapping - Identifies a particular hardware device for life.

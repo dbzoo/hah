@@ -1,6 +1,6 @@
 /* $Id$
    Copyright (c) Brett England, 2010
-   
+
    No commercial use.
    No redistribution at profit.
    All derivative work must retain this message and
@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <curl/curl.h>
-#include "debug.h"
+#include "log.h"
 #include "pachube.h"
 #include "mem.h"
 
@@ -51,26 +51,26 @@ static int postPachube(pach_t p, char *eeml) {
 	      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
 	      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, eeml);
 	      curl_easy_setopt(curl, CURLOPT_POST, 1L);
-	      if(g_debuglevel == LOG_DEBUG) 
+		 if(getLoglevel() == LOG_DEBUG)
 		   curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-	      
+
 	      res = curl_easy_perform(curl);
 	      curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
 	      curl_easy_cleanup(curl);
-	      
+
 	      if(code != 200) {
 		   code = -code;
 	      }
 	      return code;
 	 }
-	 return -1;     
+	 return -1;
 }
 
 /* Send a pre-formated XML datastream set to pachube */
 int pach_updateDatastreamXml(pach_t p, char *xml) {
      if(xml == NULL) return;
 
-     debug(LOG_INFO,"UPDATE feed %d", p->feedid);
+     info("feed %d", p->feedid);
 
      char *eeml = mem_malloc(strlen(eeml_head) + strlen(eeml_foot) + strlen(xml) + 1, M_NONE);
      strcpy(eeml, eeml_head);

@@ -1,13 +1,10 @@
 # $Id$
 
 XAP=googlecal
-CFLAGS=-g -DLINUX -DIDENT -I$(INSTALL_DIR)/include -I$(INSTALL_DIR)/include/libxml2
-#CFLAGS+=-I../xaplib -I../xapxmllib
-#LDFLAGS=-L$(INSTALL_DIR)/lib -lxap -lxapxml -lgcal -lxml2 -lcurl
-#LDFLAGS+=-L../xaplib -L../xapxmllib
-CFLAGS+=-I../xaplib
-LDFLAGS=-L$(INSTALL_DIR)/lib -lxap -lgcal -lxml2 -lcurl
-LDFLAGS+=-L../xaplib
+CFLAGS=-I$(INSTALL_DIR)/include -I$(INSTALL_DIR)/include/libxml2
+LDFLAGS=-L$(INSTALL_DIR)/lib -lxap2 -lgcal -lxml2 -lcurl
+#LDFLAGS+=-L../xaplib2
+#CFLAGS+=-I../xaplib2
 OBJECTS=$(XAP).o svn_date.o
 
 xap-$(XAP): $(OBJECTS)

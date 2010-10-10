@@ -9,7 +9,6 @@ static int reboot = 0;
 
 struct _datastream {
 	 char id[4];
-	 char xapkey[65];
 	 char tag[20];
 } ds[32];
 
@@ -37,7 +36,6 @@ static void readIni() {
 	 int i;
 	 for(i=0; i < ini.count; i++) {
 		  loadDynINI("id", i, ds[i].id, sizeof(ds[i].id));
-		  loadDynINI("xap", i, ds[i].xapkey, sizeof(ds[i].xapkey));
 		  loadDynINI("tag", i, ds[i].tag, sizeof(ds[i].tag));					 
 	 }
 }

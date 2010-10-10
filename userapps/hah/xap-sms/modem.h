@@ -8,10 +8,11 @@
 
 int put_command(char *cmd, int cmd_len, char *answer, int max, int timeout, char *exp_end);
 int initmodem();
-void setup_serial_port();
+int setup_serial_port();
 int checkmodem();
 
 extern int g_serial_fd;
+extern const char *inifile;
 
 struct inbound_sms {
 	 char sender[31];

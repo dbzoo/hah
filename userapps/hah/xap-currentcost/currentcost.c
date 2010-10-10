@@ -24,7 +24,7 @@
 #define INFO_INTERVAL 120
 
 xAP *gXAP;
-const char inifile[] = "/etc/xap-livebox.ini";
+const char *inifile = "/etc/xap-livebox.ini";
 char serialPort[20];
 int hysteresis;
 char *interfaceName = "eth0";
@@ -301,29 +301,7 @@ static void usage(char *prog)
 /// Process the INI file for xAP control data and setup the global gXAP object.
 void setupXap()
 {
-        long n;
-        char i_uid[5];
-        char s_uid[10];
-
-        n = ini_gets("currentcost","uid","00DC",i_uid, sizeof(i_uid),inifile);
-
-        // validate that the UID can be read as HEX
-        if(! (n > 0
-                        && (isxdigit(i_uid[0]) && isxdigit(i_uid[1]) &&
-                            isxdigit(i_uid[2]) && isxdigit(i_uid[3]))
-                        && strlen(i_uid) == 4)) {
-                err("invalid uid %s", i_uid);
-                strcpy(i_uid,"00DC"); // not valid put back default.
-        }
-        snprintf(s_uid, sizeof(s_uid), "FF%s00", i_uid);
-
-        char i_control[64];
-        char s_control[128];
-        n = ini_gets("currentcost","instance","CurrentCost",i_control,sizeof(i_control),inifile);
-        snprintf(s_control, sizeof(s_control), "dbzoo.livebox.%s", i_control);
-
-        xapInit(s_control, s_uid, interfaceName);
-        die_if(gXAP == NULL,"Failed to init xAP");
+	xapInitFromINI("currentcost","dbzoo.livebox","CurrentCost","00DC",interfaceName,inifile);
 
         hysteresis = ini_getl("currentcost", "hysteresis", 10, inifile);
 

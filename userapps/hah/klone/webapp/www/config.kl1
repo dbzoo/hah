@@ -8,16 +8,12 @@
 static int reboot = 0;
 
 static struct {
-	 char uid[5];
-	 char instance[30];
 	 char temp_unit[2];
 	 int devices1wire;
 	 int devicesrf;
          int timeout_1wire;
          char sms_enable[2];
 	 char sms_usbserial[16];
-	 char sms_uid[5];
-	 char sms_instance[30];
 } ini;
 
 struct _label {
@@ -80,18 +76,6 @@ static void upperstr(char *s) {
 }
 
 static void submit_form() {
-	 const char *uid = request_get_arg(request,"uid");
-	 const char *instance = request_get_arg(request,"instance");
-	 if(uid && strcmp(uid,ini.uid)) {
-		  upperstr((char *)uid);
-		  ini_puts("xap","uid",uid,con.inifile);
-		  reboot = 1;
-	 }
-	 if(instance && strcmp(instance,ini.instance)) {
-		  ini_puts("xap","instance",instance,con.inifile);
-		  reboot = 1;
-	 }
-
 	 int i;
 	 char key[50];
 	 for(i=0; i<sizearray(labels); i++) {
@@ -124,40 +108,13 @@ static void submit_form() {
 		 ini.timeout_1wire = timeout_1wire;
 	 }
 
-
-	 int sms_restart = 0;
-	 const char *sms_enable = request_get_arg(request,"sms_enable");
-	 if(sms_enable) {
-		  if((*sms_enable == '1' && ini.sms_enable[0] == '0') ||
-			 (*sms_enable == '0' && ini.sms_enable[0] == '1')) {
-			   ini_puts("sms","enable",sms_enable,con.inifile);
-			   sms_restart = 1;
-		  }
-	 }
-
-	 const char *sms_usbserial = request_get_arg(request, "sms_usbserial");
-	 if(sms_usbserial && strcmp(sms_usbserial, ini.sms_usbserial)) {
-		  ini_puts("sms","usbserial", sms_usbserial, con.inifile);
-		  sms_restart = 1;
-	 }
-
-	 if(sms_restart) {
-	     char *argv[] = {"/etc/init.d/xap","restart", "sms", NULL};
-	     subprocess(argv);
-	 }
 }
 
 static void readIni() {
-	 ini_gets("xap","uid","00DB",ini.uid,sizeof(ini.uid),con.inifile);
-	 ini_gets("xap","instance","Controller",ini.instance,sizeof(ini.instance),con.inifile);
 	 ini.devices1wire = ini_getl("1wire","devices", 0, con.inifile);
 	 ini.devicesrf = ini_getl("rf","devices", 0, con.inifile);
 	 ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), con.inifile);
 	 ini.timeout_1wire = ini_getl("1wire","timeout", 0, con.inifile);
-	 ini_gets("sms","enable","0",ini.sms_enable,sizeof(ini.sms_enable),con.inifile);
-	 ini_gets("sms","usbserial","/dev/ttyUSB0",ini.sms_usbserial,sizeof(ini.sms_usbserial),con.inifile);
-	 ini_gets("sms","uid","00DD",ini.sms_uid,sizeof(ini.sms_uid),con.inifile);
-	 ini_gets("sms","instance","sms",ini.sms_instance,sizeof(ini.sms_instance),con.inifile);
 }
 
 static char buf[20];
@@ -199,10 +156,6 @@ function reboot(F) {
 	 F.action.value = "Reboot";
 	 apply(F);
 }
-addEvent(window,"load",function() {
-	 show_layer_ext(document.frmControl.sms_enable, 'idsms', 1 == <%= ini.sms_enable %>);
-	 });
-
 </script>
 </head>
 <title>Livebox</title>
@@ -221,22 +174,6 @@ int i;
 <form name="frmControl" action="<%= SCRIPT_NAME %>" method="post">
 <input type="hidden" name="action" />
 <h2>LiveBox Hardware</h2>
-<fieldset>
-  <legend>HAH Controller</legend>
-
-  <div class="setting">
-    <div class="label">xAP UID</div>
-    <input maxlength="4" size="4" name="uid" value="<%= ini.uid %>" onblur="isxdigit(this,'UID')"/>
-    <span class="default">(Default: 00DB, Range: 0000 - FFFF)</span>
-  </div>
-
-  <div class="setting">
-    <div class="label">xAP Instance</div>
-    <input maxlength="30" size="25" name="instance" value="<%= ini.instance %>"/>
-    <span class="default">(Default: Controller)</span>
-  </div>
-</fieldset>
-
 <table><tr>
 
 <%
@@ -332,32 +269,6 @@ io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"sensor
   </div>
 </fieldset>
 
-<fieldset>
-  <legend>GSM Phone</legend>
-  <div class="setting">
-    <div class="label">USB attached</div>
-	<input class="spaceradio" type="radio" value="1" name="sms_enable" onclick="show_layer_ext(this, 'idsms', true);"<% if(ini.sms_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
-    <input class="spaceradio" type="radio" value="0" name="sms_enable" onclick="show_layer_ext(this, 'idsms', false);"<% if(ini.sms_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
-  </div>
-  <div class="setting" id="idsms">
-  <div class="setting">
-    <div class="label">xAP UID</div>
-    <input maxlength="4" size="4" name="sms_uid" value="<%= ini.sms_uid %>" onblur="isxdigit(this,'UID')"/>
-    <span class="default">(Default: 00DD, Range: 0000 - FFFF)</span>
-  </div>
-  <div class="setting">
-    <div class="label">xAP Instance</div>
-    <input maxlength="30" size="25" name="sms_instance" value="<%= ini.sms_instance %>"/>
-    <span class="default">(Default: sms)</span>
-  </div>
-   <div class="setting">
-    <div class="label">USB Serial Device</div>
-	<input type="text" name="sms_usbserial" value="<%= ini.sms_usbserial %>" maxlength="15" size="15"/>
-	 <span class="default">(Default: /dev/ttyUSB0)</span>
-   </div>
-  </div>
-
-</fieldset>
 
 <br/>
 

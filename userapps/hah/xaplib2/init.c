@@ -16,6 +16,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <ctype.h>
+#include "minIni.h"
 #include "xap.h"
 
 /// Setup for Rx XAP packets
@@ -95,9 +97,9 @@ void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char **ip, 
                 die_strerror("Unable to query capabilities of interface %s", interfaceName);
         }
         myinterface.sin_addr.s_addr=((struct sockaddr_in*)&interface.ifr_broadaddr)->sin_addr.s_addr;
-	
 
-	*ip = strdup(inet_ntoa(((struct sockaddr_in *)&interface.ifr_addr)->sin_addr));
+
+        *ip = strdup(inet_ntoa(((struct sockaddr_in *)&interface.ifr_addr)->sin_addr));
         info("%s: address %s", interfaceName, *ip);
 
         // Find netmask
@@ -140,16 +142,18 @@ void heartbeatHandler(int interval, void *data)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-xAPSocketConnection *xapFindSocketListenerByFD(int ifd) {
+xAPSocketConnection *xapFindSocketListenerByFD(int ifd)
+{
         xAPSocketConnection *e;
-	LL_SEARCH_SCALAR(gXAP->connectionList, e, fd, ifd);
-	return e;
+        LL_SEARCH_SCALAR(gXAP->connectionList, e, fd, ifd);
+        return e;
 }
 
-void xapDelSocketListener(xAPSocketConnection **cb) {
-	LL_DELETE(gXAP->connectionList, *cb);
-	free(*cb);
-	*cb = NULL;
+void xapDelSocketListener(xAPSocketConnection **cb)
+{
+        LL_DELETE(gXAP->connectionList, *cb);
+        free(*cb);
+        *cb = NULL;
 }
 
 /** select() on other descriptors whilst in the xapProcess() loop.
@@ -163,8 +167,8 @@ xAPSocketConnection *xapAddSocketListener(int fd, void (*callback)(int, void *),
         cb->user_data = data;
         cb->fd = fd;
 
-	LL_PREPEND(gXAP->connectionList, cb);
-	return cb;
+        LL_PREPEND(gXAP->connectionList, cb);
+        return cb;
 }
 
 /** Create a new xAP object.
@@ -178,12 +182,79 @@ void xapInit(char *source, char *uid, char *interfaceName)
 
         gXAP = (xAP *)calloc(sizeof(xAP), 1);
 
-	discoverBroadcastNetwork(&gXAP->txAddress, &gXAP->txSockfd, &gXAP->ip, interfaceName);
-	discoverHub(&gXAP->rxPort, &gXAP->rxSockfd, &gXAP->txAddress);
+        discoverBroadcastNetwork(&gXAP->txAddress, &gXAP->txSockfd, &gXAP->ip, interfaceName);
+        discoverHub(&gXAP->rxPort, &gXAP->rxSockfd, &gXAP->txAddress);
 
-	gXAP->source = strdup(source);
-	gXAP->uid = strdup(uid);
+        gXAP->source = strdup(source);
+        gXAP->uid = strdup(uid);
 
         xapAddTimeoutAction(&heartbeatHandler, XAP_HEARTBEAT_INTERVAL, NULL);
         xapAddSocketListener(gXAP->rxSockfd, handleXapPacket, NULL);
+}
+
+/**
+ * Register an xap connection initialized from an INI file.
+ */
+void xapInitFromINI(
+        char *section, char *prefix, char *instance, char *uid,
+        char *interfaceName, const char *inifile)
+{
+        long n;
+        char i_uid[5];
+        char s_uid[10];
+
+        n = ini_gets(section,"uid",uid,i_uid, sizeof(i_uid),inifile);
+
+        // validate that the UID can be read as HEX
+        if(! (n > 0
+                        && (isxdigit(i_uid[0]) && isxdigit(i_uid[1]) &&
+                            isxdigit(i_uid[2]) && isxdigit(i_uid[3]))
+                        && strlen(i_uid) == 4)) {
+                err("invalid uid %s", i_uid);
+                strcpy(i_uid,uid); // not valid put back default.
+        }
+        snprintf(s_uid, sizeof(s_uid), "FF%s00", i_uid);
+
+        char i_control[64];
+        char s_control[128];
+        n = ini_gets("xap","instance","",i_control,sizeof(i_control),inifile);
+        strcpy(s_control, prefix);
+        // Make sure the prefix has a trailing DOT.
+        if(prefix[strlen(prefix)-1] != '.') {
+                strlcat(s_control,".", sizeof(s_control));
+        }
+        // If there a unique HAH sub address component?
+        if(i_control[0]) {
+                strlcat(s_control, i_control, sizeof(s_control));
+                strlcat(s_control, ".",sizeof(s_control));
+        }
+        strlcat(s_control,instance,sizeof(s_control));
+
+        xapInit(s_control, s_uid, interfaceName);
+        die_if(gXAP == NULL,"Failed to init xAP");
+}
+
+
+/// Display usage information and exit.
+static void simpleUsage(char *prog, char *interfaceName)
+{
+        printf("%s: [options]\n",prog);
+        printf("  -i, --interface IF     Default %s\n", interfaceName);
+        printf("  -d, --debug            0-7\n");
+        printf("  -h, --help\n");
+        exit(1);
+}
+
+void simpleCommandLine(int argc, char *argv[], char **interfaceName)
+{
+        int i;
+        for(i=0; i<argc; i++) {
+                if(strcmp("-i", argv[i]) == 0 || strcmp("--interface",argv[i]) == 0) {
+                        *interfaceName = argv[++i];
+                } else if(strcmp("-d", argv[i]) == 0 || strcmp("--debug", argv[i]) == 0) {
+                        setLoglevel(atoi(argv[++i]));
+                } else if(strcmp("-h", argv[i]) == 0 || strcmp("--help", argv[i]) == 0) {
+	                simpleUsage(argv[0], *interfaceName);
+                }
+        }
 }

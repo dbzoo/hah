@@ -19,7 +19,7 @@ INI file processing
 // *** DO NOT CHANGE UNLESS YOU ALIGN WITH THE AVR FIRMWARE ***
 #define MAXCHANNEL 16
 
-const char inifile[] = "/etc/xap-livebox.ini";
+const char *inifile = "/etc/xap-livebox.ini";
 
 /** Generate an event/info and lookup the displaytext
 *

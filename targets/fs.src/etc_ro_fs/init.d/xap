@@ -5,19 +5,31 @@
 
 . /etc/ini.conf
 
-subsystem="livebox sms pachube googlecal currentcost twitter plugboard bridge serial"
+subsystem="hub pachube livebox web sms googlecal currentcost twitter bridge serial plugboard"
 
-start_livebox() {
-    /usr/bin/xap-hub $MYDEV &
-    sleep 1
-    /usr/bin/xap-livebox -s /dev/ttyS0 -i $MYDEV &
+start_web() {
     rm -f /tmp/klone_sess*
     /usr/bin/kloned    
 }
-stop_livebox() {
-    killall xap-hub
-    killall xap-livebox
+
+stop_web() {
     killall kloned
+}
+
+start_hub() {
+    /usr/bin/xap-hub $MYDEV &
+    sleep 1
+}
+
+stop_hub() {
+    killall xap-hub
+}
+
+start_livebox() {
+    /usr/bin/xap-livebox -s /dev/ttyS0 -i $MYDEV &
+}
+stop_livebox() {
+    killall xap-livebox
 }
 
 start_serial() {

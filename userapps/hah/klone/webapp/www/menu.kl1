@@ -16,6 +16,9 @@ int isPachubeEnabled(session_t *s) {
   return ph_enable[0] == '1';
 }
 
+/* The INFO tab is shown on the Admin/L2 level.
+   Don't show the others TABS until we authenticate.
+ */
 int isAuthenticated(session_t *s) {
 	char *username = session_get(s, "username");
 	return(username && strlen(username));
@@ -30,7 +33,9 @@ MENU mymenu[] =
   {"Automation","Twitter","twitter.kl1", NULL},
   {"Automation","Pachube","pachube.kl1", NULL},
   {"Automation","Graph","graph.kl1", isPachubeEnabled},
+  {"Automation","Assists","assistance.kl1", NULL},
   {"Admin","Info","index.kl1", NULL},
+  {"Admin","Instance","instance.kl1", isAuthenticated},
   {"Admin","Management","setup.kl1", isAuthenticated},
   {"Admin","Services","services.kl1", isAuthenticated},
   {"Admin","Webserver","webserver.kl1", isAuthenticated},

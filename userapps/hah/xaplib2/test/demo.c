@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 	bscAddEndpoint(&ep, "relay", "4", BSC_OUTPUT, BSC_BINARY, &cmdRelay, NULL);
 	bscAddEndpoint(&ep, "lcd",  NULL, BSC_OUTPUT, BSC_STREAM, &cmdLCD, NULL);
 
-        xapAddBscEndpointFilters(ep, INFO_INTERVAL);
+        bscAddEndpointFilterList(ep, INFO_INTERVAL);
 
 	xapAddTimeoutAction(&timeout, 20, "user data");
 	

@@ -1,0 +1,157 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+
+#define sizearray(a)  (sizeof(a) / sizeof((a)[0]))
+
+static int reboot = 0;
+
+// List of xap-daemons
+struct _daemon {
+	char *section;
+	char *name;
+	char *dflt;
+	char uid[5];
+} daemons[] = {
+	       {"bridge","Bridge","00D3",""},
+	       {"snoop","Snoop","00D4",""},
+	       {"serial","Serial","00D5",""},
+	       {"pachube","Pachube","00D7",""},
+	       {"plugboard","Plugboard","00D8",""},
+	       {"twitter","Twitter","00D9",""},
+	       {"googlecal","Google Calendar","00DA",""},
+	       {"xap","Livebox","00DB", ""},
+	       {"currentcost","CurrentCost","00DC",""},
+	       {"sms","SMS","00DD",""}
+};
+#define daemonCount (sizeof(daemons)/sizeof(daemons[0]))
+char iniInstance[32];
+
+static void submit_form() {
+	 const char *instance = request_get_arg(request,"instance");
+	 if(instance && strcmp(instance,iniInstance)) {
+		  ini_puts("xap","instance",instance,con.inifile);
+		  reboot = 1;
+	 }
+	 
+	 int i;
+	 char uidKey[5];
+	 for(i=0; i<daemonCount; i++) {
+		 sprintf(uidKey,"uid%d", i);
+		 const char *uid = request_get_arg(request, uidKey);
+		 if(uid && strcmp(uid, daemons[i].uid)) {
+			 ini_puts(daemons[i].section,"uid",uid,con.inifile);
+			 reboot = 1;
+		 }
+	 }
+}
+
+static void readIni() {
+	 int i;
+	 char uidKey[5];
+
+	 ini_gets("xap","instance","",iniInstance,sizeof(iniInstance),con.inifile);
+	 for(i=0; i<daemonCount; i++) {
+		 sprintf(uidKey,"uid%d", i);
+		 ini_gets(daemons[i].section,"uid",daemons[i].dflt,daemons[i].uid,sizeof(daemons[i].uid),con.inifile);
+	 }
+}
+%>
+<%
+int i;
+REQUIRE_AUTH(SCRIPT_NAME);
+readIni();
+const char *action = request_get_arg(request,"action");
+if(action && strcmp(action,"Apply") == 0) {
+	 submit_form(out);
+	 readIni();
+}
+if(action && strcmp(action,"Reboot") == 0) {
+	  response_redirect(response, "reboot.kl1");
+}
+%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
+<link type="text/css" rel="stylesheet" href="style/current/style.css" />
+<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css" /><![endif]-->
+<script type="text/javascript" src="common.js"></script>
+<script type="text/javascript">
+function to_submit(F) {
+	F.save_button.value = "Saving";
+	F.action.value = "Apply";
+	apply(F);
+}
+function reboot(F) {
+	 F.reboot_button.value = "Rebooting";
+	 F.action.value = "Reboot";
+	 apply(F);
+}
+</script>
+</head>
+<title>Livebox</title>
+<body class="gui">
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<br/>
+<form name="frmControl" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="action" />
+<h2>HAH Instance</h2>
+<p>These settings should only need to be changed if you have more then one HAH box running on the same subnet.</p>
+
+<fieldset>
+  <legend>Instance Settings</legend>
+
+  <div class="setting">
+    <div class="label">HAH Instance</div>
+    <input maxlength="30" size="25" name="instance" value="<%= iniInstance %>"/>
+    <span class="default">(Default: null)</span>
+  </div>
+
+<table>
+<tr>
+<th>Daemon</th>
+<th>UID</th>
+<th>Default</th>
+<%
+for(i=0; i<daemonCount; i++) {
+%>
+<tr>
+<td><%= daemons[i].name%></td>
+<td><input maxlength="4" size="4" name="uid<% io_printf(out,"%d",i);%>" value="<%= daemons[i].uid %>" onblur="isxdigit(this,'UID')"/></td>
+<td><span class="default"><%= daemons[i].dflt %></span></td>
+</tr>
+<%
+		       }
+%>
+</table>
+
+</fieldset>
+
+<br/>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)" />
+<input type="reset" value="Cancel Changes"/>
+<% if(reboot) { %><input type="button" name="reboot_button" value="Reboot" onclick="reboot(this.form)" /><% } %>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>
+

@@ -16,13 +16,17 @@
 xAP *gXAP;
 
 int main(int argc, char **argv) {
+	setLoglevel(7);
+	
 	xAPFilter *f = NULL;
 	xapAddFilter(&f, "xap-header","target","dbzoo.livebox.1.Controller");
 	xapAddFilter(&f, "xap-header","target","dbzoo.livebox.1.>");
 	xapAddFilter(&f, "xap-header","target","dbzoo.livebox.Controller");
 	xapAddFilter(&f, "xap-header","target","dbzoo.livebox.*.Controller");
 	xapAddFilter(&f, "xap-header","target","dbzoo.livebox.>");
-
+	xapAddFilter(&f, "xap-header","target",XAP_FILTER_ANY);
+	xapAddFilter(&f, "xap-header","target",XAP_FILTER_ABSENT);
+	
 	xAPFilter *e;
 	for(e = f; e; e = e->next) {
 		int match = xapFilterAddrSubaddress(e->value, "dbzoo.livebox.1.controller");

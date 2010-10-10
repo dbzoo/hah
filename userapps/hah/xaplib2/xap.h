@@ -21,7 +21,8 @@
 #define XAP_MSG_ELEMENTS 50
 #define XAP_HEARTBEAT_INTERVAL 60
 
-#define XAP_FILTER_ANY 0
+extern const char *XAP_FILTER_ANY;
+extern const char *XAP_FILTER_ABSENT;
 
 // Allow 100 sockets from default port.
 #define XAP_PORT_L 3639
@@ -37,9 +38,9 @@
 #define XAP_MSG_NONE 0                  // (or no message received)
 
 typedef struct _xAPFilter {
-	char *section;
-	char *key;
-	char *value;
+	const char *section;
+	const char *key;
+	const char *value;
 	struct _xAPFilter *next;
 } xAPFilter;
 
@@ -98,12 +99,15 @@ extern xAP *gXAP;
 
 // init.c
 void xapInit(char *source, char *uid, char *interfaceName);
+void xapInitFromINI(char *section, char *prefix, char *instance, char *uid, char *interfaceName, const char *inifile);
 xAPSocketConnection *xapAddSocketListener(int fd, void (*callback)(int, void *), void *data);
 xAPSocketConnection *xapFindSocketListenerByFD(int ifd);
 void xapDelSocketListener(xAPSocketConnection **);
+void simpleCommandLine(int argc, char *argv[], char **interfaceName);
 
 // tx.c
 void xapSend(const char *mess);
+char *fillShortXap(char *shortMsg, char *uid, char *source);
 
 // timeout.c
 xAPTimeoutCallback *xapAddTimeoutAction(void (*func)(int, void *), int interval, void *data);
@@ -120,14 +124,15 @@ void handleXapPacket(int fd, void *data);
 int xapGetType();
 char *xapGetValue(char *section, char *key);
 int xapIsValue(char *section, char *key, char *value);
-int parsedMsgToRaw(struct parsedMsgElement parsedMsg[], int parsedMsgCount, char *msg, int size);
-int parseMsg(struct parsedMsgElement parsedMsg[], int maxParsedMsgCount, unsigned char *msg);
+int parsedMsgToRaw(char *msg, int size);
+int parsedMsgToRawWithoutSection(char *msg, int size, char *section);
+int parseMsg();
 
 //filter.c
 int xapCompareFilters(xAPFilter *f);
 xAPFilterCallback *xapAddFilterAction(void (*func)(void *), xAPFilter *filter, void *data);
 void filterDispatch();
-xAPFilter *xapAddFilter(xAPFilter **f, char *section, char *key, char *value);
+xAPFilter *xapAddFilter(xAPFilter **f, const char *section, const char *key, const char *value);
 int xapFilterAddrSubaddress(char *filterAddr, char *addr);
 
 // safe string copy

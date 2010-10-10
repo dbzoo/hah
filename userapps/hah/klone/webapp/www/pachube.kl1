@@ -9,9 +9,13 @@
 static int reboot = 0;
 
 struct _datastream {
-	 char id[4];
-	 char xapkey[65];
-	 char tag[20];
+	char id[4];
+	char tag[20];
+	char source[64];
+	char class[32];
+	char section[32];
+	char key[32];
+
 } ds[32];
 
 static struct {
@@ -19,8 +23,6 @@ static struct {
 	 char feedid[8];
 	 int count;
 	 char ufreq[4];
-	 char ph_uid[5];
-	 char ph_instance[30];
 	 char ph_enable[2];
 } ini;
 
@@ -38,8 +40,6 @@ static void saveDynINI(char *key, int id, const char *value) {
 
 static void readIni() {
 	 ini_gets("pachube","enable","0",ini.ph_enable,sizeof(ini.ph_enable),con.inifile);
-	 ini_gets("pachube","uid","00DE",ini.ph_uid,sizeof(ini.ph_uid),con.inifile);
-	 ini_gets("pachube","instance","Pachube",ini.ph_instance,sizeof(ini.ph_instance),con.inifile);
 	 ini_gets("pachube","apikey","",ini.apikey,sizeof(ini.apikey),con.inifile);
 	 ini_gets("pachube","feedid","",ini.feedid,sizeof(ini.feedid),con.inifile);
 	 ini_gets("pachube","ufreq","60",ini.ufreq,sizeof(ini.ufreq),con.inifile);
@@ -53,8 +53,11 @@ static void readIni() {
 	 int i;
 	 for(i=0; i < ini.count; i++) {
 		  loadDynINI("id", i, ds[i].id, sizeof(ds[i].id));
-		  loadDynINI("xap", i, ds[i].xapkey, sizeof(ds[i].xapkey));
-		  loadDynINI("tag", i, ds[i].tag, sizeof(ds[i].tag));					 
+		  loadDynINI("tag", i, ds[i].tag, sizeof(ds[i].tag));
+		  loadDynINI("source", i, ds[i].source, sizeof(ds[i].source));
+		  loadDynINI("class", i, ds[i].class, sizeof(ds[i].class));
+		  loadDynINI("section", i, ds[i].section, sizeof(ds[i].section));
+		  loadDynINI("key", i, ds[i].key, sizeof(ds[i].key));
 	 }
 }
 
@@ -76,18 +79,6 @@ static void submit_form() {
 		  }
 	 }
 
-	 const char *ph_uid = request_get_arg(request,"ph_uid");
-	 const char *ph_instance = request_get_arg(request,"ph_instance");
-	 if(ph_uid && strcmp(ph_uid,ini.ph_uid)) {
-		  upperstr((char *)ph_uid);
-		  ini_puts("pachube","uid",ph_uid,con.inifile);
-		  reboot = 1;
-	 }
-	 if(ph_instance && strcmp(ph_instance,ini.ph_instance)) {
-		  ini_puts("pachube","instance",ph_instance,con.inifile);
-		  reboot = 1;
-	 }
-
 	 const char *apikey = request_get_arg(request,"apikey");
 	 if(apikey && strcmp(apikey,ini.apikey)) {
 		  ini_puts("pachube","apikey",apikey,con.inifile);
@@ -104,12 +95,19 @@ static void submit_form() {
 	 int i;
 	 for(i=0; i<ini.count; i++) {
 		  const char *id = getdynkey("id", i);
-		  const char *xapkey = getdynkey("xap", i);
 		  const char *tag = getdynkey("tag", i);
-		  if(id == NULL || xapkey == NULL) continue;
+		  const char *source = getdynkey("source", i);
+		  const char *class = getdynkey("class", i);
+		  const char *section = getdynkey("section", i);
+		  const char *key = getdynkey("key", i);
+		  if(id == NULL || source == NULL || section == NULL || key == NULL || class == NULL) 
+			  continue;
 		  saveDynINI("id", i, id);
-		  saveDynINI("xap", i, xapkey);
 		  saveDynINI("tag", i, tag);
+		  saveDynINI("source", i, source);
+		  saveDynINI("class", i, class);
+		  saveDynINI("section", i, section);
+		  saveDynINI("key", i, key);
 	 }
 }
 /**********************************************************************/
@@ -146,8 +144,11 @@ static void submit_form() {
 	 // Write out the datastreams - including our blank one.
 	 for(i=0; i<ini.count; i++) {
 		  saveDynINI("id", i, ds[i].id);
-		  saveDynINI("xap", i, ds[i].xapkey);
 		  saveDynINI("tag", i, ds[i].tag);
+		  saveDynINI("source", i, ds[i].source);
+		  saveDynINI("class", i, ds[i].class);
+		  saveDynINI("section", i, ds[i].section);
+		  saveDynINI("key", i, ds[i].key);
 	 }
 	 // now remove it from the list.
 	 ini.count--;
@@ -213,18 +214,6 @@ addEvent(window,"load",function() {
   <legend>Configuration</legend>
 
   <div class="setting">
-    <div class="label">xAP UID</div>
-    <input maxlength="4" size="4" name="ph_uid" value="<%= ini.ph_uid %>" onblur="isxdigit(this,'UID')"/>
-    <span class="default">(Default: 00DE, Range: 0000 - FFFF)</span>
-  </div>
-
-  <div class="setting">
-    <div class="label">xAP Instance</div>
-    <input maxlength="30" size="25" name="ph_instance" value="<%= ini.ph_instance %>"/>
-    <span class="default">(Default: Pachube)</span>
-  </div>
-
-  <div class="setting">
     <div class="label">API Key</div>
     <input maxlength="65" size="60" name="apikey" value="<%= ini.apikey %>"/>
   </div>
@@ -242,14 +231,17 @@ addEvent(window,"load",function() {
 <fieldset>
   <legend>Datastream</legend>
    <table>
-	   <tr><th>ID</th><th>Tag</th><th>xAP source</th></tr>
+	   <tr><th>ID</th><th>Tag</th><th>xAP source</th><th>xAP class</th><th>xAP section</th><th>key</th></tr>
 <%
 	   for(i=0; i<ini.count; i++) {
 %>
 	   <tr>
-         <td><input name="id<% io_printf(out,"%d",i); %>" maxlength="4" size="4" value="<%= ds[i].id %>" onblur="isdigit(this,'ID')"/></td>
-         <td><input name="tag<% io_printf(out,"%d",i); %>" maxlength="20" size="20" value="<%= ds[i].tag %>"/></td>
-         <td><input name="xap<% io_printf(out,"%d",i); %>" maxlength="65" size="60" value="<%= ds[i].xapkey %>"/></td>
+         <td><input name="id<% io_printf(out,"%d",i); %>" maxlength="4" size="1" value="<%= ds[i].id %>" onblur="isdigit(this,'ID')"/></td>
+         <td><input name="tag<% io_printf(out,"%d",i); %>" maxlength="20" size="10" value="<%= ds[i].tag %>"/></td>
+         <td><input name="xap<% io_printf(out,"%d",i); %>" maxlength="64" size="30" value="<%= ds[i].source %>"/></td>
+         <td><input name="xap<% io_printf(out,"%d",i); %>" maxlength="32" size="11" value="<%= ds[i].class %>"/></td>
+         <td><input name="xap<% io_printf(out,"%d",i); %>" maxlength="32" size="11" value="<%= ds[i].section %>"/></td>
+         <td><input name="xap<% io_printf(out,"%d",i); %>" maxlength="32" size="4" value="<%= ds[i].key %>"/></td>
 		 <td><input type="image" src="/images/bin_bt.gif" name="del" value="<% io_printf(out,"%d",i); %>" onclick="del(this.form)"/></td>
        </tr>
 <%

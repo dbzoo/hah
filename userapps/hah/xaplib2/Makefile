@@ -1,6 +1,6 @@
 # $Id$
 OBJECTS=init.o parse.o timeout.o tx.o rx.o filter.o bsc.o log.o strlcpy.o strlcat.o minIni.o
-CFLAGS=-Wall -fPIC
+CFLAGS=-g -Wall -fPIC
 
 libxap2.so: $(OBJECTS)
 	$(CC) -shared -Wl,-soname,libxap2.so -o libxap2.so $(OBJECTS)

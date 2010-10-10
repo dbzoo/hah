@@ -69,5 +69,6 @@ die(__VA_ARGS__);\
 
 void log_write_ex(int level, const char *file, int line, const char *func, const char *fmt, ...);
 void setLoglevel(int level);
+int getLoglevel();
 
 #endif

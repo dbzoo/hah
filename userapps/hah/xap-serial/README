@@ -1,51 +1,78 @@
-Serial Communications Schema - Serial Communications v1.2
+====== Interfacing serial devices ======
 
-This describes a xAP message schema for basic serial communications.
-Unless otherwise stated a name/value pair is assumed to be mandatory.
+Sometimes you want to simply connect a microcontroller to the HAH and have some way of receiving and sending data to this device. The xap-serial process allows even the most basic micros to interoperate with the HAH. The micro simply sends an ASCII string to its UART. This UART is generally connected to the USB port on the HAH via a RS232 to USB cable. The string as sent from the micro should be CR/LF terminated. When a string is received by the xap-serial process, a corresponding xAP message is generated. The text of the string is included in the xAP message and is available to the HAH Plugboard for further actioning.
+
+In a similar way, an xAP message can cause text to be sent to the micro.
+
+====== Enabling ======
+
+xAP serial uses the common ''/etc/xap-livebox.ini'' configuration file.  There is only one option, opening and closing serial ports is done via the xAP schema protocol.
+
+<code ini>
+[serial]
+enable=1
+</code>
+
+  * **enable** default 0.  This attribute is examined by the /etc/init.d/xap startup script and determines if xap-serial will be started as a service when the HAH boots up.
+
+====== xAP Serial Schema ======
+
+A [[http://www.xapautomation.org/index.php?title=Serial_Communications_Schema|serial schema]] exists for this purpose which is implemented in the xap-serial daemon.
+
+The schema has been extended slightly from that published on the xAP Automation web page so it's reproduced here as implemented on the HAH.
+
+Unless otherwise stated, a name/value pair is assumed to be mandatory.
 
 Class=Serial.Comms
 
-INPUT MESSAGES
+===== Input messages =====
 
+<code>
 Serial.Setup
 {
-Port=(ie /dev/ttyUSB0)
+Port=(e.g. /dev/ttyUSB0)
 Baud=(bits per second e.g. 9600)
 Stop=(1 | 2)
 DataBits=( 5 | 6 | 7 | 8)
-Parity=(none | even | odd | mark | space)
+Parity=(none | even | odd)
 Flow=(None | XOnXOff | Hardware)
 }
-
+</code>
+<code>
 Serial.Send
 {
-Port=(ie /dev/ttyUSB0)
+Port=(e.g. /dev/ttyUSB0)
 Data=(Data to be sent on the serial port)
 }
-
+</code>
+<code>
 Serial.Close
 {
-Port=(ie /dev/ttyUSB0)
+Port=(e.g. /dev/ttyUSB0)
 }
+</code>
 
-OUTPUT MESSAGES
+===== Output messages =====
 
+<code>
 Serial.Received
 {
-Port=(ie /dev/ttyUSB0)
+Port=(e.g. /dev/ttyUSB0)
 Data=(Data received on the serial port)
 }
-
+</code>
+<code>
 Serial.Error
 {
 text=
 }
+</code>
 
+====== Examples ======
 
-= EXAMPLES =
+===== Setting up a SERIAL PORT =====
 
-== Setting up a SERIAL PORT ==
-
+<code>
 xap-header
 {
 v=12
@@ -64,9 +91,11 @@ databits=8
 parity=none
 flow=none
 }
+</code>
 
-== Sending a MESSAGE ==
+===== Sending a MESSAGE =====
 
+<code>
 xap-header
 {
 v=12
@@ -81,4 +110,4 @@ serial.send
 port=/dev/ttyS0
 data=There
 }
-
+</code>

@@ -56,18 +56,18 @@ static void rtrim(unsigned char *msg,  unsigned char *p) {
 		*p-- = '\0';
 }
 
-/** Populates the struct parsedMsgElement with pointers into MSG for the parsing rules.
-* MSG is modified.
+/** Populates the struct parsedMsg with pointers into dataPacket for the parsing rules.
+* dataPacket is modified.
 */
-int parseMsg(struct parsedMsgElement parsedMsg[], int maxParsedMsgCount, unsigned char *msg) {
+int parseMsg() {
 	enum {
 		START_SECTION_NAME, IN_SECTION_NAME, START_KEYNAME, IN_KEYNAME, START_KEYVALUE, IN_KEYVALUE  
 	} state = START_SECTION_NAME;
 	char *current_section = NULL;
 	unsigned char *buf;
-	int parsedMsgCount = 0;
+	gXAP->parsedMsgCount = 0;
   
-	for(buf = msg; buf < msg+XAP_DATA_LEN; buf++) {
+	for(buf = gXAP->dataPacket; buf < gXAP->dataPacket+XAP_DATA_LEN; buf++) {
 		switch (state) {
 		case START_SECTION_NAME:
 			if ( (*buf>32) && (*buf<128) ) {
@@ -78,7 +78,7 @@ int parseMsg(struct parsedMsgElement parsedMsg[], int maxParsedMsgCount, unsigne
 		case IN_SECTION_NAME:
 			if (*buf == '{') {
 				*buf = '\0';
-				rtrim(msg, buf);
+				rtrim(gXAP->dataPacket, buf);
 				state = START_KEYNAME;
 			}
 			break;
@@ -87,58 +87,64 @@ int parseMsg(struct parsedMsgElement parsedMsg[], int maxParsedMsgCount, unsigne
 				state = START_SECTION_NAME;
 			} 
 			else if ((*buf>32) && (*buf<128)) {
-				parsedMsg[parsedMsgCount].section = current_section;
-				parsedMsg[parsedMsgCount].key = (char *)buf;
+				gXAP->parsedMsg[gXAP->parsedMsgCount].section = current_section;
+				gXAP->parsedMsg[gXAP->parsedMsgCount].key = (char *)buf;
 				state = IN_KEYNAME;
 			}
 			break;
 		case IN_KEYNAME:
 			if ((*buf < 32) || (*buf == '=')) {
 				*buf = '\0';
-				rtrim(msg, buf);
+				rtrim(gXAP->dataPacket, buf);
 				state = START_KEYVALUE;
 			}
 			break;
 		case START_KEYVALUE:
 			if ((*buf>32) && (*buf<128)) {
 				state = IN_KEYVALUE;
-				parsedMsg[parsedMsgCount].value = (char *)buf;
+				gXAP->parsedMsg[gXAP->parsedMsgCount].value = (char *)buf;
 			}
 			break;
 		case IN_KEYVALUE:
 			if (*buf < 32) {
 				*buf = '\0';
-				rtrim(msg, buf);
+				rtrim(gXAP->dataPacket, buf);
 				state = START_KEYNAME;
-				parsedMsgCount++;
-				if (parsedMsgCount >= maxParsedMsgCount) {
-					parsedMsgCount = 0;
+				gXAP->parsedMsgCount++;
+				if (gXAP->parsedMsgCount > XAP_MSG_ELEMENTS) {
+					gXAP->parsedMsgCount = 0;
 				}
 			}
 			break;
 		}
 	}
-	return parsedMsgCount;
+	return gXAP->parsedMsgCount;
 }
 
 /** Reconstruct an XAP packet from the parsed components.
 */
-int parsedMsgToRaw(struct parsedMsgElement parsedMsg[], int parsedMsgCount, char *msg, int size) {
+int parsedMsgToRawWithoutSection(char *msg, int size, char *section) {
 	char *currentSection = NULL;
 	int i;
 	int len = 0;
 	msg[len] = '\0';
-	for(i=0; i < parsedMsgCount; i++) {
-		if (currentSection == NULL || currentSection != parsedMsg[i].section) {
+	for(i=0; i < gXAP->parsedMsgCount; i++) {
+		// Skip a body section if required.
+		if(section && strcasecmp(section, gXAP->parsedMsg[i].section) == 0) continue;
+		
+		if (currentSection == NULL || currentSection != gXAP->parsedMsg[i].section) {
 			if(currentSection != NULL) {
 				len += snprintf(&msg[len], size, "}\n");
 			}
-			len += snprintf(&msg[len],size,"%s\n{\n", parsedMsg[i].section);
-			currentSection = parsedMsg[i].section;
+			len += snprintf(&msg[len],size,"%s\n{\n", gXAP->parsedMsg[i].section);
+			currentSection = gXAP->parsedMsg[i].section;
 		}
-		len += snprintf(&msg[len],size,"%s=%s\n", parsedMsg[i].key, parsedMsg[i].value);
+		len += snprintf(&msg[len],size,"%s=%s\n", gXAP->parsedMsg[i].key, gXAP->parsedMsg[i].value);
 	}
 	len += snprintf(&msg[len],size,"}\n");
 	return len;
 }
 
+int parsedMsgToRaw(char *msg, int size) {
+	return parsedMsgToRawWithoutSection(msg, size, NULL);
+}

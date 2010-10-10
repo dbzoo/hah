@@ -17,6 +17,10 @@ void setLoglevel(int level)
         loglevel = level;
 }
 
+int getLoglevel() {
+	return loglevel;
+}
+
 static inline const char* log_label(int lev)
 {
         switch(lev) {

@@ -1,0 +1,161 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+
+#define sizearray(a)  (sizeof(a) / sizeof((a)[0]))
+
+static struct {
+         char sms_enable[2];
+	 char sms_usbserial[16];
+         char serial_enable[2];
+         char plugboard_enable[2];
+} ini;
+
+static void submit_form() {
+	 int sms_restart = 0;
+	 const char *sms_enable = request_get_arg(request,"sms_enable");
+	 if(sms_enable) {
+		  if((*sms_enable == '1' && ini.sms_enable[0] == '0') ||
+			 (*sms_enable == '0' && ini.sms_enable[0] == '1')) {
+			   ini_puts("sms","enable",sms_enable,con.inifile);
+			   sms_restart = 1;
+		  }
+	 }
+
+	 const char *sms_usbserial = request_get_arg(request, "sms_usbserial");
+	 if(sms_usbserial && strcmp(sms_usbserial, ini.sms_usbserial)) {
+		  ini_puts("sms","usbserial", sms_usbserial, con.inifile);
+		  sms_restart = 1;
+	 }
+
+	 if(sms_restart) {
+	     char *argv[] = {"/etc/init.d/xap","restart", "sms", NULL};
+	     subprocess(argv);
+	 }
+
+	 const char *serial_enable = request_get_arg(request,"serial_enable");
+	 if(serial_enable) {
+		  if((*serial_enable == '1' && ini.serial_enable[0] == '0') ||
+			 (*serial_enable == '0' && ini.serial_enable[0] == '1')) {
+			   ini_puts("serial","enable",serial_enable,con.inifile);
+			   char *argv[] = {"/etc/init.d/xap","restart", "serial", NULL};
+			   subprocess(argv);
+		  }
+	 }
+
+	 const char *plugboard_enable = request_get_arg(request,"plugboard_enable");
+	 if(plugboard_enable) {
+		  if((*plugboard_enable == '1' && ini.plugboard_enable[0] == '0') ||
+			 (*plugboard_enable == '0' && ini.plugboard_enable[0] == '1')) {
+			   ini_puts("plugboard","enable",plugboard_enable,con.inifile);
+			   char *argv[] = {"/etc/init.d/xap","restart", "plugboard", NULL};
+			   subprocess(argv);
+		  }
+	 }
+
+}
+
+static void readIni() {
+	 ini_gets("sms","enable","0",ini.sms_enable,sizeof(ini.sms_enable),con.inifile);
+	 ini_gets("sms","usbserial","/dev/ttyUSB0",ini.sms_usbserial,sizeof(ini.sms_usbserial),con.inifile);
+	 ini_gets("serial","enable","0",ini.serial_enable,sizeof(ini.serial_enable),con.inifile);
+	 ini_gets("plugboard","enable","0",ini.plugboard_enable,sizeof(ini.plugboard_enable),con.inifile);
+}
+%>
+<%
+int i;
+REQUIRE_AUTH(SCRIPT_NAME);
+readIni();
+const char *action = request_get_arg(request,"action");
+if(action && strcmp(action,"Apply") == 0) {
+	 submit_form(out);
+	 readIni();
+}
+if(action && strcmp(action,"Reboot") == 0) {
+	  response_redirect(response, "reboot.kl1");
+}
+%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
+<link type="text/css" rel="stylesheet" href="style/current/style.css" />
+<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css" /><![endif]-->
+<script type="text/javascript" src="common.js"></script>
+<script type="text/javascript">
+function to_submit(F) {
+	F.save_button.value = "Saving";
+	F.action.value = "Apply";
+	apply(F);
+}
+addEvent(window,"load",function() {
+	 show_layer_ext(document.frmControl.sms_enable, 'idsms', 1 == <%= ini.sms_enable %>);
+	 });
+
+</script>
+</head>
+<title>Livebox</title>
+<body class="gui">
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<br/>
+<form name="frmControl" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="action" />
+<h2>Assisting Services</h2>
+
+<fieldset>
+  <legend>Service</legend>
+
+  <div class="setting">
+    <div class="label">SMS service</div>
+	<input class="spaceradio" type="radio" value="1" name="sms_enable" onclick="show_layer_ext(this, 'idsms', true);"<% if(ini.sms_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+    <input class="spaceradio" type="radio" value="0" name="sms_enable" onclick="show_layer_ext(this, 'idsms', false);"<% if(ini.sms_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+  <div class="setting" id="idsms">
+   <div class="setting">
+    <div class="label">USB Serial Device</div>
+	<input type="text" name="sms_usbserial" value="<%= ini.sms_usbserial %>" maxlength="15" size="15"/>
+	 <span class="default">(Default: /dev/ttyUSB0)</span>
+   </div>
+  </div>
+
+  <div class="setting">
+    <div class="label">Serial SCHEMA service</div>
+	<input class="spaceradio" type="radio" value="1" name="serial_enable" <% if(ini.serial_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+    <input class="spaceradio" type="radio" value="0" name="serial_enable" <% if(ini.serial_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+
+  <div class="setting">
+	<div class="label">Plugboard scripting engine</div>
+	<input class="spaceradio" type="radio" value="1" name="plugboard_enable" <% if(ini.plugboard_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+    <input class="spaceradio" type="radio" value="0" name="plugboard_enable" <% if(ini.plugboard_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+
+</fieldset>
+
+
+<br/>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)" />
+<input type="reset" value="Cancel Changes"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>
+

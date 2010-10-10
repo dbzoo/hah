@@ -190,7 +190,7 @@ xap-livebox: xaplib2
 	install -m 755 $(HAH_DIR)/xap-livebox/xap-livebox $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-livebox
 
-xap-sms: xaplib
+xap-sms: xaplib2
 	$(MAKE) -C $(HAH_DIR)/xap-sms
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/xap-sms/xap-sms $(INSTALL_DIR)/usr/bin
@@ -208,7 +208,7 @@ xap-serial: xaplib2
 	install -m 755 $(HAH_DIR)/xap-serial/xap-serial $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-serial
 
-xap-pachube: xaplib libcurl
+xap-pachube: xaplib2 libcurl
 	$(MAKE) -C $(HAH_DIR)/xap-pachube
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/xap-pachube/xap-pachube $(INSTALL_DIR)/usr/bin
@@ -277,13 +277,13 @@ libgcal: libxml2 libcurl
 	fi
 	$(MAKE) -C $(OPENSOURCE_DIR)/libgcal install-strip
 
-xap-googlecal: xaplib libgcal libxml2 libcurl
+xap-googlecal: xaplib2 libgcal libxml2 libcurl
 	$(MAKE) -C $(HAH_DIR)/xap-googlecal
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/xap-googlecal/xap-googlecal $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-googlecal
 
-xap-twitter: xaplib libcurl
+xap-twitter: xaplib2 libcurl
 	$(MAKE) -C $(HAH_DIR)/xap-twitter
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/xap-twitter/xap-twitter $(INSTALL_DIR)/usr/bin

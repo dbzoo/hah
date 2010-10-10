@@ -24,6 +24,7 @@
 
 xAP *gXAP;
 char *interfaceName = "eth0";
+const char inifile[] = "/etc/xap-livebox.ini";
 
 struct serialPort {
 	char *device;  //  ie. /dev/ttyUSB0
@@ -45,13 +46,13 @@ void serialError(const char *fmt, ...)
 			   "{\n"
 			   "v=12\n"
 			   "hop=1\n"
-			   "uid=FF00DF00\n"
+			   "uid=%s\n"
 			   "class=Serial.Comms\n"
 			   "source=%s\n"
 			   "}\n"
 			   "Serial.Error\n"
 			   "{\n"
-			   "text=", gXAP->source);
+			   "text=", gXAP->uid, gXAP->source);
 	len += vsnprintf(&buff[len], XAP_DATA_LEN-len, fmt, ap);
 	va_end(ap);
 	len += snprintf(&buff[len], XAP_DATA_LEN-len, "\n}\n");
@@ -66,27 +67,23 @@ void serialError(const char *fmt, ...)
 void processSerialCommand(void *data, struct serialPort *p)
 {	
         char buff[XAP_DATA_LEN];  // nominally 1500 bytes
-        int len = sprintf(buff, "xap-header\n"
+        int len = snprintf(buff, sizeof(buff), "xap-header\n"
 			   "{\n"
 			   "v=12\n"
 			   "hop=1\n"
-			   "uid=FF00DF00\n"
+			   "uid=%s\n"
 			   "class=Serial.Comms\n"
 			   "source=%s\n"
 			   "}\n"
 			   "Serial.Received\n"
 			   "{\n"
 			   "port=%s\n"
-			   "data=", gXAP->source, p->device);
-        int slen = strlen(data);
-	if(sizeof(buff) - len < slen) {
+			   "data=%s\n"
+			   "}\n", gXAP->uid, gXAP->source, p->device, data);
+	if(len > sizeof(buff)) {
 	  serialError("Buffer overflow");
 	  return;
 	}
-	strlcpy(&buff[len], data, sizeof(buff)-slen);
-	len += slen;
-	strlcat(&buff[len], "\n}\n", sizeof(buff)-len);
-
 	xapSend(buff);
 }
 
@@ -326,38 +323,19 @@ void xapSerialTx(void *userData) {
 	sendSerialMsg(p, data);
 }
 
-/// Display usage information and exit.
-static void usage(char *prog) {
-	 printf("%s: [options]\n",prog);
-	 printf("  -i, --interface IF     Default %s\n", interfaceName);
-	 printf("  -d, --debug            0-7\n");
-	 printf("  -h, --help\n");
-	 exit(1);
-}
-
 /// MAIN
 int main(int argc, char *argv[])
 {
-	int i;
 	printf("Serial Connector for xAP\n");
 	printf("Copyright (C) DBzoo, 2008-2010\n\n");
-
-	for(i=0; i<argc; i++) {
-		if(strcmp("-i", argv[i]) == 0 || strcmp("--interface",argv[i]) == 0) {
-			interfaceName = argv[++i];
-		} else if(strcmp("-d", argv[i]) == 0 || strcmp("--debug", argv[i]) == 0) {
-			setLoglevel(atoi(argv[++i]));			
-		} else if(strcmp("-h", argv[i]) == 0 || strcmp("--help", argv[i]) == 0) {
-			usage(argv[0]);
-		}
-	}
-
-	xapInit("dbzoo.livebox.Serial", "FF00DF00", interfaceName);
-	die_if(gXAP == NULL,"Failed to init xAP");
+	
+	simpleCommandLine(argc, argv, &interfaceName);
+	xapInitFromINI("serial","dbzoo.livebox","Serial","00D5",interfaceName,inifile);
 
 	xAPFilter *f = NULL;
 
 	// Mandatory elements are part of the filter
+	xapAddFilter(&f, "xap-header", "target", gXAP->source);
 	xapAddFilter(&f, "xap-header", "class", "Serial.Comms");
 	xapAddFilter(&f, "Serial.Setup", "port", XAP_FILTER_ANY);
 	xapAddFilter(&f, "Serial.Setup", "baud", XAP_FILTER_ANY);
@@ -368,12 +346,14 @@ int main(int argc, char *argv[])
 	xapAddFilterAction(&xapSerialSetup, f, NULL);
 
 	f = NULL;
+	xapAddFilter(&f, "xap-header", "target", gXAP->source);
 	xapAddFilter(&f, "xap-header", "class", "Serial.Comms");
 	xapAddFilter(&f, "Serial.Send", "port", XAP_FILTER_ANY);
 	xapAddFilter(&f, "Serial.Send", "data", XAP_FILTER_ANY);
 	xapAddFilterAction(&xapSerialTx, f, NULL);
 
 	f = NULL;
+	xapAddFilter(&f, "xap-header", "target", gXAP->source);
 	xapAddFilter(&f, "xap-header", "class", "Serial.Comms");
 	xapAddFilter(&f, "Serial.Close", "port", XAP_FILTER_ANY);
 	xapAddFilterAction(&xapSerialClose, f, NULL);

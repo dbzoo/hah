@@ -19,10 +19,11 @@
 
 xAP *gXAP;
 char *interfaceName = "br0";
+const char *inifile = "/etc/xap-livebox.ini";
 
 void packetDump(void *userData) {
 	char newmsg[XAP_DATA_LEN];
-	parsedMsgToRaw(gXAP->parsedMsg, gXAP->parsedMsgCount, newmsg, sizeof(newmsg));
+	parsedMsgToRaw(newmsg, sizeof(newmsg));
 	printf("%s\n", newmsg);
 }
 
@@ -74,9 +75,10 @@ int main(int argc, char* argv[]) {
                 }
         }
 
-	 xapInit("dbzoo.livebox.Snoop", "FF000F00", interfaceName);
-	 xapAddFilterAction(&packetDump, filter, NULL);
-	 xapProcess();
+	xapInitFromINI("snoop","dbzoo.livebox","Snoop","00D4",interfaceName,inifile);
+
+	xapAddFilterAction(&packetDump, filter, NULL);
+	xapProcess();
 }
 
 

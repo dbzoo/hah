@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "mem.h"
 #include "dscache.h"
-#include "debug.h"
+#include "log.h"
 
 static struct datastream *ds;
 static int dscnt;
@@ -51,7 +51,7 @@ void updateDatastream(int id, char *tag, float value) {
 	  ds = mem_realloc(ds, sizeof(struct datastream) * dscnt, M_NONE);
 	  idx = dscnt-1;
      }
-     debug(LOG_DEBUG,"updateDatastream(): id=%d, tag=%s, value=%f\n", id, tag, value);
+     info("id=%d, tag=%s, value=%f", id, tag, value);
      ds[idx].id = id;
      strcpy(ds[idx].tag, tag);
      ds[idx].value = value;

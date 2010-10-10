@@ -222,14 +222,14 @@ static void setupXAP() {
      long n;
 
      // default to 00DC if not present
-     n = ini_gets("bridge","uid","00D8",uid,sizeof(uid),inifile);
+     n = ini_gets("bridge","uid","00D3",uid,sizeof(uid),inifile);
 
      // validate that the UID can be read as HEX
      if(n == 0 || !(isxdigit(uid[0]) && isxdigit(uid[1]) &&
 		    isxdigit(uid[2]) && isxdigit(uid[3])))
      {
 	  debug(LOG_INFO,"Missing/Invalid UID %s in .INI file using default", uid);
-	  strlcpy(uid,"00D8",sizeof uid);
+	  strlcpy(uid,"00D3",sizeof uid);
      }
      snprintf(guid,sizeof guid,"FF%s00", uid);
      XAP_GUID = strdup(guid);

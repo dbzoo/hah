@@ -69,7 +69,7 @@ void addOrUpdateHubEntry(int i_port, int i_interval) {
 void reapHubConnections(int interval, void *userData) {
 	struct hubEntry *entry;
 	LL_FOREACH(hubList, entry) {
-		if (entry->is_alive && entry->timer) {
+		if (entry->is_alive) {
 			entry->timer -= interval;
 			if(entry->timer <= 0) {
 				debug("Disconnecting port %d due to loss of heartbeat", entry->port);
@@ -117,7 +117,7 @@ void xapRxBroadcast(int fd, void *userData) {
 					debug("Detected our own heartbeat not forwarding");
 					return;
 				}			
-				addOrUpdateHubEntry(atoi(port), atoi(interval));
+				addOrUpdateHubEntry(iport, atoi(interval));
 			}
 		}
 	} else {
@@ -137,6 +137,7 @@ int main(int argc, char **argv) {
 	
 	discoverBroadcastNetwork(&gXAP->txAddress, &gXAP->txSockfd, &gXAP->ip, interfaceName);
 	discoverHub(&gXAP->rxPort, &gXAP->rxSockfd, &gXAP->txAddress);
+	die_if(gXAP->rxPort != XAP_PORT_L,"Port %d not available", XAP_PORT_L);
 
 	char source[64];
 	sprintf(source, "dbzoo.hub.linux-%s", gXAP->ip);

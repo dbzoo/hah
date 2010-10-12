@@ -161,7 +161,15 @@ void parseINI()
                         putdynINI("key", i, xkey);
 	                putdynINI("class", i, xclass);
 	                putdynINI("section", i, "input.state");
-                        putdynINI("source", i, xap);
+
+			// Upgrade currentcost endpoint
+			const char *ch1 = "dbzoo.livebox.currentcost:ch1";
+			if(strncasecmp(ch1,xap,sizeof(ch1)) == 0) {
+				putdynINI("source", i, "dbzoo.livebox.currentcost:ch.1");
+			} else {
+				putdynINI("source", i, xap);
+			}
+
                         putdynINI("xap", i, "");
                 }
 

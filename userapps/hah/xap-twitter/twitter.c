@@ -37,7 +37,6 @@
 #include "bsc.h"
 #include "tcurl.h"
 
-xAP *gXAP;
 char *inifile = "/etc/xap-livebox.ini";
 char *interfaceName = "eth0";
 
@@ -80,7 +79,7 @@ void checkForTweets(int interval, void *userData)
 	               "xap-header\n{\nv=12\nhop=1\nuid=%s\n"
 	               "class=alias\nsource=%s\n}\n"
 	               "command\n{\ntext=%s\n}\n",
-	               gXAP->uid, gXAP->source, tweeter);
+	                   xapGetUID(), xapGetSource(), tweeter);
 
 	// Buffer overflow - should never happend with 140 char tweets.
 	if(len > sizeof(buff)) {
@@ -163,7 +162,7 @@ int main(int argc, char *argv[])
         getLatestTweet(twit, tweet, sizeof(tweet), &last_tweet);
 
         xAPFilter *f = NULL;
-        xapAddFilter(&f, "xap-header", "target", gXAP->source);
+	xapAddFilter(&f, "xap-header", "target", xapGetSource());
         xapAddFilter(&f, "xap-header", "class", BSC_CMD_CLASS);
         xapAddFilter(&f, "output.state.1", "text", XAP_FILTER_ANY);
         xapAddFilterAction(&tweetService, f, NULL);

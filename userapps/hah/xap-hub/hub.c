@@ -16,7 +16,6 @@
 #include "xap.h"
 
 const int reapTimeSecs = 10;
-xAP *gXAP;
 char *interfaceName = "eth0";
 
 struct hubEntry {
@@ -27,20 +26,21 @@ struct hubEntry {
 	struct hubEntry *next;
 } *hubList = NULL;
 
-void hubRelay(int msglen) {
+void hubRelay() {
 	struct sockaddr_in tx_addr;
 	struct hubEntry *entry;
 	
 	tx_addr.sin_family = AF_INET;
 	tx_addr.sin_addr.s_addr=inet_addr("127.0.0.1");	
-	
+
+	debug("Tx xAP packet length %d\n%s", gXAP->frame.len, gXAP->frame.dataPacket);
 	LL_FOREACH(hubList, entry) {
 		// If its alive and we are not forward data back to it itself.
 		if (entry->is_alive) {
-			debug("Relayed to %d",entry->port);
+			info("Relayed to %d",entry->port);
 			tx_addr.sin_port=htons(entry->port);
 			
-			sendto(gXAP->txSockfd, gXAP->dataPacket, msglen, 0, (struct sockaddr*)&tx_addr, sizeof(struct sockaddr_in));
+			sendto(gXAP->txSockfd, gXAP->frame.dataPacket, gXAP->frame.len, 0, (struct sockaddr*)&tx_addr, sizeof(struct sockaddr_in));
 		}
 	}
 	
@@ -51,14 +51,14 @@ void addOrUpdateHubEntry(int i_port, int i_interval) {
 	debug("port %d interval %d", i_port, i_interval);
 	struct hubEntry *entry;
 
-	LL_SEARCH_SCALAR(hubList,entry,interval,i_interval);
+	LL_SEARCH_SCALAR(hubList,entry,port,i_port);
 	if(entry) { // Found entry
-		debug("Heartbeat for port %d", i_port);
+		info("Heartbeat for port %d", i_port);
 	} else { // New entry
 		entry = (struct hubEntry *)malloc(sizeof(struct hubEntry));
 		entry->port = i_port;
 		LL_PREPEND(hubList, entry);
-		debug("Connected port %d", i_port);
+		info("Connected port %d", i_port);
 	}
 	entry->interval = i_interval;
 	entry->timer = i_interval*2;
@@ -72,7 +72,7 @@ void reapHubConnections(int interval, void *userData) {
 		if (entry->is_alive) {
 			entry->timer -= interval;
 			if(entry->timer <= 0) {
-				debug("Disconnecting port %d due to loss of heartbeat", entry->port);
+				info("Disconnecting port %d due to loss of heartbeat", entry->port);
 				entry->is_alive = 0;
 			}
 		}
@@ -86,30 +86,33 @@ void xapRxBroadcast(int fd, void *userData) {
 	struct sockaddr_in clientAddr;
 	
 	int clientLen = sizeof(struct sockaddr);	
-	int msglen = recvfrom(gXAP->rxSockfd, gXAP->dataPacket, XAP_DATA_LEN-1, 0, (struct sockaddr*) &clientAddr, (socklen_t *)&clientLen);
-	if(msglen == 0) return; // Huh?  How did the select() do this if there is no data!?
+	gXAP->frame.len = recvfrom(gXAP->rxSockfd, gXAP->frame.dataPacket, XAP_DATA_LEN-1, 0, (struct sockaddr*) &clientAddr, (socklen_t *)&clientLen);
+	if(gXAP->frame.len == 0) return; // Huh?  How did the select() do this if there is no data!?
 	
-	if (msglen < 0) {
+	if (gXAP->frame.len < 0) {
 		err_strerror("recvfrom");
 		return;
 	}
 
-        debug("Message from client %s:%d",inet_ntoa(clientAddr.sin_addr),ntohs(clientAddr.sin_port));
+        info("Message from client %s:%d",inet_ntoa(clientAddr.sin_addr),ntohs(clientAddr.sin_port));
 	
 	// (msglen > 0)
 	// terminate the buffer so we can treat it as a conventional string
-	gXAP->dataPacket[msglen] = '\0';
-	debug("Rx xAP packet\n%s", gXAP->dataPacket);
+	gXAP->frame.dataPacket[gXAP->frame.len] = '\0';
+	debug("Rx xAP packet\n%s", gXAP->frame.dataPacket);
 
 	if(clientAddr.sin_addr.s_addr == *myip) {
-		debug("Message originated locally");
-		parseMsg();
+		info("Message originated locally");
+		xAPFrame f;
+                // Use a local frame as Parsing will mess with the message we need to relay.
+		memcpy(&f, &gXAP->frame, sizeof(xAPFrame));
+		parseMsgF(&f);
 
-		if(xapGetType() == XAP_MSG_HBEAT) {
-			char *interval = xapGetValue("xap-hbeat","interval");
-			char *port = xapGetValue("xap-hbeat","port");
+		if(xapGetTypeF(&f) == XAP_MSG_HBEAT) {
+			char *interval = xapGetValueF(&f,"xap-hbeat","interval");
+			char *port = xapGetValueF(&f,"xap-hbeat","port");
 			debug_if(interval == NULL,"Missing interval in heartbeat");
-			debug_if(port == NULL,"Missing interval in heartbeat");
+			debug_if(port == NULL,"Missing port in heartbeat");
 			
 			if(port && interval) {
 				int iport = atoi(port);
@@ -121,9 +124,9 @@ void xapRxBroadcast(int fd, void *userData) {
 			}
 		}
 	} else {
-		debug("Message originated remotely");
+		info("Message originated remotely");
 	}
-	hubRelay(msglen);
+	hubRelay();
 	
 }
 
@@ -144,7 +147,6 @@ int main(int argc, char **argv) {
 	gXAP->source = strdup(source);
 	gXAP->uid = "FF00DC00";
 
-	
 	xapAddTimeoutAction(&heartbeatHandler, XAP_HEARTBEAT_INTERVAL, NULL);	
 	xapAddTimeoutAction(&reapHubConnections, reapTimeSecs, NULL);
 

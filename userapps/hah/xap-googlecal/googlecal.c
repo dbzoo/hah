@@ -70,8 +70,6 @@
 
 const char inifile[] = "/etc/xap-livebox.ini";
 
-xAP *gXAP;
-
 // Commandline / INI settings
 static int freq; // calendar sync frequency
 static char username[64];
@@ -127,7 +125,7 @@ void internalError(int level, const char *fmt, ...)
                           "}\n"
                           "error\n"
                           "{\n"
-                          "text=", gXAP->uid, gXAP->source);
+                          "text=", xapGetUID(), xapGetSource());
         len += vsnprintf(&buff[len], XAP_DATA_LEN-len, fmt, ap);
         va_end(ap);
         len += snprintf(&buff[len], XAP_DATA_LEN-len, "\n}\n");
@@ -269,7 +267,7 @@ void googleEventCheck(int interval, void *userData)
                         // The "description" field from the calendar event
                         // contains the xAP fragment we want to send
                         // As this is a short xAP message fix it up.
-                        xapmsg = fillShortXap(description, gXAP->uid, gXAP->source);
+	                xapmsg = fillShortXap(description, xapGetUID(), xapGetSource());
                 } else {
                         // pattern match the title against the aliases to find the xAP msg.
                         xapmsg = (char *)malloc(XAP_DATA_LEN);
@@ -286,7 +284,7 @@ void googleEventCheck(int interval, void *userData)
                                  "{\n"
                                  "text=%s\n"
                                  "}\n",
-                                 gXAP->uid, gXAP->source, gcal_event_get_title(event));
+                                 xapGetUID(), xapGetSource(), gcal_event_get_title(event));
                 }
                 if(xapmsg) {
                         xapSend(xapmsg);
@@ -460,7 +458,7 @@ int main(int argc, char *argv[])
         }
 
         xAPFilter *f = NULL;
-        xapAddFilter(&f, "xap-header", "target", gXAP->source);
+	xapAddFilter(&f, "xap-header", "target", xapGetSource());
         xapAddFilter(&f, "xap-header", "class", "google.calendar");
         xapAddFilter(&f, "event", "title", XAP_FILTER_ANY);
         xapAddFilter(&f, "event", "start", XAP_FILTER_ANY);

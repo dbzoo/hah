@@ -20,7 +20,6 @@
 #define INFO_INTERVAL 120
 #define WEB_PORT 79
 
-xAP *gXAP;
 bscEndpoint *endpointList;
 static char *serialPort = "/dev/ttyS0";
 static char *interfaceName = "br0";
@@ -105,7 +104,7 @@ int main(int argc, char *argv[])
 	// Handle WEB server requests
 	xapAddSocketListener(svr_bind(WEB_PORT), &webHandler, endpointList);
 	
-	bscSetText(lcd, gXAP->ip);  // Display our IP address on the LCD
+	bscSetText(lcd, xapGetIP());  // Display our IP address on the LCD
 	bscSendCmdEvent(lcd);
 
 	serialSend("report"); // Ask AVR firmware to report current endpoints states

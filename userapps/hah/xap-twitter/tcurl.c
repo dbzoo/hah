@@ -22,8 +22,6 @@
 #ident "@(#) $Id$"
 #endif
 
-extern int g_debuglevel;
-
 static void clearCallbackBuffers(tcurl *c) {
 	debug("len: %d", c->cb_length);
 	memset( c->errorBuffer, 0, CURL_ERROR_SIZE);

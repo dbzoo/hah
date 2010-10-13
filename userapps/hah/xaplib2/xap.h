@@ -74,6 +74,13 @@ struct parsedMsgElement {
 	char *value;
 };
 
+typedef struct _xapFrame {
+	int len;
+	unsigned char dataPacket[XAP_DATA_LEN];
+	int parsedMsgCount;
+	struct parsedMsgElement parsedMsg[XAP_MSG_ELEMENTS];
+} xAPFrame;
+
 typedef struct _xAP {
 	char *source; // vendor.device.instance
 	char *uid;
@@ -85,9 +92,7 @@ typedef struct _xAP {
 	struct sockaddr_in txAddress; // broadcast Address
 	int txSockfd;
 
-	unsigned char dataPacket[XAP_DATA_LEN];
-	int parsedMsgCount;
-	struct parsedMsgElement parsedMsg[XAP_MSG_ELEMENTS];
+	xAPFrame frame;
 
 	xAPSocketConnection *connectionList;
 	xAPTimeoutCallback *timeoutList;
@@ -98,6 +103,9 @@ typedef struct _xAP {
 extern xAP *gXAP; 
 
 // init.c
+inline char *xapGetSource();
+inline char *xapGetUID();
+inline char *xapGetIP();
 void xapInit(char *source, char *uid, char *interfaceName);
 void xapInitFromINI(char *section, char *prefix, char *instance, char *uid, char *interfaceName, const char *inifile);
 xAPSocketConnection *xapAddSocketListener(int fd, void (*callback)(int, void *), void *data);
@@ -124,12 +132,18 @@ void xapProcess();
 void handleXapPacket(int fd, void *data);
 
 //parse.c
-int xapGetType();
-char *xapGetValue(char *section, char *key);
-int xapIsValue(char *section, char *key, char *value);
-int parsedMsgToRaw(char *msg, int size);
-int parsedMsgToRawWithoutSection(char *msg, int size, char *section);
-int parseMsg();
+inline int xapGetType();
+inline char *xapGetValue(char *section, char *key);
+inline int xapIsValue(char *section, char *key, char *value);
+inline int parsedMsgToRaw(char *msg, int size);
+inline int parsedMsgToRawWithoutSection(char *msg, int size, char *section);
+inline int parseMsg();
+int xapGetTypeF(xAPFrame *);
+char *xapGetValueF(xAPFrame *, char *section, char *key);
+int xapIsValueF(xAPFrame *,char *section, char *key, char *value);
+int parsedMsgToRawF(xAPFrame *,char *msg, int size);
+int parsedMsgToRawWithoutSectionF(xAPFrame *,char *msg, int size, char *section);
+int parseMsgF(xAPFrame *);
 
 //filter.c
 int xapCompareFilters(xAPFilter *f);

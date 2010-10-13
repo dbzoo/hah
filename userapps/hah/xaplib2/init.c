@@ -20,6 +20,20 @@
 #include "minIni.h"
 #include "xap.h"
 
+xAP *gXAP;  // Our global XAP object
+
+inline char *xapGetSource() {
+	return gXAP->source;
+}
+
+inline char *xapGetUID() {
+	return gXAP->uid;
+}
+
+inline char *xapGetIP() {
+	return gXAP->ip;
+}
+
 /// Setup for Rx XAP packets
 void discoverHub(int *rxport, int *rxfd, struct sockaddr_in *txAddr)
 {
@@ -136,7 +150,7 @@ void heartbeatHandler(int interval, void *data)
                 "interval=%d\n"
                 "port=%d\n"
                 "pid=%d\n"
-                "}\n", gXAP->uid, gXAP->source, interval, gXAP->rxPort, getpid());
+                "}\n", xapGetUID(), xapGetSource(), interval, gXAP->rxPort, getpid());
         xapSend(buff);
 }
 

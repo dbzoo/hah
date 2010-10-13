@@ -177,7 +177,7 @@ void addIniEndpoints()
 
 	reset_i2c_ppe();
         for (s = 0; ini_getsection(s, section, sizeof(section), inifile) > 0; s++) {
-                info("section: %s");
+                info("section: %s", section);
 
                 /* Handle section: [ppeX]:
                    We actually don't care what appears after the characters

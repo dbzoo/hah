@@ -49,7 +49,6 @@ value=10.4
 #include "mem.h"
 #include "pachube.h"
 
-xAP *gXAP;
 char *interfaceName = "eth0";
 
 char *inifile = "/etc/xap-livebox.ini";
@@ -202,7 +201,7 @@ int main(int argc, char *argv[])
 
         // Setup PACHUBE xAP service
         xAPFilter *f = NULL;
-        xapAddFilter(&f, "xap-header", "target", gXAP->source);
+	xapAddFilter(&f, "xap-header", "target", xapGetSource());
         xapAddFilter(&f, "xap-header", "class", "pachube.update");
         xapAddFilter(&f, "datastream", "id", XAP_FILTER_ANY);
         xapAddFilter(&f, "datastream", "tag", XAP_FILTER_ANY);

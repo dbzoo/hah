@@ -16,13 +16,15 @@
 
 /// Receive xAP packet data
 static int readXapData() {
-	int i = recvfrom(gXAP->rxSockfd, gXAP->dataPacket, XAP_DATA_LEN-1, 0, 0, 0);
-	if (i > 0) {
+	gXAP->frame.len = recvfrom(gXAP->rxSockfd, gXAP->frame.dataPacket, XAP_DATA_LEN-1, 0, 0, 0);
+	if (gXAP->frame.len > 0) {
 		 // terminate the buffer so we can treat it as a conventional string
-		gXAP->dataPacket[i] = '\0';
-		debug("Rx xAP packet\n%s", gXAP->dataPacket);
+		gXAP->frame.dataPacket[gXAP->frame.len] = '\0';
+		debug("Rx xAP packet\n%s", gXAP->frame.dataPacket);
+	} else {
+		err_strerror("recvfrom");
 	}
-	return i;
+	return gXAP->frame.len;
 }
 
 /** Rx socket handler callback for registration.
@@ -32,7 +34,7 @@ void handleXapPacket(int fd, void *data) {
 	if(readXapData() > 0) {
 	        // OK we got the data but we don't need to process it (yet).
 	        if(gXAP->filterList == NULL) return;
-		parseMsg();
+		parseMsg(&gXAP->frame);
 		filterDispatch();
 	}
 }

@@ -17,7 +17,6 @@
 #include <string.h>
 #include "xap.h"
 
-xAP *gXAP;
 char *interfaceName = "br0";
 const char *inifile = "/etc/xap-livebox.ini";
 

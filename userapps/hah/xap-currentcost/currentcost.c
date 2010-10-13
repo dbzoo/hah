@@ -23,7 +23,6 @@
 // Seconds between xapBSC.info messages.
 #define INFO_INTERVAL 120
 
-xAP *gXAP;
 const char *inifile = "/etc/xap-livebox.ini";
 char serialPort[20];
 int hysteresis;
@@ -298,7 +297,7 @@ static void usage(char *prog)
         exit(1);
 }
 
-/// Process the INI file for xAP control data and setup the global gXAP object.
+/// Process the INI file for xAP control data and setup XAP.
 void setupXap()
 {
 	xapInitFromINI("currentcost","dbzoo.livebox","CurrentCost","00DC",interfaceName,inifile);

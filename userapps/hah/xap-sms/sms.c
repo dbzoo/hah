@@ -17,7 +17,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-xAP *gXAP;
 char *interfaceName = "eth0";
 const char *inifile = "/etc/xap-livebox.ini";
 
@@ -33,7 +32,7 @@ void xap_receipt(char* msg, char* sender, char *sent, char *err)
                            "xap-header\n{\nv=12\nhop=1\nuid=%s\n"
                            "class=SMS.Receipt\nsource=%s\n}\n"
                            "Receipt\n{\nmsg=%s\nnum=%s\nsent=%s\nerror=%s\n}\n",
-                           gXAP->uid, gXAP->source, msg, sender, sent, err);
+                           xapGetUID(), xapGetSource(), msg, sender, sent, err);
         if(len > sizeof(buff)) {
                 err("Buffer overflow");
                 return;
@@ -50,7 +49,7 @@ void xap_relay_sms(char* msg, char* sender, char* date, char *time)
                            "xap-header\n{\nv=12\nhop=1\nuid=%s\n"
                            "class=%s\nsource=%s\n}\n"
                            "inbound\n{\nmsg=%s\nnum=%s\ntimestamp=%s %s\n}\n",
-                           gXAP->uid, XAP_CLASS, gXAP->source, msg, sender, date, time);
+                           xapGetUID(), XAP_CLASS, xapGetSource(), msg, sender, date, time);
 
         if(len > sizeof(buff)) {
                 err("Buffer overflow");
@@ -152,7 +151,7 @@ int main(int argc, char *argv[])
 
         // SMS outbound to phone
         xAPFilter *f = NULL;
-        xapAddFilter(&f, "xap-header", "target", gXAP->source);
+	xapAddFilter(&f, "xap-header", "target", xapGetSource());
         xapAddFilter(&f, "xap-header", "class", XAP_CLASS);
         xapAddFilter(&f, "outbound", "msg", XAP_FILTER_ANY);
         xapAddFilter(&f, "outbound", "num", XAP_FILTER_ANY);

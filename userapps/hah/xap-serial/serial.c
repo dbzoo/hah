@@ -22,7 +22,6 @@
 #include "xap.h"
 #define INFO_INTERVAL 120
 
-xAP *gXAP;
 char *interfaceName = "eth0";
 const char inifile[] = "/etc/xap-livebox.ini";
 
@@ -52,7 +51,7 @@ void serialError(const char *fmt, ...)
 			   "}\n"
 			   "Serial.Error\n"
 			   "{\n"
-			   "text=", gXAP->uid, gXAP->source);
+                          "text=", xapGetUID(), xapGetSource());
 	len += vsnprintf(&buff[len], XAP_DATA_LEN-len, fmt, ap);
 	va_end(ap);
 	len += snprintf(&buff[len], XAP_DATA_LEN-len, "\n}\n");
@@ -79,7 +78,7 @@ void processSerialCommand(void *data, struct serialPort *p)
 			   "{\n"
 			   "port=%s\n"
 			   "data=%s\n"
-			   "}\n", gXAP->uid, gXAP->source, p->device, data);
+                           "}\n", xapGetUID(), xapGetSource(), p->device, data);
 	if(len > sizeof(buff)) {
 	  serialError("Buffer overflow");
 	  return;
@@ -335,7 +334,7 @@ int main(int argc, char *argv[])
 	xAPFilter *f = NULL;
 
 	// Mandatory elements are part of the filter
-	xapAddFilter(&f, "xap-header", "target", gXAP->source);
+	xapAddFilter(&f, "xap-header", "target", xapGetSource());
 	xapAddFilter(&f, "xap-header", "class", "Serial.Comms");
 	xapAddFilter(&f, "Serial.Setup", "port", XAP_FILTER_ANY);
 	xapAddFilter(&f, "Serial.Setup", "baud", XAP_FILTER_ANY);
@@ -346,14 +345,14 @@ int main(int argc, char *argv[])
 	xapAddFilterAction(&xapSerialSetup, f, NULL);
 
 	f = NULL;
-	xapAddFilter(&f, "xap-header", "target", gXAP->source);
+	xapAddFilter(&f, "xap-header", "target", xapGetSource());
 	xapAddFilter(&f, "xap-header", "class", "Serial.Comms");
 	xapAddFilter(&f, "Serial.Send", "port", XAP_FILTER_ANY);
 	xapAddFilter(&f, "Serial.Send", "data", XAP_FILTER_ANY);
 	xapAddFilterAction(&xapSerialTx, f, NULL);
 
 	f = NULL;
-	xapAddFilter(&f, "xap-header", "target", gXAP->source);
+	xapAddFilter(&f, "xap-header", "target", xapGetSource());
 	xapAddFilter(&f, "xap-header", "class", "Serial.Comms");
 	xapAddFilter(&f, "Serial.Close", "port", XAP_FILTER_ANY);
 	xapAddFilterAction(&xapSerialClose, f, NULL);

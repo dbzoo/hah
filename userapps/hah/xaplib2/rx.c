@@ -34,7 +34,7 @@ void handleXapPacket(int fd, void *data) {
 	if(readXapData() > 0) {
 	        // OK we got the data but we don't need to process it (yet).
 	        if(gXAP->filterList == NULL) return;
-		parseMsg(&gXAP->frame);
+		parseMsg();
 		filterDispatch();
 	}
 }

@@ -68,7 +68,6 @@ inline void bscSetLevel(bscEndpoint *e, char *level)
 void bscSendCmdEvent(bscEndpoint *e) {
 	if(*e->cmd) (*e->cmd)(e);
 	if(*e->infoEvent) {
-		e->last_report = time(NULL);
 		(*e->infoEvent)(e, BSC_EVENT_CLASS);
 	}
 }
@@ -176,7 +175,6 @@ static void bscIncomingQuery(void *data)
         bscEndpoint *e = (bscEndpoint *)data;
 	info("xapBSC.query detected for %s", e->source);	
 	if(e->infoEvent) {
-                e->last_report = time(NULL);
                 (*e->infoEvent)(e, BSC_INFO_CLASS);
         }
 }
@@ -191,9 +189,8 @@ static void bscInfoTimeout(int interval, void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
         time_t now = time(NULL);
-        if(e->infoEvent && (e->last_report == 0 || e->last_report + interval < now )) {
+        if(e->infoEvent && (e->last_report == 0 || e->last_report + interval <= now )) {
 	        info("Timeout for %s", e->source);
-	        e->last_report = now;
                 (*e->infoEvent)(e, BSC_INFO_CLASS);
         }
 }
@@ -230,8 +227,10 @@ void bscInfoEvent(bscEndpoint *e, char *clazz)
 
         if(len > XAP_DATA_LEN)
                 err("xAP message buffer truncated - not sending\n");
-        else
+        else {
+		e->last_report = time(NULL);
                 xapSend(buff);
+	}
 }
 
 /** Manual specify starting point for future Endpoints added.
@@ -239,6 +238,10 @@ void bscInfoEvent(bscEndpoint *e, char *clazz)
 */
 void bscSetEndpointUID(int nid) {
 	id = nid;
+}
+
+int bscGetEndpointUID() {
+  return id;
 }
 
 /// Create a BSC endpoint these are use for automation control.

@@ -50,29 +50,31 @@ struct _ccTag
         void (*infoEvent)(bscEndpoint *, char *);
         char *name;
         char *subaddr;
+        int uid;
 }
 ccTag[] = {
-                  {"ch1", &infoEventChannel, "ch", "1"},
-                  {"ch2", &infoEventChannel, "ch", "2"},
-                  {"ch3", &infoEventChannel, "ch", "3"},
-                  {"tmpr", &infoEventTemp, "temp", NULL},
-                  {"tmprF", &infoEventTemp, "tempF", NULL},
-                  {NULL, NULL, NULL, NULL}
+  {"ch1", &infoEventChannel, "ch", "1", 1},
+  {"ch2", &infoEventChannel, "ch", "2", 2},
+  {"ch3", &infoEventChannel, "ch", "3", 3},
+  {"tmpr", &infoEventTemp, "temp", NULL, 4},
+  {"tmprF", &infoEventTemp, "tempF", NULL, 4},
+  {NULL, NULL, NULL, NULL}
           };
 
 /// BSC callback - Only emit info/event for Channels that adjust outside of the hysteresis amount.
 static void infoEventChannel(bscEndpoint *e, char *clazz)
 {
+        info("%s Sensor 0 %s.%s = %s", clazz, e->name, e->subaddr, e->text);
         int old = 0;
         if(e->userData)
                 old = atoi((char *)e->userData);
         int new = atoi(e->text);
         // Alway report INFO events so we can repond to xAPBSC.query + Timeouts.
         // xapBSC.event are only emitted based on the hystersis
-        if(strcasecmp(clazz, BSC_INFO_CLASS) == 0 || new > old + hysteresis || new < old - hysteresis) {
+        if(strcmp(clazz, BSC_INFO_CLASS) == 0 || new > old + hysteresis || new < old - hysteresis) {
                 if(e->displayText == NULL)
                         e->displayText = (char *)malloc(15);
-                snprintf(e->displayText, 15, "%d watts", new);
+                snprintf(e->displayText, 15, "%d Watts", new);
                 bscInfoEvent(e, clazz);
         }
 }
@@ -80,11 +82,15 @@ static void infoEventChannel(bscEndpoint *e, char *clazz)
 /// BSC callback - Emit info/event for Temperature endpoints.
 static void infoEventTemp(bscEndpoint *e, char *clazz)
 {
-        if(e->displayText == NULL)
-                e->displayText = (char *)malloc(15);
-        char unit = strcmp(e->name,"temp") == 0 ? 'C' : 'F'; // tmpr/tmprF
-        snprintf(e->displayText, 15, "Temp %s %c", e->text, unit);
-        bscInfoEvent(e, clazz);
+        info("%s %s = %s", clazz, e->name, e->text);	
+	if(strcmp(clazz, BSC_INFO_CLASS) == 0 || e->userData == NULL || strcmp(e->text, (char *)e->userData)) {
+	  if(e->displayText == NULL)
+	    e->displayText = (char *)malloc(15);
+	  char unit = strcmp(e->name,"temp") == 0 ? 'C' : 'F'; // tmpr/tmprF
+	  snprintf(e->displayText, 15, "Temp %s%c", e->text, unit);
+	  
+	  bscInfoEvent(e, clazz);
+	}
 }
 
 /** Load a dynamic key for the [currentcost] section from the INI file.
@@ -109,20 +115,25 @@ static void sensorInfoEvent(bscEndpoint *e, char *clazz)
 {
         char unit[10];
 
-        debug("Sensor event %s", e->name);
-	long n = loadSensorINI("unit", atoi(e->subaddr), unit, sizeof(unit));
-        if(n > 0) {
-                if(e->displayText == NULL) { // Lazy malloc
-                        e->displayText = (char *)malloc(30);
-                }
+        info("%s %s.%s", clazz, e->name, e->subaddr);	
+	// note: e->userData contains the previous value (it will be NULL for the 1st data value received)
+	if(strcmp(clazz, BSC_INFO_CLASS) == 0 || e->userData == NULL || strcmp(e->text, (char *)e->userData)) {
 
-                if(e->type == BSC_BINARY) {
-                        snprintf(e->displayText, 30, "%s %s", unit, bscStateToString(e));
-                } else {
-                        snprintf(e->displayText, 30, "%s %s", e->text, unit);
-                }
-        }
-        bscInfoEvent(e, clazz);
+	  long n = loadSensorINI("unit", atoi(e->subaddr), unit, sizeof(unit));
+	  if(n > 0) {
+	    if(e->displayText == NULL) { // Lazy malloc
+	      e->displayText = (char *)malloc(30);
+	    }
+	    
+	    if(e->type == BSC_BINARY) {
+	      snprintf(e->displayText, 30, "%s %s", unit, bscStateToString(e));
+	    } else {
+	      snprintf(e->displayText, 30, "%s %s", e->text, unit);
+	    }
+	  }
+
+	  bscInfoEvent(e, clazz);
+	}
 }
 
 static void findOrAddSensor()
@@ -162,6 +173,7 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
                                 // Dynamic endpoints. We defer creation until we see the tag in the XML
                                 if(currentTag == NULL) {
                                         // Add to the list we want to search and manage
+				        bscSetEndpointUID(p->uid);
                                         currentTag = bscAddEndpoint(&endpointList, p->name, p->subaddr, BSC_INPUT, BSC_STREAM, NULL, p->infoEvent);
                                         bscAddEndpointFilter(currentTag, INFO_INTERVAL);
                                 }

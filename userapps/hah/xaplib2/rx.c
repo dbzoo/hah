@@ -79,9 +79,8 @@ void xapProcess() {
 		if (readsocks < 0) {
 			err_strerror("select()");
 		}
-		if (readsocks == 0) { // Nothing ready to read
-			timeoutDispatch();
-		} else
-			readSockets(&socks);
+		if(readsocks)
+		  readSockets(&socks);
+		timeoutDispatch();
 	}
 }

@@ -78,5 +78,6 @@ char *bscStateToString(bscEndpoint *e);
 char *bscIOToString(bscEndpoint *e);
 int bscDecodeState(char *msg);
 void bscSetEndpointUID(int nid);
+int bscGetEndpointUID();
 
 #endif

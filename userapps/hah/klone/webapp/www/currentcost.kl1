@@ -81,9 +81,9 @@ static void submit_form() {
 		  const char *desc = getdynkey("desc", i);
 		  const char *unit = getdynkey("unit", i);
 		  if(type == NULL) continue;
-		  saveDynINI("type", i, type);
-		  saveDynINI("desc", i, desc);
-		  saveDynINI("unit", i, unit);
+		  saveDynINI("type", i+1, type);
+		  saveDynINI("desc", i+1, desc);
+		  saveDynINI("unit", i+1, unit);
 	 }
 
 	 if(cc_restart) {
@@ -104,9 +104,9 @@ static void readIni() {
 		 }
 	 }
 	 for(i=0; i < sensorCount; i++) {
-		  loadDynINI("type", i, sensor[i].type, sizeof(sensor[i].type));
-		  loadDynINI("desc", i, sensor[i].desc, sizeof(sensor[i].desc));
-		  loadDynINI("unit", i, sensor[i].unit, sizeof(sensor[i].unit));					 
+		  loadDynINI("type", i+1, sensor[i].type, sizeof(sensor[i].type));
+		  loadDynINI("desc", i+1, sensor[i].desc, sizeof(sensor[i].desc));
+		  loadDynINI("unit", i+1, sensor[i].unit, sizeof(sensor[i].unit));					 
 	 }
 
 }

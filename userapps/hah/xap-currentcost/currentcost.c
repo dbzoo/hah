@@ -102,7 +102,6 @@ static void infoEventTemp(bscEndpoint *e, char *clazz)
 */
 static long loadSensorINI(char *key, int sensor, char *location, int size)
 {	
-	sensor--;    // INI file uses ZERO based indexing
         char buff[10];
         sprintf(buff,"%s%d",key,sensor);
         long n = ini_gets("currentcost", buff, "", location, size, inifile);

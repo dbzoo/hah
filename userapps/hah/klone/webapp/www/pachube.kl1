@@ -27,14 +27,14 @@ static struct {
 } ini;
 
 static void loadDynINI(char *key, int id, char *location, int size) {
-	 char buff[100];
-	 sprintf(buff,"%s%d",key,id);
+	 char buff[20];
+	 snprintf(buff,sizeof(buff),"%s%d",key, id);
 	 ini_gets("pachube", buff, "", location, size, con.inifile);
 }
 
 static void saveDynINI(char *key, int id, const char *value) {
-	 char buff[100];
-	 sprintf(buff,"%s%d",key,id);
+	 char buff[20];
+	 snprintf(buff,sizeof(buff),"%s%d",key, id);
 	 ini_puts("pachube", buff, value, con.inifile);
 }
 
@@ -116,10 +116,10 @@ static void submit_form() {
   int i;
   REQUIRE_AUTH(SCRIPT_NAME);
   const char *action = request_get_arg(request,"action");
-  readIni();
+readIni();
   if(action && strcmp(action,"Apply") == 0) {
 	  submit_form();
-      readIni();
+	  readIni();
   }
   if(action && strcmp(action,"Add") == 0 && ini.count+1 < sizearray(ds)) {
 	   memset( &ds[ini.count], 0, sizeof(ds[i]) );
@@ -195,7 +195,7 @@ addEvent(window,"load",function() {
 
 <div id="main">
 <div id="contents">
-<form name="services" action="<%= SCRIPT_NAME %>" method="post">
+<form name="services" action="<%= SCRIPT_NAME %>" method="get">
 <input type="hidden" name="submit_button"/>
 <input type="hidden" name="action"/>
 <br/>
@@ -238,10 +238,10 @@ addEvent(window,"load",function() {
 	   <tr>
          <td><input name="id<% io_printf(out,"%d",i); %>" maxlength="4" size="1" value="<%= ds[i].id %>" onblur="isdigit(this,'ID')"/></td>
          <td><input name="tag<% io_printf(out,"%d",i); %>" maxlength="20" size="10" value="<%= ds[i].tag %>"/></td>
-         <td><input name="xap<% io_printf(out,"%d",i); %>" maxlength="64" size="30" value="<%= ds[i].source %>"/></td>
-         <td><input name="xap<% io_printf(out,"%d",i); %>" maxlength="32" size="11" value="<%= ds[i].class %>"/></td>
-         <td><input name="xap<% io_printf(out,"%d",i); %>" maxlength="32" size="11" value="<%= ds[i].section %>"/></td>
-         <td><input name="xap<% io_printf(out,"%d",i); %>" maxlength="32" size="4" value="<%= ds[i].key %>"/></td>
+         <td><input name="source<% io_printf(out,"%d",i); %>" maxlength="64" size="30" value="<%= ds[i].source %>"/></td>
+         <td><input name="class<% io_printf(out,"%d",i); %>" maxlength="32" size="11" value="<%= ds[i].class %>"/></td>
+         <td><input name="section<% io_printf(out,"%d",i); %>" maxlength="32" size="11" value="<%= ds[i].section %>"/></td>
+         <td><input name="key<% io_printf(out,"%d",i); %>" maxlength="32" size="4" value="<%= ds[i].key %>"/></td>
 		 <td><input type="image" src="/images/bin_bt.gif" name="del" value="<% io_printf(out,"%d",i); %>" onclick="del(this.form)"/></td>
        </tr>
 <%

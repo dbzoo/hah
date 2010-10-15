@@ -25,7 +25,7 @@ struct {
 	char type[2]; // Analogue/Digital
 	char desc[40];
         char unit[10];
-} sensor[9];  // set to MAX.
+} sensor[32];  // set to MAX.
 
 static const char *getdynkey(char *key, int id ) {
 	 char buff[30];
@@ -98,17 +98,17 @@ static void readIni() {
 	 ini_gets("currentcost","usbserial","/dev/ttyUSB0",ini.cc_usbserial,sizeof(ini.cc_usbserial),con.inifile);
 	 ini_gets("currentcost","model","CLASSIC",ini.cc_model,sizeof(ini.cc_model),con.inifile);
 	 int i;
+	 for(i=0; modelSensor[i].model; i++) {
+		 if(strcmp(modelSensor[i].model, ini.cc_model) == 0) {
+			 sensorCount = modelSensor[i].sensors;
+		 }
+	 }
 	 for(i=0; i < sensorCount; i++) {
 		  loadDynINI("type", i, sensor[i].type, sizeof(sensor[i].type));
 		  loadDynINI("desc", i, sensor[i].desc, sizeof(sensor[i].desc));
 		  loadDynINI("unit", i, sensor[i].unit, sizeof(sensor[i].unit));					 
 	 }
 
-	 for(i=0; modelSensor[i].model; i++) {
-		 if(strcmp(modelSensor[i].model, ini.cc_model) == 0) {
-			 sensorCount = modelSensor[i].sensors;
-		 }
-	 }
 }
 %>
 

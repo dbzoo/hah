@@ -46,18 +46,19 @@ static void infoEventTemp(bscEndpoint *, char *);
 // Once a tag is matched the next CDATA section will be its value.
 struct _ccTag
 {
-	char *xmltag;
-	void (*infoEvent)(bscEndpoint *, char *);
-	char *name;
-	char *subaddr;
-} ccTag[] = {
-	{"ch1", &infoEventChannel, "ch", "1"},
-	{"ch2", &infoEventChannel, "ch", "2"},
-	{"ch3", &infoEventChannel, "ch", "3"},
-	{"tmpr", &infoEventTemp, "temp", NULL},
-	{"tmprF", &infoEventTemp, "tempF", NULL},
-	{NULL, NULL, NULL, NULL}
-};
+        char *xmltag;
+        void (*infoEvent)(bscEndpoint *, char *);
+        char *name;
+        char *subaddr;
+}
+ccTag[] = {
+                  {"ch1", &infoEventChannel, "ch", "1"},
+                  {"ch2", &infoEventChannel, "ch", "2"},
+                  {"ch3", &infoEventChannel, "ch", "3"},
+                  {"tmpr", &infoEventTemp, "temp", NULL},
+                  {"tmprF", &infoEventTemp, "tempF", NULL},
+                  {NULL, NULL, NULL, NULL}
+          };
 
 /// BSC callback - Only emit info/event for Channels that adjust outside of the hysteresis amount.
 static void infoEventChannel(bscEndpoint *e, char *clazz)
@@ -86,49 +87,60 @@ static void infoEventTemp(bscEndpoint *e, char *clazz)
         bscInfoEvent(e, clazz);
 }
 
-static long loadSensorINI(char *key, char *location, int size) {
-	 char buff[10];
-	 sprintf(buff,"%s%d",key,currentSensor-1);
-	 return ini_gets("currentcost", buff, "", location, size, inifile);
+/** Load a dynamic key for the [currentcost] section from the INI file.
+*
+* @param key Dynamic key name
+* @param sensor CurrentCost sensor we need to load data for. 1 based index.
+* @param location Pointer to area for INI value
+* @param size Width of the memory pointer.
+*/
+static long loadSensorINI(char *key, int sensor, char *location, int size)
+{	
+	sensor--;    // INI file uses ZERO based indexing
+        char buff[10];
+        sprintf(buff,"%s%d",key,index);
+        long n = ini_gets("currentcost", buff, "", location, size, inifile);
+        debug("%s=%s", buff, location);
+        return n;
 }
 
 /// BSC callback - For Sensors
 static void sensorInfoEvent(bscEndpoint *e, char *clazz)
 {
-	char unit[10];
+        char unit[10];
 
-	debug("Sensor event %s", e->name);
-	long n = loadSensorINI("unit", unit, sizeof(unit));
-	if(n == 0) return; // No units to display
+        debug("Sensor event %s", e->name);
+	long n = loadSensorINI("unit", atoi(e->subaddr), unit, sizeof(unit));
+        if(n > 0) {
+                if(e->displayText == NULL) { // Lazy malloc
+                        e->displayText = (char *)malloc(30);
+                }
 
-	if(e->displayText == NULL) { // Lazy malloc
-		e->displayText = (char *)malloc(30);
-	}
-	
-	if(e->type == BSC_BINARY) {
-	        snprintf(e->displayText, 30, "%s %s", unit, bscStateToString(e));
-	} else {
-		snprintf(e->displayText, 30, "%s %s", e->text, unit);
-	}
+                if(e->type == BSC_BINARY) {
+                        snprintf(e->displayText, 30, "%s %s", unit, bscStateToString(e));
+                } else {
+                        snprintf(e->displayText, 30, "%s %s", e->text, unit);
+                }
+        }
         bscInfoEvent(e, clazz);
 }
 
-static void findOrAddSensor() 
+static void findOrAddSensor()
 {
-	char sensor[3];
-	snprintf(sensor, sizeof(sensor), "%d", currentSensor);
+        char sensor[3];
+        snprintf(sensor, sizeof(sensor), "%d", currentSensor);
 
-	currentTag = bscFindEndpoint(endpointList, "sensor", sensor);
-	if(currentTag == NULL) {
-		// Add to the list we want to search and manage
-		bscSetEndpointUID(currentSensor+10);
-		char stype[2]; // Analog/Digital
-		loadSensorINI("type", stype, sizeof(stype));
-		int bscType = stype[0] == 'D' ? BSC_BINARY : BSC_STREAM;
-		currentTag = bscAddEndpoint(&endpointList, "sensor", sensor, BSC_INPUT, 
-					    bscType, NULL, &sensorInfoEvent);
-		bscAddEndpointFilter(currentTag, INFO_INTERVAL);
-	}
+        currentTag = bscFindEndpoint(endpointList, "sensor", sensor);
+        if(currentTag == NULL) {
+                // Add to the list we want to search and manage
+                bscSetEndpointUID(currentSensor+10);
+                char stype[2]; // Analog/Digital
+                loadSensorINI("type", currentSensor, stype, sizeof(stype));
+                int bscType = stype[0] == 'D' ? BSC_BINARY : BSC_STREAM;
+                currentTag = bscAddEndpoint(&endpointList, "sensor", sensor, BSC_INPUT,
+                                            bscType, NULL, &sensorInfoEvent);
+                bscAddEndpointFilter(currentTag, INFO_INTERVAL);
+        }
 }
 
 /// SAX element (TAG) callback
@@ -136,65 +148,72 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
 {
         struct _ccTag *p;
 
-	debug("<%s>", name);
+        debug("<%s>", name);
         if(strcmp("sensor", name) == 0) {
                 state = ST_SENSOR;
-		return;
+                return;
         }
 
-	if (currentSensor == 0) {
-	  for(p=&ccTag[0]; p->xmltag; p++) {
-	    if(strcmp(name, p->xmltag) == 0) {
-	      state = ST_DATA;
-	      currentTag = bscFindEndpoint(endpointList, p->name, p->subaddr);
-	      // Dynamic endpoints. We defer creation until we see the tag in the XML
-	      if(currentTag == NULL) {
-		// Add to the list we want to search and manage
-		currentTag = bscAddEndpoint(&endpointList, p->name, p->subaddr, BSC_INPUT, BSC_STREAM, NULL, p->infoEvent);
-		bscAddEndpointFilter(currentTag, INFO_INTERVAL);
-	      }
-	    }
-	  }
-	} else if(strcmp(name,"ch1") == 0) {
-	  state = ST_DATA;
-	  findOrAddSensor();
-	}
+        if (currentSensor == 0) {
+                for(p=&ccTag[0]; p->xmltag; p++) {
+                        if(strcmp(name, p->xmltag) == 0) {
+                                state = ST_DATA;
+                                currentTag = bscFindEndpoint(endpointList, p->name, p->subaddr);
+                                // Dynamic endpoints. We defer creation until we see the tag in the XML
+                                if(currentTag == NULL) {
+                                        // Add to the list we want to search and manage
+                                        currentTag = bscAddEndpoint(&endpointList, p->name, p->subaddr, BSC_INPUT, BSC_STREAM, NULL, p->infoEvent);
+                                        bscAddEndpointFilter(currentTag, INFO_INTERVAL);
+                                }
+                        }
+                }
+        } else if(strcmp(name,"ch1") == 0) {
+                state = ST_DATA;
+                findOrAddSensor();
+        }
 }
 
 /// SAX cdata callback
 static void cdataBlockCB(void *ctx, const xmlChar *ch, int len)
 {
-	char output[40];
-	int i;
+        char output[40];
+        int i;
 
-	if(state == ST_NONE) return;
+        if(state == ST_NONE)
+                return;
 
-	// Value to STRZ
-	for (i = 0; (i<len) && (i < sizeof(output)-1); i++)
-		output[i] = ch[i];
-	output[i] = 0;
+        // Value to STRZ
+        for (i = 0; (i<len) && (i < sizeof(output)-1); i++)
+                output[i] = ch[i];
+        output[i] = 0;
 
-	debug("%s", output);
+        debug("%s", output);
         switch(state) {
         case ST_SENSOR:
                 currentSensor = atoi(output);
                 break;
         case ST_DATA:
-	        // If its different report it.
+                // If its different report it.
                 if(currentTag->text == NULL || strcmp(output, currentTag->text)) {
                         // Rotate the text data value through the user data field and free it on update.
                         if(currentTag->userData)
                                 free(currentTag->userData);
                         currentTag->userData = (void *)currentTag->text;
-                        currentTag->text = strdup(output);
 
-			debug("endpoint type %d", currentTag->type);
-	                if(currentTag->type == BSC_BINARY) {
-		                // 0 is off, 500 is ON.  We'll use any value != 0 as ON.
-	                	bscSetState(currentTag, atoi(output) ? BSC_STATE_ON : BSC_STATE_OFF);
-	                } else {
-		                bscSetState(currentTag, BSC_STATE_ON);
-	                }
+                        // We do this to dump leading ZERO's
+                        int value = atoi(output);
+                        char buf[8];
+                        snprintf(buf, sizeof(buf), "%d", value);
+
+                        currentTag->text = strdup(buf);
+
+                        debug("endpoint type %d", currentTag->type);
+                        if(currentTag->type == BSC_BINARY) {
+                                // 0 is off, 500 is ON.  We'll use any value != 0 as ON.
+                                bscSetState(currentTag, value ? BSC_STATE_ON : BSC_STATE_OFF);
+                        } else {
+                                bscSetState(currentTag, BSC_STATE_ON);
+                        }
                         bscSendCmdEvent(currentTag);
                 }
                 break;
@@ -203,8 +222,9 @@ static void cdataBlockCB(void *ctx, const xmlChar *ch, int len)
 }
 
 
-static void endElementCB(void *ctx, const xmlChar *name) {
-  debug("</%s>", name);
+static void endElementCB(void *ctx, const xmlChar *name)
+{
+        debug("</%s>", name);
 }
 
 /// Parse an Currentcost XML message.
@@ -220,10 +240,10 @@ void parseXml(char *data, int size)
         handler.endElement = endElementCB;
         handler.characters = cdataBlockCB;
 
-	state = ST_NONE;
-	currentSensor = 0;
-	currentTag = NULL;
-	
+        state = ST_NONE;
+        currentSensor = 0;
+        currentTag = NULL;
+
         if(xmlSAXUserParseMemory(&handler, NULL, data, size) < 0) {
                 err("Document not parsed successfully.");
                 return;
@@ -239,7 +259,7 @@ void serialInputHandler(int fd, void *data)
         int i;
         int len;
 
-	info("serialInputHandler(fd:%d)", fd);
+        info("serialInputHandler(fd:%d)", fd);
         while((len = read(fd, serial_buff, sizeof(serial_buff))) > 0) {
                 for(i=0; i < len; i++) {
                         if(serial_buff[i] == '\r' || serial_buff[i] == '\n')
@@ -300,7 +320,7 @@ static void usage(char *prog)
 /// Process the INI file for xAP control data and setup XAP.
 void setupXap()
 {
-	xapInitFromINI("currentcost","dbzoo.livebox","CurrentCost","00DC",interfaceName,inifile);
+        xapInitFromINI("currentcost","dbzoo.livebox","CurrentCost","00DC",interfaceName,inifile);
 
         hysteresis = ini_getl("currentcost", "hysteresis", 10, inifile);
 

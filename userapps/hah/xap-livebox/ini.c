@@ -55,7 +55,7 @@ void infoEventBinary(bscEndpoint *e, char *clazz)
         // Locate an INI label of the form, where X is the endpoint name.
         // [X]
         // X1.label=
-	infoEventLabeled(e, clazz, e->name, bscStateToString(e));
+        infoEventLabeled(e, clazz, e->name, bscStateToString(e));
 }
 
 /** Augment default xapBSC.info & xapBSC.event handler.
@@ -91,20 +91,16 @@ static void cmdRF(bscEndpoint *e)
  */
 void timeoutCheck1wire(int interval, void *data)
 {
+        bscEndpoint *e = (bscEndpoint *)data;
         long t = ini_getl("1wire", "timeout", -1, inifile);
         if (t < 1)
                 return;
         t *= 60; // minutes to seconds
 
         time_t now = time(NULL);
-        bscEndpoint *e;
-        LL_FOREACH(endpointList, e) {
-                if(strcmp("1wire", e->name) == 0) {
-                        if(now > *(time_t *)e->userData + t) {
-                                bscSetState(e, BSC_STATE_UNKNOWN);
-                                bscSetText(e, "?");
-                        }
-                }
+        if(now > *(time_t *)e->userData + t) {
+                bscSetState(e, BSC_STATE_UNKNOWN);
+                bscSetText(e, "?");
         }
 }
 
@@ -119,11 +115,11 @@ static void cmdPPEpin(bscEndpoint *e)
 {
         char serialCmd[32];
         // Subaddr is of the form: <addr>.<pin>
-	char *addr = strtok(e->subaddr,".");
-	char *pin = strtok(NULL,"");
+        char *addr = strtok(e->subaddr,".");
+        char *pin = strtok(NULL,"");
         // We invert the STATE.  Logical ON is a LOW PPE state 0.
-	snprintf(serialCmd, sizeof(serialCmd),"i2c P%s%s%d", addr, pin, e->state == BSC_STATE_ON ? BSC_STATE_OFF : BSC_STATE_ON);
-	serialSend(serialCmd);
+        snprintf(serialCmd, sizeof(serialCmd),"i2c P%s%s%d", addr, pin, e->state == BSC_STATE_ON ? BSC_STATE_OFF : BSC_STATE_ON);
+        serialSend(serialCmd);
 }
 
 /** Drive an I2C PPE in BYTE mode for a targeted xAPBSC.cmd
@@ -135,23 +131,24 @@ static void cmdPPEpin(bscEndpoint *e)
 */
 static void cmdPPEbyte(bscEndpoint *e)
 {
-	char serialCmd[32];
-	if(isxdigit(e->text[0]) && isxdigit(e->text[1]) && strlen(e->text) == 2) {
-		snprintf(serialCmd, sizeof(serialCmd),"i2c B%s%s", e->subaddr, e->text);
-		serialSend(serialCmd);
-	} else {
-		warning("CMD must be 2 hex digits: supplied %s", e->text);
-	}
+        char serialCmd[32];
+        if(isxdigit(e->text[0]) && isxdigit(e->text[1]) && strlen(e->text) == 2) {
+                snprintf(serialCmd, sizeof(serialCmd),"i2c B%s%s", e->subaddr, e->text);
+                serialSend(serialCmd);
+        } else {
+                warning("CMD must be 2 hex digits: supplied %s", e->text);
+        }
 }
 
 /** Register each I2C address so that it will be monitored.  This
 *   inserts the address into the firmware's internal array list
 *   periodically each i2c device will be polled for a change in state.
 */
-static void setup_i2c_ppe(int addr) {
-	char arg[10];
-	snprintf(arg, sizeof(arg), "i2c M%02X", addr);
-	serialSend(arg);
+static void setup_i2c_ppe(int addr)
+{
+        char arg[10];
+        snprintf(arg, sizeof(arg), "i2c M%02X", addr);
+        serialSend(arg);
 }
 
 /** Send an instruction to reset the number of PPE device's registered.
@@ -159,8 +156,9 @@ static void setup_i2c_ppe(int addr) {
 *  .ini file being modified between invocations and we don't want to
 *   register the same i2c address more than once.
 */
-static void reset_i2c_ppe() {
-	serialSend("i2c R");
+static void reset_i2c_ppe()
+{
+        serialSend("i2c R");
 }
 
 /** Parse the .ini file and dynamically create XAP endpoints.
@@ -169,13 +167,13 @@ void addIniEndpoints()
 {
         char section[30];
         long n;
-	int s, i;
+        int s, i;
         char buff[30];
-	char s_addr[5];
-	int addr;
-	char mode[5];	
+        char s_addr[5];
+        int addr;
+        char mode[5];
 
-	reset_i2c_ppe();
+        reset_i2c_ppe();
         for (s = 0; ini_getsection(s, section, sizeof(section), inifile) > 0; s++) {
                 info("section: %s", section);
 
@@ -184,55 +182,51 @@ void addIniEndpoints()
                    ppe as long as its unique to distinguish one entry from
                    another.
                 */
-	        if(strncmp("ppe", section, 3) == 0) {
-		        n = ini_gets(section, "address", "", s_addr, sizeof(s_addr), inifile);
-		        if (n == 0) {
-			        err(section,"Missing address=[0x40-0x47]");
-			        continue;
-		        }
-		        sscanf(s_addr,"%x", &addr);
-		        if(addr < 0x40 || addr > 0x47) {
-			        err(section,"Invalid address %s", s_addr);
-			        continue;
-		        }
-		        n = ini_gets(section, "mode", "", mode, sizeof(mode), inifile);
-		        if(n == 0) {
-			        err(section,"Missing mode=[byte|pin]");
-			        continue;
-		        }
-		        bscSetEndpointUID(addr);
-		        if(strcmp(mode,"byte") == 0) {
-			        snprintf(buff,sizeof buff,"%02X", addr);
-			        bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_STREAM, &cmdPPEbyte, NULL);
-			        setup_i2c_ppe(addr);
-		        } else if(strcmp(mode,"pin") == 0) {
-			        int pin;
+                if(strncmp("ppe", section, 3) == 0) {
+                        n = ini_gets(section, "address", "", s_addr, sizeof(s_addr), inifile);
+                        if (n == 0) {
+                                err(section,"Missing address=[0x40-0x47]");
+                                continue;
+                        }
+                        sscanf(s_addr,"%x", &addr);
+                        if(addr < 0x40 || addr > 0x47) {
+                                err(section,"Invalid address %s", s_addr);
+                                continue;
+                        }
+                        n = ini_gets(section, "mode", "", mode, sizeof(mode), inifile);
+                        if(n == 0) {
+                                err(section,"Missing mode=[byte|pin]");
+                                continue;
+                        }
+                        bscSetEndpointUID(addr);
+                        if(strcmp(mode,"byte") == 0) {
+                                snprintf(buff,sizeof buff,"%02X", addr);
+                                bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_STREAM, &cmdPPEbyte, NULL);
+                                setup_i2c_ppe(addr);
+                        } else if(strcmp(mode,"pin") == 0) {
+                                int pin;
 
-			        for(pin=0; pin<7; pin++) {
-				        snprintf(buff,sizeof buff,"%02X.%d", addr, pin);
-				        bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_BINARY, &cmdPPEpin, NULL);
-			        }
-			        setup_i2c_ppe(addr);
-		        }
-		        else {
-		                err(section,"Invalid mode: %s", mode);
-			        continue;
-		        }
-	        }  // Handle section: [1wire]
-	        else if(strcmp("1wire", section) == 0) {
+                                for(pin=0; pin<7; pin++) {
+                                        snprintf(buff,sizeof buff,"%02X.%d", addr, pin);
+                                        bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_BINARY, &cmdPPEpin, NULL);
+                                }
+                                setup_i2c_ppe(addr);
+                        } else {
+                                err(section,"Invalid mode: %s", mode);
+                                continue;
+                        }
+                }  // Handle section: [1wire]
+                else if(strcmp("1wire", section) == 0) {
                         n = ini_getl(section, "devices", -1, inifile);
                         if (n > 15)
                                 n = 15;
-                        if(n) {
-                                // Every minute check the 1wire bus for timeouts.
-                                xapAddTimeoutAction(&timeoutCheck1wire, 60, NULL);
-                        }
-		        bscSetEndpointUID(128);
-		        for(i=1; i<=n; i++) {
+                        bscSetEndpointUID(128);
+                        for(i=1; i<=n; i++) {
                                 snprintf(buff,sizeof buff,"%d", i);
                                 bscEndpoint *e = bscAddEndpoint(&endpointList, "1wire", buff, BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);
                                 // extra data to hold last 1wire event serial time.
                                 e->userData = (void *)malloc(sizeof(time_t));
+	                        xapAddTimeoutAction(&timeoutCheck1wire, 60, (void *)e);
                         }
                 } else if(strcmp("rf",section) == 0) {
                         int j;
@@ -245,10 +239,10 @@ void addIniEndpoints()
                         waitms = ini_getl(section, "eedelay", 100, inifile);
                         if (devices > MAXCHANNEL-4)
                                 n = MAXCHANNEL-4;
-	                bscSetEndpointUID(160);
+                        bscSetEndpointUID(160);
                         for(i = 1; i <= devices; i++) {
                                 snprintf(buff,sizeof buff,"%d", i);
-	                        bscAddEndpoint(&endpointList, "rf", buff, BSC_OUTPUT, BSC_BINARY, &cmdRF, &infoEventBinary);
+                                bscAddEndpoint(&endpointList, "rf", buff, BSC_OUTPUT, BSC_BINARY, &cmdRF, &infoEventBinary);
 
                                 // Look for RF configuration for this relay.
                                 for(j=0; j<2; j++) {

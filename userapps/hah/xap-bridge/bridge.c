@@ -22,9 +22,9 @@
 #include <errno.h>
 
 const char* XAP_ME = "dbzoo";
-const char* XAP_SOURCE = "livebox";
+const char* XAP_SOURCE;
 const char* XAP_GUID;
-const char* XAP_DEFAULT_INSTANCE;
+const char* XAP_DEFAULT_INSTANCE = "Bridge";
 
 static int maxHopCount=5;
 static int forwardHeartbeats=0;  // forward heart-beats to serial networks.
@@ -234,14 +234,17 @@ static void setupXAP() {
      snprintf(guid,sizeof guid,"FF%s00", uid);
      XAP_GUID = strdup(guid);
 
-     char control[30] = "\0";
-     n = ini_gets("bridge","instance","Bridge",control,sizeof(control),inifile);
-     if(n == 0 || strlen(control) == 0)
-     {
-	  strlcpy(control, "Bridge",sizeof control);
+     char i_control[64];
+     char s_control[128];
+     n = ini_gets("xap","instance","",i_control,sizeof(i_control),inifile);
+     strcpy(s_control, "livebox");
+     // If there a unique HAH sub address component?
+     if(i_control[0]) {
+	     strlcat(s_control, ".",sizeof(s_control));
+	     strlcat(s_control, i_control, sizeof(s_control));
      }
-     XAP_DEFAULT_INSTANCE = strdup(control);
-     strlcpy(g_instance, control, sizeof g_instance); // default instance name
+     XAP_SOURCE = strdup(s_control);
+     strlcpy(g_instance, XAP_DEFAULT_INSTANCE, sizeof g_instance); // default instance name
 
      maxHopCount = ini_getl("bridge", "hopCount", 5, inifile);
      // HopCount of 1 could mean the bridge would drop every packet. -ve don't sense either.

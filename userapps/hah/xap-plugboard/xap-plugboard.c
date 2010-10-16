@@ -22,10 +22,10 @@
 #include "debug.h"
 
 const char* XAP_ME = "dbzoo";
-const char* XAP_SOURCE = "livebox"; 
+const char* XAP_SOURCE; 
 const char* inifile = "/etc/xap-livebox.ini";
 const char* XAP_GUID;
-const char* XAP_DEFAULT_INSTANCE;
+const char* XAP_DEFAULT_INSTANCE = "Plugboard";
 static char scriptdir[64];
 
 enum Type {SOURCE, TARGET, CLASS};
@@ -473,13 +473,16 @@ void setupXAPini()
      snprintf(guid,sizeof guid,"FF%s00", uid);
      XAP_GUID = strdup(guid);
 
-     char control[20];
-     n = ini_gets("plugboard","instance","Plugboard",control,sizeof(control),inifile);
-     if(n == 0 || strlen(control) == 0) 
-     {
-	  strcpy(control,"Plugboard");
+     char i_control[64];
+     char s_control[128];
+     n = ini_gets("xap","instance","",i_control,sizeof(i_control),inifile);
+     strcpy(s_control, "livebox");
+     // If there a unique HAH sub address component?
+     if(i_control[0]) {
+	     strlcat(s_control, ".",sizeof(s_control));
+	     strlcat(s_control, i_control, sizeof(s_control));
      }
-     XAP_DEFAULT_INSTANCE = strdup(control);
+     XAP_SOURCE = strdup(s_control);
 
      ini_gets("plugboard","scriptdir","/etc/plugboard",scriptdir,sizeof(scriptdir),inifile);
 }

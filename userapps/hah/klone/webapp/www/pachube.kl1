@@ -195,7 +195,7 @@ addEvent(window,"load",function() {
 
 <div id="main">
 <div id="contents">
-<form name="services" action="<%= SCRIPT_NAME %>" method="get">
+<form name="services" action="<%= SCRIPT_NAME %>" method="post">
 <input type="hidden" name="submit_button"/>
 <input type="hidden" name="action"/>
 <br/>

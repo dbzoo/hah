@@ -179,20 +179,22 @@ int i;
 <%
 if(ini.devicesrf > 0) {
 %>
-<td valign="top"><fieldset>
-<legend>RF</legend>
+<td valign="top">
+<fieldset>
+<legend>Input</legend>
 <table>
 <tr>
 <th>Item</th>
 <th>Label</th>
 <%
-for(i=1; i<=ini.devicesrf; i++) {
-	   io_printf(out,"<tr>%sRF %d</td>", alt_td(i), i);
-	   io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"rf%d\" value=\"%s\"></td></tr>", alt_td(i), i, kv("rf",i));
+for(i=1; i<5; i++) {
+io_printf(out,"<tr>%sInput %d</td>", alt_td(i), i);
+io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"input%d\" value=\"%s\"></td></tr>", alt_td(i), i, kv("input",i));
 }
 %>
 </table>
-</fieldset></td>
+</fieldset>
+</td>
 <%
 }
 %>
@@ -212,21 +214,22 @@ io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"relay%
 </table>
 </fieldset></td>
 </tr><tr>
-<td valign="top"><fieldset>
-<legend>Input</legend>
+<td valign="top">
+<fieldset>
+<legend>RF</legend>
 <table>
 <tr>
 <th>Item</th>
 <th>Label</th>
 <%
-for(i=1; i<5; i++) {
-io_printf(out,"<tr>%sInput %d</td>", alt_td(i), i);
-io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"input%d\" value=\"%s\"></td></tr>", alt_td(i), i, kv("input",i));
+for(i=1; i<=ini.devicesrf; i++) {
+	   io_printf(out,"<tr>%sRF %d</td>", alt_td(i), i);
+	   io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"rf%d\" value=\"%s\"></td></tr>", alt_td(i), i, kv("rf",i));
 }
 %>
 </table>
-</fieldset></td>
-
+</fieldset>
+</td>
 <%
 if(ini.devices1wire > 0) {
 %>

@@ -47,14 +47,18 @@ int getInfoProtect() {
 	return ini_getl("security","info_protect", 0, con.inifile);
 }
 
-static void web_access() {
-   char *val = request_get_arg(request, "infoprotect");
-   ini_putl("security","info_protect", val ? 1 : 0, con.inifile);
+int getLoginScreen() {
+	return ini_getl("security","login_screen", 0, con.inifile);
 }
 
-static void form_action(io_t *out) {
+static void submitForm(io_t *out) {
        change_passwd(out);
-       web_access();
+
+       char *val = request_get_arg(request, "infoprotect");
+       ini_putl("security","info_protect", val ? 1 : 0, con.inifile);
+
+       val = request_get_arg(request, "loginscreen");
+       ini_putl("security","login_screen", val ? 1 : 0, con.inifile);
 }
 
 %>
@@ -80,7 +84,7 @@ static void form_action(io_t *out) {
 <form action="<%= SCRIPT_NAME %>" method="post">
 <%
 	 if(vars_get_value_i(request_get_args(request), "action") == 1) {
-		  form_action(out);
+		  submitForm(out);
 	 }
 %>
 
@@ -105,6 +109,10 @@ static void form_action(io_t *out) {
  <div class="setting">
     <div class="label">Password protect info page</div>
     <input class="spaceradio" type="checkbox" name="infoprotect" value="1" <% if(getInfoProtect()){ %>checked<% } %>/>
+ </div>
+ <div class="setting">
+    <div class="label">Login screen</div>
+    <input class="spaceradio" type="checkbox" name="loginscreen" value="1" <% if(getLoginScreen()){ %>checked<% } %>/>
  </div>
 </fieldset>
 <br/>

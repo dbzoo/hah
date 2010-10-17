@@ -113,12 +113,22 @@ static long loadSensorINI(char *key, int sensor, char *location, int size)
 static void sensorInfoEvent(bscEndpoint *e, char *clazz)
 {
         char unit[10];
+	long n;
 
         info("%s %s.%s", clazz, e->name, e->subaddr);	
 	// note: e->userData contains the previous value (it will be NULL for the 1st data value received)
-	if(strcmp(clazz, BSC_INFO_CLASS) == 0 || e->userData == NULL || strcmp(e->text, (char *)e->userData)) {
+        int old = 0;
+        if(e->userData)
+                old = atoi((char *)e->userData);
+        int new = atoi(e->text);
+	char i_hysteresis[4];
+	n = loadSensorINI("hysteresis", atoi(e->subaddr), i_hysteresis, sizeof(i_hysteresis));
+	hysteresis = atoi(i_hysteresis);
 
-	  long n = loadSensorINI("unit", atoi(e->subaddr), unit, sizeof(unit));
+        // Alway report INFO events so we can repond to xAPBSC.query + Timeouts.
+        // xapBSC.event are only emitted based on the hystersis
+        if(strcmp(clazz, BSC_INFO_CLASS) == 0 || new > old + hysteresis || new < old - hysteresis) {
+	  n = loadSensorINI("unit", atoi(e->subaddr), unit, sizeof(unit));
 	  if(n > 0) {
 	    if(e->displayText == NULL) { // Lazy malloc
 	      e->displayText = (char *)malloc(30);

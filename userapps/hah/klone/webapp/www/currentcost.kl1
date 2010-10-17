@@ -25,6 +25,7 @@ struct {
 	char type[2]; // Analogue/Digital
 	char desc[40];
         char unit[10];
+        char hysteresis[4];
 } sensor[32];  // set to MAX.
 
 static const char *getdynkey(char *key, int id ) {
@@ -80,10 +81,12 @@ static void submit_form() {
 		  const char *type = getdynkey("type", i);
 		  const char *desc = getdynkey("desc", i);
 		  const char *unit = getdynkey("unit", i);
+		  const char *hysteresis = getdynkey("hysteresis", i);
 		  if(type == NULL) continue;
 		  saveDynINI("type", i+1, type);
 		  saveDynINI("desc", i+1, desc);
 		  saveDynINI("unit", i+1, unit);
+		  saveDynINI("hysteresis", i+1, hysteresis);
 	 }
 
 	 if(cc_restart) {
@@ -106,7 +109,8 @@ static void readIni() {
 	 for(i=0; i < sensorCount; i++) {
 		  loadDynINI("type", i+1, sensor[i].type, sizeof(sensor[i].type));
 		  loadDynINI("desc", i+1, sensor[i].desc, sizeof(sensor[i].desc));
-		  loadDynINI("unit", i+1, sensor[i].unit, sizeof(sensor[i].unit));					 
+		  loadDynINI("unit", i+1, sensor[i].unit, sizeof(sensor[i].unit));
+		  loadDynINI("hysteresis", i+1, sensor[i].hysteresis, sizeof(sensor[i].hysteresis));
 	 }
 
 }
@@ -186,7 +190,7 @@ addEvent(window,"load",function() {
 	 <span class="default">(Default: /dev/ttyUSB0)</span>
    </div>
    <div class="setting">
-    <div class="label">Sensor Hysteresis</div>
+    <div class="label">Whole House Hysteresis</div>
 	<input class="num" type="text" name="cc_hysteresis" onblur="is_digit(this,'Hysteresis')" value="<%= ini.cc_hysteresis %>" maxlength="3" size="3"/>
 	 <span class="default">(Default: 10 Watts)</span>
    </div>
@@ -196,14 +200,19 @@ addEvent(window,"load",function() {
 <fieldset>
   <legend>Sensors</legend>
   <table>
-	   <tr><th>ID</th><th>Type</th><th>Units</th><th>Description</th></tr>
+	   <tr><th>ID</th><th>Type</th><th>Hysteresis</th><th>Units</th><th>Description</th></tr>
 <%
 	   for(i=0; i<sensorCount; i++) {
 %>
 	   <tr>
          <td><% io_printf(out,"%d",i+1);%></td>
-	<td><input class="spaceradio" type="radio" value="A" name="type<% io_printf(out,"%d",i); %>" <% if(sensor[i].type[0] == 'A') { %> checked="checked"<% } %>/>Analog&nbsp;
-    <input class="spaceradio" type="radio" value="D" name="type<% io_printf(out,"%d",i); %>" <% if(sensor[i].type[0] == 'D') { %> checked="checked"<% } %>/>Digital</td>
+	<td>
+<select name="type<% io_printf(out,"%d",i); %>">
+<option value="A" <% if(sensor[i].type[0] == 'A') { %> selected="selected"<% } %>/>Analog</option>
+<option value="D" <% if(sensor[i].type[0] == 'D') { %> selected="selected"<% } %>/>Digital</option>
+</select>
+</td>
+         <td><input name="hysteresis<% io_printf(out,"%d",i); %>" maxlength="3" size="3" value="<%= sensor[i].hysteresis %>" onblur="is_digit(this,'Hysteresis')"/></td>
          <td><input name="unit<% io_printf(out,"%d",i); %>" maxlength="10" size="10" value="<%= sensor[i].unit %>"/></td>
          <td><input name="desc<% io_printf(out,"%d",i); %>" maxlength="40" size="40" value="<%= sensor[i].desc %>"/></td>
        </tr>

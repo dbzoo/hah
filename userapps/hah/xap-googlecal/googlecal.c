@@ -455,6 +455,14 @@ int main(int argc, char *argv[])
         if(gcal_get_authentication(gcal, username, password) == -1) {
                 internalError(LOG_ALERT, "Failed to authenticate");
         	alert("HTTP code: %d Msg %s", gcal_status_httpcode(gcal), gcal_status_msg(gcal));
+
+	        time_t now = time(NULL);
+	        struct tm *theTime;
+	        theTime = gmtime(&now);
+	        if(theTime->tm_year+1900 < 2010) { // sanity check the year.
+		        printf("Your clock is not set SSL requires it\n");
+	        	printf("System time: %s", ctime(&now));
+	        }
 	        exit(1);
         }
 

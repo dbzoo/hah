@@ -158,7 +158,7 @@ function reboot(F) {
 }
 </script>
 </head>
-<title>Livebox</title>
+<title>HAH configuration</title>
 <body class="gui">
 <div id="wrapper">
 <div id="content">
@@ -173,7 +173,7 @@ int i;
 %>
 <form name="frmControl" action="<%= SCRIPT_NAME %>" method="post">
 <input type="hidden" name="action" />
-<h2>LiveBox Hardware</h2>
+<h2>HAH Hardware</h2>
 <table><tr>
 
 <%

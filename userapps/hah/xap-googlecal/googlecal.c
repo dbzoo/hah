@@ -68,12 +68,12 @@
 #define EVENT_FREQ 60
 #define DEF_POLL_FREQ 60
 
-const char inifile[] = "/etc/xap-livebox.ini";
+const char *inifile = "/etc/xap-livebox.ini";
 
 // Commandline / INI settings
 static int freq; // calendar sync frequency
 static char username[64];
-static char password[64];
+static char *password;
 static char *interfaceName = "eth0";
 
 // Internal
@@ -396,7 +396,7 @@ void setupXAPini()
                 die("user has not been setup");
         }
 
-        ini_gets("googlecal","passwd","",password,sizeof(password),inifile);
+	password = getINIPassword("googlecal","passwd", inifile);
         if(strlen(password) == 0) {
                 die("passwd has not been setup");
         }
@@ -453,8 +453,9 @@ int main(int argc, char *argv[])
 
         info("Connecting to google");
         if(gcal_get_authentication(gcal, username, password) == -1) {
-                internalError(LOG_ALERT, "%d: %s", gcal_status_httpcode(gcal), gcal_status_msg(gcal));
-                exit(1);
+                internalError(LOG_ALERT, "Failed to authenticate");
+        	alert("HTTP code: %d Msg %s", gcal_status_httpcode(gcal), gcal_status_msg(gcal));
+	        exit(1);
         }
 
         xAPFilter *f = NULL;

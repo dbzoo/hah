@@ -49,3 +49,8 @@ h1 {
 	color: #fff;
 	padding: 0px 5px 0px 5px;
 }
+
+#header #logo a {
+color: #fff;
+text-decoration: none;
+}

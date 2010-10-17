@@ -155,5 +155,6 @@ int xapFilterAddrSubaddress(char *filterAddr, char *addr);
 // safe string copy
 size_t strlcpy(char *dst, const char *src, size_t size);
 size_t strlcat(char *dst, const char *src, size_t size);
+char *getINIPassword(char *section, char *key, char *inifile);
 
 #endif

@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
 
 	gXAP = (xAP *)calloc(sizeof(xAP), 1);
 
-	strcpy((char *)gXAP->dataPacket, msg);
+	strcpy((char *)gXAP->frame.dataPacket, msg);
 	parseMsg();
 	
 	char newmsg[XAP_DATA_LEN];

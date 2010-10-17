@@ -49,14 +49,10 @@ height:6.612em;
 }
 #header #logo {
 height:4.076em;
-width:260px;
+width:320px;
 margin-bottom:.272em;
 }
-/*
-#header #logo h1 {
-display:none;
-}
-*/
+
 #statusInfo {
 position:absolute;
 top:.908em;

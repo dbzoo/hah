@@ -1,4 +1,4 @@
 <div id="header">
-<div id="logo"><h1>Automation Hub</h1></div>
+<div id="logo"><h1><a href="http://www.homeautomationhub.com">Home Automation Hub</a></h1></div>
 <%@include menu.kl1%>
 </div>

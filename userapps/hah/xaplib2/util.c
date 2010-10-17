@@ -1,0 +1,60 @@
+/* $Id: tx.c 107 2010-10-13 19:52:14Z dbzoo.com $
+   Copyright (c) Brett England, 2010
+ 
+   No commercial use.
+   No redistribution at profit.
+   All derivative work must retain this message and
+   acknowledge the work of the original author.
+*/
+#include <string.h>
+#include "minIni.h"
+
+char *rot47(char *s)
+{
+        char *p = s;
+        while(*p) {
+                if(*p >= '!' && *p <= 'O')
+                        *p = ((*p + 47) % 127);
+                else if(*p >= 'P' && *p <= '~')
+                        *p = ((*p - 47) % 127);
+                p++;
+        }
+        return s;
+}
+
+/** Convert a string into a series of hex characters representing the string
+*/
+char *str2hex(char *str)
+{
+        const char *hex="0123456789ABCDEF";
+        char *out = (char *)malloc(strlen(str)*2+1);
+        char *p;
+        int i=0;
+        for(p=str; *p; p++) {
+                out[i++] = hex[*p & 0x0f];
+                out[i++] = hex[*p>>4 & 0x0f];
+        }
+        out[i] = '\0';
+        return out;
+}
+
+char *getINIPassword(char *section, char *key, char *inifile)
+{
+	long n;
+        char inipasswd[64];
+
+        while(1) {
+                n = ini_gets(section, key,"",inipasswd, sizeof(inipasswd), inifile);
+                if (n == 0)
+                        return NULL;
+
+	        if(strncmp("{frob}", inipasswd, 6) == 0) {
+	                return strdup(rot47(&inipasswd[6]));
+                }
+
+                char passwd[80];
+	        strcpy(passwd, "{frob}");
+	        strcat(passwd, rot47(inipasswd));
+                ini_puts(section, key, passwd, inifile);
+        }
+}

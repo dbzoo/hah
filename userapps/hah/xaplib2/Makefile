@@ -1,5 +1,5 @@
 # $Id$
-OBJECTS=init.o parse.o timeout.o tx.o rx.o filter.o bsc.o log.o strlcpy.o strlcat.o minIni.o
+OBJECTS=init.o parse.o timeout.o tx.o rx.o filter.o bsc.o log.o strlcpy.o strlcat.o minIni.o util.o
 CFLAGS=-g -Wall -fPIC
 
 libxap2.so: $(OBJECTS)

@@ -28,7 +28,7 @@ char serialPort[20];
 int hysteresis;
 char *interfaceName = "eth0";
 
-enum {CC128, CLASSIC} model;
+enum {CC128, CLASSIC, ORIGINAL} model;
 int currentSensor = -1;
 
 #define ST_NONE 0
@@ -53,12 +53,12 @@ struct _ccTag
         int uid;
 }
 ccTag[] = {
-  {"ch1", &infoEventChannel, "ch", "1", 1},
-  {"ch2", &infoEventChannel, "ch", "2", 2},
-  {"ch3", &infoEventChannel, "ch", "3", 3},
-  {"tmpr", &infoEventTemp, "temp", NULL, 4},
-  {"tmprF", &infoEventTemp, "tempF", NULL, 4},
-  {NULL, NULL, NULL, NULL}
+                  {"ch1", &infoEventChannel, "ch", "1", 1},
+                  {"ch2", &infoEventChannel, "ch", "2", 2},
+                  {"ch3", &infoEventChannel, "ch", "3", 3},
+                  {"tmpr", &infoEventTemp, "temp", NULL, 4},
+                  {"tmprF", &infoEventTemp, "tempF", NULL, 4},
+                  {NULL, NULL, NULL, NULL}
           };
 
 /// BSC callback - Only emit info/event for Channels that adjust outside of the hysteresis amount.
@@ -82,15 +82,15 @@ static void infoEventChannel(bscEndpoint *e, char *clazz)
 /// BSC callback - Emit info/event for Temperature endpoints.
 static void infoEventTemp(bscEndpoint *e, char *clazz)
 {
-        info("%s %s = %s", clazz, e->name, e->text);	
-	if(strcmp(clazz, BSC_INFO_CLASS) == 0 || e->userData == NULL || strcmp(e->text, (char *)e->userData)) {
-	  if(e->displayText == NULL)
-	    e->displayText = (char *)malloc(15);
-	  char unit = strcmp(e->name,"temp") == 0 ? 'C' : 'F'; // tmpr/tmprF
-	  snprintf(e->displayText, 15, "Temp %s%c", e->text, unit);
-	  
-	  bscInfoEvent(e, clazz);
-	}
+        info("%s %s = %s", clazz, e->name, e->text);
+        if(strcmp(clazz, BSC_INFO_CLASS) == 0 || e->userData == NULL || strcmp(e->text, (char *)e->userData)) {
+                if(e->displayText == NULL)
+                        e->displayText = (char *)malloc(15);
+                char unit = strcmp(e->name,"temp") == 0 ? 'C' : 'F'; // tmpr/tmprF
+                snprintf(e->displayText, 15, "Temp %s%c", e->text, unit);
+
+                bscInfoEvent(e, clazz);
+        }
 }
 
 /** Load a dynamic key for the [currentcost] section from the INI file.
@@ -101,7 +101,7 @@ static void infoEventTemp(bscEndpoint *e, char *clazz)
 * @param size Width of the memory pointer.
 */
 static long loadSensorINI(char *key, int sensor, char *location, int size)
-{	
+{
         char buff[10];
         sprintf(buff,"%s%d",key,sensor);
         long n = ini_gets("currentcost", buff, "", location, size, inifile);
@@ -113,36 +113,36 @@ static long loadSensorINI(char *key, int sensor, char *location, int size)
 static void sensorInfoEvent(bscEndpoint *e, char *clazz)
 {
         char unit[10];
-	long n;
+        long n;
 
-        info("%s %s.%s", clazz, e->name, e->subaddr);	
-	// note: e->userData contains the previous value (it will be NULL for the 1st data value received)
+        info("%s %s.%s", clazz, e->name, e->subaddr);
+        // note: e->userData contains the previous value (it will be NULL for the 1st data value received)
         int old = 0;
         if(e->userData)
                 old = atoi((char *)e->userData);
         int new = atoi(e->text);
-	char i_hysteresis[4];
-	n = loadSensorINI("hysteresis", atoi(e->subaddr), i_hysteresis, sizeof(i_hysteresis));
-	hysteresis = atoi(i_hysteresis);
+        char i_hysteresis[4];
+        n = loadSensorINI("hysteresis", atoi(e->subaddr), i_hysteresis, sizeof(i_hysteresis));
+        hysteresis = atoi(i_hysteresis);
 
         // Alway report INFO events so we can repond to xAPBSC.query + Timeouts.
         // xapBSC.event are only emitted based on the hystersis
         if(strcmp(clazz, BSC_INFO_CLASS) == 0 || new > old + hysteresis || new < old - hysteresis) {
-	  n = loadSensorINI("unit", atoi(e->subaddr), unit, sizeof(unit));
-	  if(n > 0) {
-	    if(e->displayText == NULL) { // Lazy malloc
-	      e->displayText = (char *)malloc(30);
-	    }
-	    
-	    if(e->type == BSC_BINARY) {
-	      snprintf(e->displayText, 30, "%s %s", unit, bscStateToString(e));
-	    } else {
-	      snprintf(e->displayText, 30, "%s %s", e->text, unit);
-	    }
-	  }
+                n = loadSensorINI("unit", atoi(e->subaddr), unit, sizeof(unit));
+                if(n > 0) {
+                        if(e->displayText == NULL) { // Lazy malloc
+                                e->displayText = (char *)malloc(30);
+                        }
 
-	  bscInfoEvent(e, clazz);
-	}
+                        if(e->type == BSC_BINARY) {
+                                snprintf(e->displayText, 30, "%s %s", unit, bscStateToString(e));
+                        } else {
+                                snprintf(e->displayText, 30, "%s %s", e->text, unit);
+                        }
+                }
+
+                bscInfoEvent(e, clazz);
+        }
 }
 
 static void findOrAddSensor()
@@ -182,7 +182,7 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
                                 // Dynamic endpoints. We defer creation until we see the tag in the XML
                                 if(currentTag == NULL) {
                                         // Add to the list we want to search and manage
-				        bscSetEndpointUID(p->uid);
+                                        bscSetEndpointUID(p->uid);
                                         currentTag = bscAddEndpoint(&endpointList, p->name, p->subaddr, BSC_INPUT, BSC_STREAM, NULL, p->infoEvent);
                                         bscAddEndpointFilter(currentTag, INFO_INTERVAL);
                                 }
@@ -312,9 +312,14 @@ int setupSerialPort()
                 die_strerror("Failed to open serial port %s", serialPort);
         }
         cfmakeraw(&newtio);
-        if(model == CC128) {
+        switch(model) {
+        case CC128:
                 newtio.c_cflag = B57600 | CS8 | CLOCAL | CREAD ;
-        } else { // classic and default
+                break;
+        case ORIGINAL:
+                newtio.c_cflag = B2400 | CS8 | CLOCAL | CREAD ;
+                break;
+        default:
                 newtio.c_cflag = B9600 | CS8 | CLOCAL | CREAD ;
         }
         newtio.c_iflag = IGNPAR;
@@ -332,7 +337,7 @@ static void usage(char *prog)
         printf("%s: [options]\n",prog);
         printf("  -i, --interface IF     Default %s\n", interfaceName);
         printf("  -s, --serial DEV       Default %s\n", serialPort);
-        printf("  -m, --model [CLASSIC|CC128]  Default CLASSIC\n");
+        printf("  -m, --model [CLASSIC|CC128|ORIGINAL]  Default CLASSIC\n");
         printf("  -d, --debug            0-7\n");
         printf("  -h, --help\n");
         exit(1);
@@ -353,6 +358,10 @@ void setupXap()
         if(strcasecmp(model_s,"CC128") == 0) {
                 info("Selecting CC128 model");
                 model = CC128;
+        }
+        if(strcasecmp(model_s,"ORIGINAL") == 0) {
+                info("Selecting CLASSIC ORIGINAL model");
+                model = ORIGINAL;
         } else {
                 info("Selecting CLASSIC model");
         }
@@ -386,6 +395,9 @@ int main(int argc, char *argv[])
                         if(strcasecmp(argv[++i], "CC128") == 0) {
                                 info("Command line override selecting CC128 model");
                                 model = CC128;
+                        } else if(strcasecmp(argv[++i], "ORIGINAL") == 0) {
+	                        info("Command line override selecting CLASSIC ORIGINAL model");
+	                        model = ORIGINAL;
                         }
                 }
         }

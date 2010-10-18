@@ -17,7 +17,7 @@ static struct {
 struct {
 	char *model;
 	int sensors;
-} modelSensor[] = { {"CLASSIC",0},{"CC128",9},{NULL,NULL}};
+} modelSensor[] = {{"ORIGINAL",0},{"CLASSIC",0},{"CC128",9},{NULL,NULL}};
 
 int sensorCount = 0;
 
@@ -180,7 +180,8 @@ addEvent(window,"load",function() {
    <div class="setting">
     <div class="label">Model</div>
      <select name="cc_model" onchange="comboSubmit(this.form)">
-     <option value="CLASSIC" <% if(strcmp(ini.cc_model,"CLASSIC")==0) { %>selected="selected"<% } %>>Classic</option>
+     <option value="ORIGINAL" <% if(strcmp(ini.cc_model,"ORIGINAL")==0) { %>selected="selected"<% } %>>Classic 1</option>
+     <option value="CLASSIC" <% if(strcmp(ini.cc_model,"CLASSIC")==0) { %>selected="selected"<% } %>>Classic 2</option>
      <option value="CC128" <% if(strcmp(ini.cc_model,"CC128")==0) { %>selected="selected"<% } %>>CC128</option>
      </select>
    </div>

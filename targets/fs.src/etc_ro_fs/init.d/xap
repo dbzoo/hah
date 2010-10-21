@@ -5,7 +5,7 @@
 
 . /etc/ini.conf
 
-subsystem="hub pachube livebox web sms googlecal currentcost twitter bridge serial plugboard"
+subsystem="hub pachube livebox web sms currentcost twitter googlecal bridge serial plugboard"
 
 start_web() {
     rm -f /tmp/klone_sess*
@@ -18,7 +18,6 @@ stop_web() {
 
 start_hub() {
     /usr/bin/xap-hub -i $MYDEV &
-    sleep 1
 }
 
 stop_hub() {
@@ -113,6 +112,9 @@ all() {
     for i in $subsystem; do
 	cmd="$1_$i"
 	$cmd 2>/dev/null
+   	if [ "$1" = "start" ]; then
+     		sleep 1
+   	fi
     done
 }
 
@@ -131,7 +133,7 @@ subsystem() {
     echo "Subsystem $2 not found"
 }
 
-if [ `iniget $INI network config_bridge 0` -eq 0 ] ;  then 
+if [ `iniget $INI network config_bridge 1` -eq 0 ] ;  then 
     MYDEV=eth0
 else
     MYDEV=br0	

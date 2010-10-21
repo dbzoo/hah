@@ -6,17 +6,13 @@ case $1 in
 	# ip forwarding
 	echo 1 > /proc/sys/net/ipv4/ip_forward
 
-	echo 1 > /proc/sys/net/ipv4/conf/all/forwarding
-	echo 1 > /proc/sys/net/ipv4/conf/all/accept_source_route
-	echo 0 > /proc/sys/net/ipv4/conf/all/proxy_arp
-	echo 1 > /proc/sys/net/ipv4/conf/all/send_redirects
-	echo 0 > /proc/sys/net/ipv4/conf/all/accept_redirects
-
-	echo 1 > /proc/sys/net/ipv4/conf/default/forwarding
-	echo 1 > /proc/sys/net/ipv4/conf/default/accept_source_route
-	echo 0 > /proc/sys/net/ipv4/conf/default/proxy_arp
-	echo 1 > /proc/sys/net/ipv4/conf/default/send_redirects
-	echo 0 > /proc/sys/net/ipv4/conf/default/accept_redirects
+	for i in all default; do
+	echo 1 > /proc/sys/net/ipv4/conf/$i/forwarding
+	echo 1 > /proc/sys/net/ipv4/conf/$i/accept_source_route
+	echo 0 > /proc/sys/net/ipv4/conf/$i/proxy_arp
+	echo 1 > /proc/sys/net/ipv4/conf/$i/send_redirects
+	echo 0 > /proc/sys/net/ipv4/conf/$i/accept_redirects
+	done
 
 	# local network configuration
 	ifconfig lo 127.0.0.1
@@ -25,12 +21,18 @@ case $1 in
 	# ethernet configuration
 	ETHER_0="`iniget $INI network ether_0 00:07:3A:11:22:00`"
 	ETHER_1="`iniget $INI network ether_1 00:07:3A:11:22:01`"
+        if [ -z "$ETHER_0" ]; then
+                ETHER_0=00:07:3A:11:22:00
+        fi
+        if [ -z "$ETHER_1" ]; then
+                ETHER_1=00:07:3A:11:22:01
+        fi
 	ifconfig eth0 down
 	ifconfig eth0 hw ether $ETHER_0
 	ifconfig eth0 up 0.0.0.0
 	ifconfig eth1 down 
 	ifconfig eth1 hw ether $ETHER_1
-	ifconfig eth1 0.0.0.0 up 
+	ifconfig eth1 up 0.0.0.0
 
 	# hostname
 	echo "127.0.0.1 localhost" > /etc/hosts
@@ -63,8 +65,8 @@ case $1 in
 	    brctl setfd br0 1
 
 
-	    brctl addif br0 eth1
 	    brctl addif br0 eth0
+	    brctl addif br0 eth1
           fi
         fi
 
@@ -87,9 +89,8 @@ case $1 in
 		[ ! -z "$NTPHOST" ] && ntpclient -s -h $NTPHOST
 	        echo "lcd $IP"
 	else
-	    # DHCP Client (-b fork to background if lease cannot be immediately obtained)
 	    echo "lcd Acquiring IP"
-	    udhcpc -b -i $MYDEV
+	    udhcpc -T 10 -i $MYDEV
 	fi
 
 	;;
@@ -97,11 +98,19 @@ case $1 in
 	# Setting interfaces down 
 	ifconfig eth0 down
 	ifconfig eth1 down
-	ifconfig usb0 down
+	CONFIG_USB_ETHER=`iniget $INI network config_usb_ether 0`
+	if [ $CONFIG_USB_ETHER -eq 1 ]; then
+	  ifconfig usb0 down
+        fi 
 
 	# Setting bridge down 
-	# We do not destruct bridge because it is not necessary
-	ifconfig br0 down
+        CONFIG_BRIDGE=`iniget $INI network config_bridge 1`
+        if [ $CONFIG_BRIDGE -eq 1 ] ;  then 
+	  ifconfig br0 down
+	  brctl delif br0 eth0
+	  brctl delif br0 eth1
+	  brctl delbr br0
+	fi
 	;;
     kill)
 	wlctl down

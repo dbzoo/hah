@@ -43,10 +43,9 @@ case "$1" in
 		echo "$ip $host" >>/etc/hosts
 
 		NTPHOST="`iniget $INI network ntp_host uk.pool.ntp.org`"
-		# RACE potential here.
 		# SSL requires a valid time so googlecal won't start if clock not sync'd
-		# If no DNS resolution this hangs if not backgrounded.
-		[ ! -z "$NTPHOST" ] && ntpclient -s -h $NTPHOST &
+		# If no DNS resolution this hangs for 30sec
+		[ ! -z "$NTPHOST" ] && ntpclient -s -h $NTPHOST
 
 		# This will be picked up by the Serial PCB
 		echo "lcd $ip"

@@ -72,10 +72,17 @@ void bscSendCmdEvent(bscEndpoint *e) {
 	}
 }
 
-/// Set the value of a BSC BINARY device type.
+/** Set the value of a BSC BINARY device type.
+* @param e Bsc endpoint to operate upon
+* @param state Values 0 (off), 1(on), 2(toggle)
+*/
 inline void bscSetState(bscEndpoint *e, int state)
 {
-        e->state = state & 0x3;
+	int istate = state;
+	if(istate == 2) // toggle
+		istate = e->state == BSC_STATE_ON ? BSC_STATE_OFF : BSC_STATE_ON;
+	e->state = istate & 0x3;
+	
 	info("state=%d", e->state);
 }
 
@@ -150,12 +157,7 @@ static void bscIncomingCmd(void *data)
 
                 // Match the ENDPOINT ID (UID sub-address) and process.
                 if(*id == '*' || strcmp(e->id, id) == 0) {
-                        int istate = bscDecodeState(state);
-                        if(istate == -1)
-                                continue; // invalid state
-                        if(istate == 2) // toggle
-                                istate = e->state == BSC_STATE_ON ? BSC_STATE_OFF : BSC_STATE_ON;
-                        e->state = istate;
+	                bscSetState(e, bscDecodeState(state));
 
                         if(e->type == BSC_LEVEL) {
                                 bscSetLevel(e, xapGetValue(section, "level"));

@@ -116,8 +116,8 @@ static void submit_form() {
   int i;
   REQUIRE_AUTH(SCRIPT_NAME);
   const char *action = request_get_arg(request,"action");
-readIni();
-  if(action && strcmp(action,"Apply") == 0) {
+  readIni();
+  if(action && (strcmp(action,"Apply") == 0 || strcmp(action,"Add") == 0)) {
 	  submit_form();
 	  readIni();
   }

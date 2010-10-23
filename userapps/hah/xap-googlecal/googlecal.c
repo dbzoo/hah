@@ -274,7 +274,7 @@ void googleEventCheck(int interval, void *userData)
                         snprintf(xapmsg, XAP_DATA_LEN,
                                  "xap-header\n"
                                  "{\n"
-                                 "nv=12\n"
+                                 "v=12\n"
                                  "hop=1\n"
                                  "uid=%s\n"
                                  "class=alias\n"

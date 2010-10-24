@@ -194,6 +194,17 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
         }
 }
 
+// Duplicate a string removing any leading ZERO's
+char *dupZero(char *s) {
+	while(*s && *s == '0')
+		s++;
+
+	if(*s == '\0') { // End of String?  Must have been ALL zeros
+		s--;     // One is ok then.
+	}
+	return strdup(s);
+}
+
 /// SAX cdata callback
 static void cdataBlockCB(void *ctx, const xmlChar *ch, int len)
 {
@@ -222,16 +233,12 @@ static void cdataBlockCB(void *ctx, const xmlChar *ch, int len)
                         currentTag->userData = (void *)currentTag->text;
 
                         // We do this to dump leading ZERO's
-                        int value = atoi(output);
-                        char buf[8];
-                        snprintf(buf, sizeof(buf), "%d", value);
-
-                        currentTag->text = strdup(buf);
+                        currentTag->text = dupZero(output);
 
                         debug("endpoint type %d", currentTag->type);
                         if(currentTag->type == BSC_BINARY) {
                                 // 0 is off, 500 is ON.  We'll use any value != 0 as ON.
-                                bscSetState(currentTag, value ? BSC_STATE_ON : BSC_STATE_OFF);
+                                bscSetState(currentTag, atoi(currentTag->text) ? BSC_STATE_ON : BSC_STATE_OFF);
                         } else {
                                 bscSetState(currentTag, BSC_STATE_ON);
                         }

@@ -7,6 +7,7 @@
    acknowledge the work of the original author.
 */
 #include <string.h>
+#include <stdlib.h>
 #include "minIni.h"
 
 char *rot47(char *s)

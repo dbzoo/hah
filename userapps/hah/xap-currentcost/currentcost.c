@@ -196,10 +196,14 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
 
 // Duplicate a string removing any leading ZERO's
 char *dupZero(char *s) {
+	if(s == NULL || *s == '\0') // No string?
+		return NULL;
+	
 	while(*s && *s == '0')
 		s++;
 
-	if(*s == '\0') { // End of String?  Must have been ALL zeros
+	// End of String?  Must have been ALL zeros
+	if(*s == '\0') {
 		s--;     // One is ok then.
 	}
 	return strdup(s);

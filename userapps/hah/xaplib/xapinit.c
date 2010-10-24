@@ -203,7 +203,7 @@ int xap_discover_hub_address(int* a_receiver_sockfd, struct sockaddr_in* a_recei
 
 	if (i_hubflag==1) {
 
-	for (i=a_port_range_low; i<a_port_range_high; i++) {
+	for (i=a_port_range_low+1; i<a_port_range_high; i++) {
 
 	a_receiver_address->sin_family = AF_INET;
 	a_receiver_address->sin_addr.s_addr=inet_addr("127.0.0.1");

@@ -177,7 +177,7 @@ static void submit_form() {
   const char *action = request_get_arg(request,"action");
   readIni();
   dbg("action %s", action);
-  if(action && strcmp(action,"Apply") == 0) {
+  if(action && (strcmp(action,"Apply") == 0 || strcmp(action,"Add") == 0)) {
       submit_form();
       readIni();
   }

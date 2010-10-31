@@ -29,7 +29,7 @@ int bscDecodeState(char *msg)
                              };
         if (msg == NULL)
                 return -1;
-        for(i=0; i < sizeof(value); i++) {
+        for(i=0; i < sizeof(value)/sizeof(value[0]); i++) {
                 if(strcasecmp(msg, value[i]) == 0)
                         return state[i];
         }

@@ -115,14 +115,6 @@ char *getDynINI(char *key, int id)
         return strdup(value);
 }
 
-void putdynINI(char *key, int id, char *value)
-{
-        char dkey[32];
-        sprintf(dkey, "%s%d", key, id);
-        ini_puts("pachube", dkey, value, inifile);
-	info("Saved key %s=%s", dkey, value);
-}
-
 /// Parse the INI file for additional configuration parameters.
 void parseINI()
 {
@@ -148,30 +140,6 @@ void parseINI()
         char key[6];
 
         for(i=0; i < filters; i++) {
-                char xap[256];
-                sprintf(key,"xap%d",i);
-                if(ini_gets("pachube", key, "", xap, sizeof(xap), inifile) > 0) {
-	                info("Upgrading xap key %s", xap);
-                        // Upgrade from XAP TAG to SOURCE/SECTION/KEY syntax and delete the XAP tag.
-                        char *xkey = strrchr(xap,':');
-                        *xkey++ = '\0';
-                        char *xclass = strrchr(xap,':');
-                        *xclass++ = '\0';
-                        putdynINI("key", i, xkey);
-	                putdynINI("class", i, xclass);
-	                putdynINI("section", i, "input.state");
-
-			// Upgrade currentcost endpoint
-			const char *ch1 = "dbzoo.livebox.currentcost:ch1";
-			if(strncasecmp(ch1,xap,sizeof(ch1)) == 0) {
-				putdynINI("source", i, "dbzoo.livebox.currentcost:ch.1");
-			} else {
-				putdynINI("source", i, xap);
-			}
-
-                        putdynINI("xap", i, "");
-                }
-
                 // Construct an xAP filter based upon the WEB FILTER values
                 struct webFilter *wf = (struct webFilter *)malloc(sizeof(struct webFilter));
 	        char *id = getDynINI("id",i);

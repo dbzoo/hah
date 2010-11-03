@@ -46,7 +46,7 @@ char *xapGetValueF(xAPFrame *frame, char *section, char *key) {
 * Returns 1 is a match is found otherwise 0
 */
 int xapIsValueF(xAPFrame *frame, char *section, char *key, char *value) {
-	char *kvalue = xapGetValue(section, key);
+	char *kvalue = xapGetValueF(frame,section, key);
 	return kvalue && strcasecmp(kvalue, value) == 0;
 }
 

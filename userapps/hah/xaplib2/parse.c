@@ -32,11 +32,18 @@ char *xapGetValueF(xAPFrame *frame, char *section, char *key) {
 	int i;
 	debug("section=%s key=%s", section, key);
 	for(i=0; i < frame->parsedMsgCount; i++) {
-		if(strcasecmp(section, frame->parsedMsg[i].section) == 0 &&
-		   strcasecmp(key, frame->parsedMsg[i].key) == 0) {
+		if (strcasecmp(section, frame->parsedMsg[i].section) == 0 && 
+			(
+			   (key == NULL && frame->parsedMsg[i].key == NULL) ||
+			   (key && frame->parsedMsg[i].key && strcasecmp(key, frame->parsedMsg[i].key) == 0)
+			)
+		    ) {
 			   char *val = frame->parsedMsg[i].value;
-			debug("found value=%s", val);
-			return val;
+			   debug("found value=%s", val);
+			   if(val == NULL && key == NULL) { // Return something for an empty section.
+				   return (char *)XAP_FILTER_ANY;
+			   }
+			   return val;
 		   }
 	}
 	return (char *)NULL;
@@ -66,6 +73,7 @@ int parseMsgF(xAPFrame *frame) {
 	char *current_section = NULL;
 	unsigned char *buf;
 	unsigned int i = 0;
+	unsigned int keycount = 0;
 	frame->parsedMsgCount = 0;
   
 	for(buf = frame->dataPacket; i < frame->len && buf < frame->dataPacket+XAP_DATA_LEN; i++, buf++) {
@@ -81,10 +89,18 @@ int parseMsgF(xAPFrame *frame) {
 				*buf = '\0';
 				rtrim(frame->dataPacket, buf);
 				state = START_KEYNAME;
+				keycount = 0;
 			}
 			break;
 		case START_KEYNAME:
 			if (*buf == '}') {
+				// Handle the case of an empty SECTION
+				if(keycount == 0) {
+					frame->parsedMsg[frame->parsedMsgCount].section = current_section;
+					frame->parsedMsg[frame->parsedMsgCount].key = NULL;
+					frame->parsedMsg[frame->parsedMsgCount].value = NULL;
+					frame->parsedMsgCount++;
+				}
 				state = START_SECTION_NAME;
 			} 
 			else if ((*buf>32) && (*buf<128)) {
@@ -111,6 +127,7 @@ int parseMsgF(xAPFrame *frame) {
 				*buf = '\0';
 				rtrim(frame->dataPacket, buf);
 				state = START_KEYNAME;
+				keycount++;
 				frame->parsedMsgCount++;
 				if (frame->parsedMsgCount > XAP_MSG_ELEMENTS) {
 					frame->parsedMsgCount = 0;
@@ -140,9 +157,11 @@ int parsedMsgToRawWithoutSectionF(xAPFrame *frame, char *msg, int size, char *se
 			len += snprintf(&msg[len],size,"%s\n{\n", frame->parsedMsg[i].section);
 			currentSection = frame->parsedMsg[i].section;
 		}
-		len += snprintf(&msg[len],size,"%s=%s\n", frame->parsedMsg[i].key, frame->parsedMsg[i].value);
+		if(frame->parsedMsg[i].key)
+		   len += snprintf(&msg[len],size,"%s=%s\n", frame->parsedMsg[i].key, frame->parsedMsg[i].value);
 	}
-	len += snprintf(&msg[len],size,"}\n");
+	if(currentSection)
+		len += snprintf(&msg[len],size,"}\n");
 	return len;
 }
 

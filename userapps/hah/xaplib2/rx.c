@@ -77,6 +77,9 @@ void xapProcess() {
 		readsocks = select(highsock+1, &socks, NULL, NULL, &timeout);
 		
 		if (readsocks < 0) {
+			if(errno == EINTR) {
+				break;
+			}
 			err_strerror("select()");
 		}
 		if(readsocks)

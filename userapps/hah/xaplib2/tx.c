@@ -48,7 +48,7 @@ char *fillShortXap(char *shortMsg, char *uid, char *source) {
 	xAPFrame f;
 		
 	f.len = strlcpy((char *)f.dataPacket, shortMsg, XAP_DATA_LEN);
-	parseMsg(&f);
+	parseMsgF(&f);
 
 	char *target = xapGetValueF(&f, "xap-header", "target");
 	char *class = xapGetValueF(&f, "xap-header", "class");

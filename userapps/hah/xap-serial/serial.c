@@ -310,6 +310,51 @@ int sendSerialMsg(struct serialPort* p, char *msg) {
      return -1;
 }
 
+char *unescape(const char *in, const char *data) {
+  char *result = in;
+#define UCHAR(cp) ((const unsigned char *)(cp))
+#define ISOCTAL(ch) (isdigit(ch) && (ch) != '8' && (ch) != '9')
+
+  int ch, oval, i;
+
+  while((ch = *UCHAR(data++)) != 0) {
+    if(ch == '\\') {
+      if((ch = *UCHAR(data++)) == 0)
+	break;
+      switch(ch) {
+      case 'a': ch = '\a'; break;
+      case 'b': ch = '\b'; break;
+      case 'f': ch = '\f'; break;
+      case 'n': ch = '\n'; break;
+      case 'r': ch = '\r'; break;
+      case 't': ch = '\t'; break;
+      case 'v': ch = '\v'; break;
+      case '\\': ch = '\\'; break;
+      case '0':  // octal
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+	for(oval = ch - '0', i=0;
+	    i < 2 && (ch = *UCHAR(data)) != 0 && ISOCTAL(ch);
+	    i++, data++) {
+	  oval = (oval << 3) | (ch - '0');
+	}
+	ch = oval;
+	break;
+      default:
+	break;
+      }
+    }
+    *result++ = ch;
+  }
+  *result = '\0';
+  return in;
+}
+
 void xapSerialTx(void *userData) {
 	char *port = xapGetValue("serial.send","port");
 	char *data = xapGetValue("serial.send","data");
@@ -318,8 +363,12 @@ void xapSerialTx(void *userData) {
 	if(p == NULL) {
 		serialError("Device %s not configured", port);
 		return;
-	}		
-	sendSerialMsg(p, data);
+	}
+	// Unescaped data must be smaller...
+	char *unescaped = (char *)malloc(strlen(data));
+	unescape(unescaped, data);
+	sendSerialMsg(p, unescaped);
+	free(unescaped);
 }
 
 /// MAIN

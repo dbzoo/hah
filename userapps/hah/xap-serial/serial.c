@@ -132,8 +132,6 @@ void closeSerialPort(char *port) {
 		xAPSocketConnection *cb = xapFindSocketListenerByFD(p->fd);
 		xapDelSocketListener(&cb);
 		LL_DELETE(serialList, p);
-	} else {
-		info("Port %s not found", port);
 	}
 }
 
@@ -182,16 +180,13 @@ void xapSerialSetup(void *userData) {
 	** it as was specified in the xAP message.
 	*/
 	struct termios tios;
-	tcgetattr(p->fd, &tios);
+	bzero(&tios, sizeof(tios));
 	tios.c_cflag = B38400 | CRTSCTS | CS8 | CREAD | CLOCAL ;
-	tios.c_lflag = 0;
-	tios.c_oflag = 0;
 	tios.c_iflag |= IGNBRK;
-	tios.c_cc[VMIN] = 0;
-	tios.c_cc[VTIME] = 0;
+	tcflush(p->fd, TCIOFLUSH);
 	tcsetattr(p->fd, TCSANOW, &tios);
-	tcflush(p->fd, TCIFLUSH);
 
+	bzero(&p->tios, sizeof(tios));
 	p->tios.c_cflag = CREAD | CLOCAL;
 	
 	// BAUD
@@ -281,6 +276,7 @@ void xapSerialSetup(void *userData) {
 	tcsetattr(p->fd, TCSANOW, &p->tios);
 
 	xapAddSocketListener(p->fd, &xapSerialRx, p);
+	info("Setup port %s", p->device);
 }
 
 

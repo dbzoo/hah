@@ -6,7 +6,6 @@
 #include <string.h>
 
 #define sizearray(x) (sizeof(x) / sizeof(x[0]))
-static int reboot = 0;
 
 struct _datastream {
 	char id[4];
@@ -68,14 +67,13 @@ static const char *getdynkey(char *key, int id ) {
 }
 
 static void submit_form() {
-	 int reboot=0;
-
+	int restart=0;
 	 const char *ph_enable = request_get_arg(request,"ph_enable");
 	 if(ph_enable) {
 		  if((*ph_enable == '1' && ini.ph_enable[0] == '0') ||
 			 (*ph_enable == '0' && ini.ph_enable[0] == '1')) {
 			   ini_puts("pachube","enable",ph_enable,con.inifile);
-			   reboot = 1;
+			   restart = 1;
 		  }
 	 }
 
@@ -108,6 +106,11 @@ static void submit_form() {
 		  saveDynINI("class", i, class);
 		  saveDynINI("section", i, section);
 		  saveDynINI("key", i, key);
+	 }
+
+	 if(restart) {
+		 char *argv[] = {"/etc/init.d/xap","restart","pachube", NULL};
+		 subprocess(argv);
 	 }
 }
 /**********************************************************************/

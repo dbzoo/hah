@@ -369,8 +369,7 @@ void setupXap()
         if(strcasecmp(model_s,"CC128") == 0) {
                 info("Selecting CC128 model");
                 model = CC128;
-        }
-        if(strcasecmp(model_s,"ORIGINAL") == 0) {
+        } else if(strcasecmp(model_s,"ORIGINAL") == 0) {
                 info("Selecting CLASSIC ORIGINAL model");
                 model = ORIGINAL;
         } else {

@@ -67,7 +67,7 @@ void checkForTweets(int interval, void *userData)
 	// Check for error getting tweet.
 	if( getLatestTweet(twit, tweet, sizeof(tweet), &last_tweet) == -1) return;
 	// Check tweets command prefix, if applicable.
-	if(!(prefix_len == 0 || strncmp(tweet, prefix, prefix_len) == 0)) return;
+	if(!(prefix_len == 0 || strncasecmp(tweet, prefix, prefix_len) == 0)) return;
 		
 	char *tweeter = &tweet[0];	
 	if (prefix_len)

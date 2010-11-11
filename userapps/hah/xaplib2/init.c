@@ -45,7 +45,7 @@ void discoverHub(int *rxport, int *rxfd, struct sockaddr_in *txAddr)
 
         s.sin_family = AF_INET;
         s.sin_port = htons(*rxport);
-        s.sin_addr.s_addr = txAddr->sin_addr.s_addr;  // broadcast addr
+        s.sin_addr.s_addr = htonl(INADDR_ANY); // txAddr->sin_addr.s_addr;  // SUBNET broadcast addr
 
         if (bind(*rxfd, (struct sockaddr *)&s, sizeof(s)) == -1)
         {

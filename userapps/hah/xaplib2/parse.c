@@ -129,7 +129,8 @@ int parseMsgF(xAPFrame *frame) {
 				state = START_KEYNAME;
 				keycount++;
 				frame->parsedMsgCount++;
-				if (frame->parsedMsgCount > XAP_MSG_ELEMENTS) {
+				if (frame->parsedMsgCount >= XAP_MSG_ELEMENTS) {
+					notice("Dropping key/section pairs");
 					frame->parsedMsgCount = 0;
 				}
 			}

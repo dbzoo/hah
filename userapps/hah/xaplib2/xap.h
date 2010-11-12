@@ -14,11 +14,9 @@
 #include "log.h"
 #include "utlist.h"
 
-#define MAX_SOCKETS 5			// Additional sockets to listen on
-
 #define MAX_QUEUE_BACKLOG 50
 #define XAP_DATA_LEN 1500
-#define XAP_MSG_ELEMENTS 50
+#define XAP_MSG_ELEMENTS 150
 #define XAP_HEARTBEAT_INTERVAL 60
 
 extern const char *XAP_FILTER_ANY;
@@ -76,7 +74,7 @@ struct parsedMsgElement {
 
 typedef struct _xapFrame {
 	int len;
-	unsigned char dataPacket[XAP_DATA_LEN];
+	unsigned char dataPacket[XAP_DATA_LEN+1];
 	int parsedMsgCount;
 	struct parsedMsgElement parsedMsg[XAP_MSG_ELEMENTS];
 } xAPFrame;

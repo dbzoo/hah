@@ -10,6 +10,14 @@
 #include <stdlib.h>
 #include "minIni.h"
 
+char *xapLowerString(char *str)
+{
+	char *s = str;
+	while(*s)
+		*s++ = tolower(*s);
+	return str;
+}
+
 char *rot47(char *s)
 {
         char *p = s;

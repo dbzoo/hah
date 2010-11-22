@@ -21,16 +21,27 @@
 const char *XAP_FILTER_ANY = "XAP_FILTER_ANY";
 const char *XAP_FILTER_ABSENT = "XAP_FILTER_ABSENT";
 
-xAPFilter *xapAddFilter(xAPFilter **f, const char *section, const char *key, const char *value)
+xAPFilter *xapAddFilter(xAPFilter **f, char *section, char *key, char *value)
 {
 	info("section=%s key=%s value=%s", section, key, value);
         xAPFilter *e = (xAPFilter *)malloc(sizeof(xAPFilter));
-        e->section = section;
-        e->key = key;
-        e->value = value;
+	e->section = strdup(section);
+	e->key = strdup(key);
+	e->value = strdup(value);
 
         LL_PREPEND(*f, e);
         return e;
+}
+
+void xapFreeFilterList(xAPFilter *head) {
+	xAPFilter *f, *tmp;
+	LL_FOREACH_SAFE(head, f, tmp) {
+		LL_DELETE(head, f);
+		free(f->section);
+		free(f->key);
+		free(f->value);
+		free(f);
+	}
 }
 
 // Match a filterAddr address against a sub address
@@ -58,10 +69,10 @@ int xapFilterAddrSubaddress(char *filterAddr, char *addr)
                                 filterAddr++;
                                 break;
                         default:
-                                match &= tolower(*filterAddr) == tolower(*addr);
+                                match = tolower(*filterAddr) == tolower(*addr);
                         }
-                        filterAddr++;
-                        addr++;
+			if(*filterAddr) filterAddr++;
+                        if(*addr) addr++;
                 }
         }
         return match;
@@ -93,8 +104,14 @@ int xapCompareFilters(xAPFilter *head)
                 }
 
                 if(strcasecmp("xap-header", f->section) == 0 &&
-                                strcasecmp("target", f->key) == 0) {
-	                                match = xapFilterAddrSubaddress(value, (char *)f->value);
+		   (strcasecmp("target", f->key) == 0 || strcasecmp("source",f->key) == 0)) {
+			if(strcasecmp("target", f->key) == 0) {
+				// for target the WILD CARD will be in inbound xAP message
+				match = xapFilterAddrSubaddress(value, (char *)f->value);
+			} else if (strcasecmp("source", f->key) == 0) {
+				// for source the WILD CARD will be in the FILTER itself.
+				match = xapFilterAddrSubaddress((char *)f->value, value);
+			}
                 } else {
                         match = strcasecmp(value, f->value) == 0 ? 1 : 0;
                 }

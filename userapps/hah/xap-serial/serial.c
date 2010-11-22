@@ -129,8 +129,7 @@ void closeSerialPort(char *port) {
 	if(p) {
 		info("Closing port %s", port);
 		close(p->fd);
-		xAPSocketConnection *cb = xapFindSocketListenerByFD(p->fd);
-		xapDelSocketListener(&cb);
+		xapDelSocketListener(xapFindSocketListenerByFD(p->fd));
 		LL_DELETE(serialList, p);
 	}
 }

@@ -163,18 +163,20 @@ xAPSocketConnection *xapFindSocketListenerByFD(int ifd)
         return e;
 }
 
-void xapDelSocketListener(xAPSocketConnection **cb)
+void xapDelSocketListener(xAPSocketConnection *cb)
 {
-        LL_DELETE(gXAP->connectionList, *cb);
-        free(*cb);
-        *cb = NULL;
+        LL_DELETE(gXAP->connectionList, cb);
+        free(cb);
 }
 
 /** select() on other descriptors whilst in the xapProcess() loop.
 */
 xAPSocketConnection *xapAddSocketListener(int fd, void (*callback)(int, void *), void *data)
 {
-        die_if(fd < 0, "Invalid socket %d", fd);
+	if(fd < 0) {
+		err("Invalid socket %d", fd);
+		return NULL;
+	}
         debug("socket=%d", fd);
         xAPSocketConnection *cb = (xAPSocketConnection *)malloc(sizeof(xAPSocketConnection));
         cb->callback = callback;

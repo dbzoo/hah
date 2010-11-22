@@ -36,9 +36,9 @@ extern const char *XAP_FILTER_ABSENT;
 #define XAP_MSG_NONE 0                  // (or no message received)
 
 typedef struct _xAPFilter {
-	const char *section;
-	const char *key;
-	const char *value;
+	char *section;
+	char *key;
+	char *value;
 	struct _xAPFilter *next;
 } xAPFilter;
 
@@ -108,7 +108,7 @@ void xapInit(char *source, char *uid, char *interfaceName);
 void xapInitFromINI(char *section, char *prefix, char *instance, char *uid, char *interfaceName, const char *inifile);
 xAPSocketConnection *xapAddSocketListener(int fd, void (*callback)(int, void *), void *data);
 xAPSocketConnection *xapFindSocketListenerByFD(int ifd);
-void xapDelSocketListener(xAPSocketConnection **);
+void xapDelSocketListener(xAPSocketConnection *);
 void simpleCommandLine(int argc, char *argv[], char **interfaceName);
 void discoverHub(int *rxport, int *rxfd, struct sockaddr_in *txAddr);
 void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char **ip, char *interfaceName);
@@ -143,17 +143,21 @@ int xapIsValueF(xAPFrame *,char *section, char *key, char *value);
 int parsedMsgToRawF(xAPFrame *,char *msg, int size);
 int parsedMsgToRawWithoutSectionF(xAPFrame *,char *msg, int size, char *section);
 int parseMsgF(xAPFrame *);
+void xapLowerMessageF(xAPFrame *frame);
+void xapLowerMessage();
 
 //filter.c
 int xapCompareFilters(xAPFilter *f);
 xAPFilterCallback *xapAddFilterAction(void (*func)(void *), xAPFilter *filter, void *data);
 void filterDispatch();
-xAPFilter *xapAddFilter(xAPFilter **f, const char *section, const char *key, const char *value);
+xAPFilter *xapAddFilter(xAPFilter **f, char *section, char *key, char *value);
 int xapFilterAddrSubaddress(char *filterAddr, char *addr);
+void xapFreeFilterList(xAPFilter *head);
 
 // safe string copy
 size_t strlcpy(char *dst, const char *src, size_t size);
 size_t strlcat(char *dst, const char *src, size_t size);
 char *getINIPassword(char *section, char *key, char *inifile);
+char *xapLowerString(char *str);
 
 #endif

@@ -131,7 +131,7 @@ int parseMsgF(xAPFrame *frame) {
 				frame->parsedMsgCount++;
 				if (frame->parsedMsgCount >= XAP_MSG_ELEMENTS) {
 					notice("Dropping key/section pairs");
-					frame->parsedMsgCount = 0;
+					i = frame->len; // Stop parsing now.
 				}
 			}
 			break;
@@ -170,7 +170,39 @@ int parsedMsgToRawF(xAPFrame *frame, char *msg, int size) {
 	return parsedMsgToRawWithoutSectionF(frame, msg, size, NULL);
 }
 
+/*
+ To minimize downstream processing for smaller less capable devices
+ we lowercase all keys, section names and xap-header(target,class,source)
+ values.
+*/
+void xapLowerMessageF(xAPFrame *frame)
+{
+	char *currentSection = NULL;
+	int i;
+	
+	for(i=0; i < frame->parsedMsgCount; i++) {
+		if (currentSection == NULL || currentSection != frame->parsedMsg[i].section) {
+			currentSection = frame->parsedMsg[i].section;
+			xapLowerString(currentSection);
+		}
+		xapLowerString(frame->parsedMsg[i].key);
+		if(strcmp("xap-header",currentSection) == 0) {
+			char *key = frame->parsedMsg[i].key;
+			if(strcmp("source", key) == 0 ||
+			   strcmp("target", key) == 0 ||
+			   strcmp("class", key) == 0)
+			{
+				xapLowerString(frame->parsedMsg[i].value);
+			}
+		}
+	}
+}
+
 /// Convience functions as 99% of the time we will want to operate on the global data Frame
+
+inline void xapLowerMessage() {
+	xapLowerMessageF(&gXAP->frame);
+}
 
 inline int xapGetType() {
 	return xapGetTypeF(&gXAP->frame);

@@ -57,7 +57,7 @@ void serialError(const char *fmt, ...)
 	len += snprintf(&buff[len], XAP_DATA_LEN-len, "\n}\n");
 
 	if(len < XAP_DATA_LEN) {
-		xapSend(buff);
+	xapSend(buff);
 	} else {
 		err("Buffer overflow %d/%d", len, XAP_DATA_LEN);
 	}
@@ -131,6 +131,8 @@ void closeSerialPort(char *port) {
 		close(p->fd);
 		xapDelSocketListener(xapFindSocketListenerByFD(p->fd));
 		LL_DELETE(serialList, p);
+		free(p->device);
+		free(p);
 	}
 }
 

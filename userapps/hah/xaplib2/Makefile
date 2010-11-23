@@ -9,7 +9,7 @@ libxap2.a: $(OBJECTS)
 	$(AR) rcv libxap2.a $(OBJECTS)
 
 clean:
-	rm -f $(OBJECTS) libxap2.a libxap2.so
+	rm -f $(OBJECTS) libxap2.a libxap2.so *~
 
 init.o: init.c xap.h
 parse.o: parse.c xap.h

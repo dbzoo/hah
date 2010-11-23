@@ -8,13 +8,14 @@
 */
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include "minIni.h"
 
 char *xapLowerString(char *str)
 {
 	char *s = str;
-	while(*s)
-		*s++ = tolower(*s);
+	for(s=str; *s; s++)
+		*s = tolower(*s);
 	return str;
 }
 

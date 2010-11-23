@@ -107,14 +107,16 @@ SUBDIRS_HAH = \
 	$(HAH_DIR)/xap-bridge \
 	$(HAH_DIR)/xap-serial \
 	$(HAH_DIR)/luarex \
-	$(HAH_DIR)/klone
+	$(HAH_DIR)/klone \
+	$(HAH_DIR)/iServer
 
 SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIRS_HAH)
 
 OPENSOURCE_APPS = brctl dropbear ftpd msmtp iptables busybox ntpclient ini mtd lua wol
 INVENTEL_APPS = inventelbin sendarp ledctrl
 HAH_APPS = xaplib xaplib2 xap-hub xap-livebox xap-snoop xap-pachube xap-sms xap-bridge \
-	xap-currentcost xap-googlecal xap-twitter xap-plugboard xap-serial luarex klone
+	xap-currentcost xap-googlecal xap-twitter xap-plugboard xap-serial luarex klone \
+	iServer
 
 BUSYBOX_DIR = $(OPENSOURCE_DIR)/busybox
 
@@ -299,6 +301,12 @@ klone: libcurl
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/klone/kloned $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/kloned
+
+iServer: xaplib2
+	$(MAKE) -C $(HAH_DIR)/iServer
+	install -m 755 -d $(INSTALL_DIR)/usr/bin
+	install -m 755 $(HAH_DIR)/iServer/iServer $(INSTALL_DIR)/usr/bin
+	$(STRIP) $(INSTALL_DIR)/usr/bin/iServer
 
 libluarex: lua
 	$(MAKE) -C $(HAH_DIR)/libluarex

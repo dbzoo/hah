@@ -438,7 +438,7 @@ int main(int argc, char *argv[])
                 if(strcmp("-u", argv[i]) == 0 || strcmp("--username",argv[i]) == 0) {
                         strlcpy(username, argv[++i], sizeof(username));
                 } else if(strcmp("-p", argv[i]) == 0 || strcmp("--password",argv[i]) == 0) {
-                        strlcpy(password, argv[++i], sizeof(password));
+                        password = strdup( argv[++i] );
                 } else if(strcmp("-f", argv[i]) == 0 || strcmp("--freq",argv[i]) == 0) {
 	                validatePollingFrequency(atoi(argv[++i]));
                 }

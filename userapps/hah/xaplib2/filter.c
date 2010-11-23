@@ -13,14 +13,22 @@
 #include <ctype.h>
 #include "xap.h"
 
-// As filters are PREPENDED to the list the *most* significant filter, that
-// is the one that will cull the most messages, should be added last to
-// minimize processing time for a rejecion.
 //
 // Add in the order: Section key, Class key, Target key
 const char *XAP_FILTER_ANY = "XAP_FILTER_ANY";
 const char *XAP_FILTER_ABSENT = "XAP_FILTER_ABSENT";
 
+/** Add a new filter pattern to a chain of filters.
+ * As filters are PREPENDED to the list the *most* significant filter, that
+ * is the one that will cull the most messages, should be added last to
+ * minimize processing time for a rejecion.
+ * 
+ * @param f Head of the filter chain
+ * @param section xAP section
+ * @param key  xAP key
+ * @param value  xAP value
+ * @return Pointer to newly added filter
+ */
 xAPFilter *xapAddFilter(xAPFilter **f, char *section, char *key, char *value)
 {
 	info("section=%s key=%s value=%s", section, key, value);
@@ -33,18 +41,13 @@ xAPFilter *xapAddFilter(xAPFilter **f, char *section, char *key, char *value)
         return e;
 }
 
-void xapFreeFilterList(xAPFilter *head) {
-	xAPFilter *f, *tmp;
-	LL_FOREACH_SAFE(head, f, tmp) {
-		LL_DELETE(head, f);
-		free(f->section);
-		free(f->key);
-		free(f->value);
-		free(f);
-	}
-}
 
-// Match a filterAddr address against a sub address
+/** Match a filterAddr address against a sub address
+ * 
+ * @param filterAddr A pattern optionally containing wildcards to match against
+ * @param addr An xAP address
+ * @return 1 if a match was found, otherwise 0
+ */
 int xapFilterAddrSubaddress(char *filterAddr, char *addr)
 {
         debug("filterAddr=%s addr=%s", filterAddr, addr);
@@ -78,8 +81,11 @@ int xapFilterAddrSubaddress(char *filterAddr, char *addr)
         return match;
 }
 
-// Test if a set of filters match the xap message
-// returns: 1 if a match was found, otherwise 0
+/** Test if a set of filters match the xap message
+ * 
+ * @param head The start of a filter chain
+ * @return 1 if a match was found, otherwise 0
+ */
 int xapCompareFilters(xAPFilter *head)
 {
         int match = 1;
@@ -120,6 +126,41 @@ int xapCompareFilters(xAPFilter *head)
         return match;
 }
 
+/** Free a chain of filter patterns
+ * 
+ * @param head The start of a filter chain
+ */
+void xapFreeFilterList(xAPFilter *head) {
+	xAPFilter *f, *tmp;
+	LL_FOREACH_SAFE(head, f, tmp) {
+		LL_DELETE(head, f);
+		free(f->section);
+		free(f->key);
+		free(f->value);
+		free(f);
+	}
+}
+
+/** Delete a filter callback
+ *
+ * @param f xAPFilterCallback to delete
+ * @return pointer to user data, caller is responsible for this memory.
+ */
+void *xapDelFilterAction(xAPFilterCallback *f) {
+	void *userData = f->user_data;
+	LL_DELETE(gXAP->filterList, f);
+	xapFreeFilterList(f->filter);
+	free(f);
+	return userData;
+}
+
+/** Add a filter action
+ * 
+ * @param (* func)( void * ) User callback function, User data pointer will handed back.
+ * @param filter The head of a link list of filter patterns
+ * @param data User supplied callback data.
+ * @return The filter callback created and added.
+ */
 xAPFilterCallback *xapAddFilterAction(void (*func)(void *), xAPFilter *filter, void *data)
 {
         if(filter)  { // a NULL filter will match everything.
@@ -134,6 +175,10 @@ xAPFilterCallback *xapAddFilterAction(void (*func)(void *), xAPFilter *filter, v
         return cb;
 }
 
+/**
+ * Walk the list of filter actions when all the filters patterns match
+ * call the associated callback function.
+ */
 void filterDispatch()
 {
         xAPFilterCallback *cb;

@@ -136,7 +136,10 @@ void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char **ip, 
 }
 
 /** Timeout handler to send heartbeats.
-*/
+ * 
+ * @param interval Number of seconds between invocations 
+ * @param data unused
+ */
 void heartbeatHandler(int interval, void *data)
 {
         char buff[XAP_DATA_LEN];
@@ -156,6 +159,11 @@ void heartbeatHandler(int interval, void *data)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
+/** Locate a socket listener by its file descriptor
+ * 
+ * @param ifd File descriptor 
+ * @return xap Socket connection
+ */
 xAPSocketConnection *xapFindSocketListenerByFD(int ifd)
 {
         xAPSocketConnection *e;
@@ -163,14 +171,27 @@ xAPSocketConnection *xapFindSocketListenerByFD(int ifd)
         return e;
 }
 
-void xapDelSocketListener(xAPSocketConnection *cb)
+/** Delete a socket listener
+ * 
+ * @param cb socket connection to be deleted
+ * @return Pointer to user data.  Caller is responsible for freeing.
+ */
+void *xapDelSocketListener(xAPSocketConnection *cb)
 {
+	void *userData = cb->user_data;
         LL_DELETE(gXAP->connectionList, cb);
         free(cb);
+	return userData;
 }
 
-/** select() on other descriptors whilst in the xapProcess() loop.
-*/
+/** Monitor multiple file descriptor callback when ready.
+ * select() on other descriptors whilst in the xapProcess() loop.
+ *
+ * @param fd File descriptor to listen on
+ * @param (* callback)( int , void * )  Callback function
+ * @param data Pointer to user data
+ * @return Created xAP socket connection listener
+ */
 xAPSocketConnection *xapAddSocketListener(int fd, void (*callback)(int, void *), void *data)
 {
 	if(fd < 0) {

@@ -5,7 +5,7 @@
 
 . /etc/ini.conf
 
-subsystem="hub pachube livebox web sms currentcost twitter googlecal bridge serial plugboard"
+subsystem="hub pachube livebox web sms currentcost twitter googlecal bridge serial plugboard iserver"
 
 start_web() {
     rm -f /tmp/klone_sess*
@@ -103,6 +103,15 @@ start_bridge() {
 }
 stop_bridge() {
     killall xap-bridge
+}
+
+start_iserver() {
+    if [ `iniget $INI iserver enable 0` -eq 1 ] ;  then 
+	/usr/bin/iServer -i $MYDEV &
+    fi
+}
+stop_iserver() {
+    killall iServer
 }
 
 # Param 1: subsystem

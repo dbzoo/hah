@@ -108,7 +108,7 @@ void xapInit(char *source, char *uid, char *interfaceName);
 void xapInitFromINI(char *section, char *prefix, char *instance, char *uid, char *interfaceName, const char *inifile);
 xAPSocketConnection *xapAddSocketListener(int fd, void (*callback)(int, void *), void *data);
 xAPSocketConnection *xapFindSocketListenerByFD(int ifd);
-void xapDelSocketListener(xAPSocketConnection *);
+void *xapDelSocketListener(xAPSocketConnection *);
 void simpleCommandLine(int argc, char *argv[], char **interfaceName);
 void discoverHub(int *rxport, int *rxfd, struct sockaddr_in *txAddr);
 void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char **ip, char *interfaceName);
@@ -153,6 +153,7 @@ void filterDispatch();
 xAPFilter *xapAddFilter(xAPFilter **f, char *section, char *key, char *value);
 int xapFilterAddrSubaddress(char *filterAddr, char *addr);
 void xapFreeFilterList(xAPFilter *head);
+void *xapDelFilterAction(xAPFilterCallback *f);
 
 // safe string copy
 size_t strlcpy(char *dst, const char *src, size_t size);

@@ -122,8 +122,8 @@ char *fillShortXap(char *shortMsg, char *uid, char *source);
 xAPTimeoutCallback *xapAddTimeoutAction(void (*func)(int, void *), int interval, void *data);
 xAPTimeoutCallback *xapFindTimeoutByFunc(void (*func)(int, void*));
 void timeoutDispatch();
-void xapDelTimeoutAction(xAPTimeoutCallback **cb);
-void xapDelTimeoutActionByFunc(void (*func)(int, void *));
+void *xapDelTimeoutAction(xAPTimeoutCallback *cb);
+void *xapDelTimeoutActionByFunc(void (*func)(int, void *));
 void xapTimeoutReset(xAPTimeoutCallback *cb);
 
 // rx.c

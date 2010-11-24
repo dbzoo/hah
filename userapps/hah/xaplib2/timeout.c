@@ -32,11 +32,12 @@ void xapTimeoutReset(xAPTimeoutCallback *cb) {
 
 /** Remove a timeout and free the memory for the callback.
 */
-void xapDelTimeoutAction(xAPTimeoutCallback **cb)
+void *xapDelTimeoutAction(xAPTimeoutCallback *cb)
 {
-        LL_DELETE(gXAP->timeoutList, *cb);
-        free(*cb);
-	*cb = NULL;
+	void *userData = cb->user_data;
+        LL_DELETE(gXAP->timeoutList, cb);
+        free(cb);
+	return userData;
 }
 
 xAPTimeoutCallback *xapFindTimeoutByFunc(void (*func)(int, void*)) {
@@ -47,15 +48,16 @@ xAPTimeoutCallback *xapFindTimeoutByFunc(void (*func)(int, void*)) {
 
 /** Remove a timeout using the callback func as a lookup key.
 * If multiple timeouts are registered for the same callback func
-* ALL will be deleted.
+* only the first will be deleted.
 */
-void xapDelTimeoutActionByFunc(void (*func)(int, void *))
+void *xapDelTimeoutActionByFunc(void (*func)(int, void *))
 {
         xAPTimeoutCallback *e, *tmp;
         LL_FOREACH_SAFE(gXAP->timeoutList, e, tmp) {
                 if(e->callback == func)
-                        xapDelTimeoutAction(&e);
+                        return xapDelTimeoutAction(e);
         }
+	return NULL;
 }
 
 /** Dispatch timeout callback that have expired.

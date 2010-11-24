@@ -93,12 +93,12 @@ int xapCompareFilters(xAPFilter *head)
         for(f=head; f && match; f=f->next) {
 	        char *value = xapGetValue((char *)f->section, (char *)f->key);
 
-                if(f->value == XAP_FILTER_ABSENT) {
+                if(strcmp(f->value,XAP_FILTER_ABSENT) == 0) {
                         match = value == NULL ? 1 : 0;
                         continue;
                 }
 
-                if(f->value == XAP_FILTER_ANY) {
+                if(strcmp(f->value, XAP_FILTER_ANY) == 0) {
                         match = value ? 1 : 0;
                         continue;
                 }

@@ -173,26 +173,39 @@ int parsedMsgToRawF(xAPFrame *frame, char *msg, int size) {
 /*
  To minimize downstream processing for smaller less capable devices
  we lowercase all keys, section names and xap-header(target,class,source)
- values.
+ values.  Additionally for BSC .cmd, .info and .event we lower the state value.
 */
 void xapLowerMessageF(xAPFrame *frame)
 {
-	char *currentSection = NULL;
+	char *key, *value, *currentSection = NULL;
 	int i;
+	int bscLowerStateValue = 0;
 	
 	for(i=0; i < frame->parsedMsgCount; i++) {
 		if (currentSection == NULL || currentSection != frame->parsedMsg[i].section) {
 			currentSection = frame->parsedMsg[i].section;
 			xapLowerString(currentSection);
 		}
-		xapLowerString(frame->parsedMsg[i].key);
+		value = frame->parsedMsg[i].value;
+		key = frame->parsedMsg[i].key;
+
+		xapLowerString(key);
+		if(bscLowerStateValue && strcmp("state", key) == 0)
+			xapLowerString(value);
+
 		if(strcmp("xap-header",currentSection) == 0) {
-			char *key = frame->parsedMsg[i].key;
 			if(strcmp("source", key) == 0 ||
 			   strcmp("target", key) == 0 ||
 			   strcmp("class", key) == 0)
 			{
-				xapLowerString(frame->parsedMsg[i].value);
+				xapLowerString(value);
+				if(strcmp("class",key) == 0 && 
+				   (strcmp(value,"xapbsc.info") == 0 ||
+				    strcmp(value,"xapbsc.cmd") == 0 ||
+				    strcmp(value,"xapbsc.event") == 0))
+				{
+					bscLowerStateValue = 1;
+				}
 			}
 		}
 	}

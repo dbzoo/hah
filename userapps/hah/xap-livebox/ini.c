@@ -37,7 +37,7 @@ static void infoEventLabeled(bscEndpoint *e, char *clazz, char *prefix, char *va
         char key[30], buf[64];
         snprintf(key, sizeof(key), "%s%s.label", prefix, e->subaddr);
         if(ini_gets(e->name, key, "", buf, sizeof(buf), inifile) > 0) {
-                snprintf(e->displayText, 64, "%s %s", buf, e->text);
+                snprintf(e->displayText, 64, "%s %s", buf, value);
         } else {
                 *e->displayText = '\0';
         }
@@ -67,7 +67,7 @@ static void infoEvent1wire (bscEndpoint *e, char *clazz)
 {
         // [1wire]
         // sensor1.label=
-        infoEventLabeled(e, clazz, "sensor", e->name);
+        infoEventLabeled(e, clazz, "sensor", e->text);
 }
 
 /** Handle xapBSC.cmd for the RF endpoints.

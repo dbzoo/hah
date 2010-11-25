@@ -1,0 +1,178 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+#include "utils.h"
+#include <string.h>
+
+#define sizearray(x) (sizeof(x) / sizeof(x[0]))
+static int reboot = 0;
+
+static struct {
+	 char authmode[2];
+	 char passwd[64];
+	 char enable[2];
+	 char port[5];
+	 char pacing[5];
+} ini;
+
+static void readIni() {
+	 ini_gets("iserver","enable","0",ini.enable,sizeof(ini.enable),con.inifile);
+	 ini_gets("iserver","passwd","",ini.passwd,sizeof(ini.passwd),con.inifile);
+	 ini_gets("iserver","authmode","0",ini.authmode,sizeof(ini.authmode),con.inifile);
+	 ini_gets("iserver","port","9996",ini.port,sizeof(ini.port),con.inifile);
+	 ini_gets("iserver","pacing","20",ini.pacing,sizeof(ini.pacing),con.inifile);
+}
+
+static void submit_form() {
+	 int restart=1;
+
+	 const char *enable = request_get_arg(request,"enable");
+	 if(enable)
+	     {
+		 if((*enable == '1' && ini.enable[0] == '0') ||
+		    (*enable == '0' && ini.enable[0] == '1')) 
+		     {
+			 ini_puts("iserver","enable",enable,con.inifile);
+			 restart=1;
+		     }
+	     }
+
+	 const char *passwd = request_get_arg(request,"passwd");
+	 if(passwd && strlen(passwd) > 0 && strcmp(passwd,ini.passwd)) {
+		  ini_puts("iserver","passwd",passwd,con.inifile);
+		  restart = 1;
+	 }
+
+	 const char *port = request_get_arg(request,"port");
+	 if(port && strlen(port) > 0 && strcmp(port,ini.port)) {
+		  ini_puts("iserver","port",port,con.inifile);
+		  restart = 1;
+	 }
+
+	 const char *pacing = request_get_arg(request,"pacing");
+	 if(pacing && strlen(pacing) > 0 && strcmp(pacing,ini.pacing)) {
+		  ini_puts("iserver","pacing",pacing,con.inifile);
+		  restart = 1;
+	 }
+
+	 const char *auth = request_get_arg(request,"authmode");
+	 if(auth && strcmp(auth,ini.authmode)) {
+		  ini_puts("iserver","authmode",auth,con.inifile);
+		  restart = 1;
+	 }
+
+	 if(restart) {
+	     char *argv[] = {"/etc/init.d/xap","restart","iserver", NULL};
+	     subprocess(argv);
+	 }
+}
+/**********************************************************************/
+%>
+<%
+  int i;
+  REQUIRE_AUTH(SCRIPT_NAME);
+  const char *action = request_get_arg(request,"action");
+  readIni();
+  if(action && strcmp(action,"Apply") == 0) {
+      submit_form();
+      readIni();
+  }
+%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1"/>
+<script type="text/javascript" src="common.js"></script>
+<link type="text/css" rel="stylesheet" href="style/current/style.css"/>
+<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css"/><![endif]-->
+<title>Livebox</title>
+
+<script type="text/javascript">
+function to_submit(F) {
+F.save_button.value = "Saving";
+F.action.value="Apply";
+apply(F);
+}
+addEvent(window,"load",function() {
+	 show_layer_ext(document.services.enable, 'idph', 1 == <%= ini.enable %>);
+	 });
+</script>
+</head>
+<body class="gui">
+
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<form name="services" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="submit_button"/>
+<input type="hidden" name="action"/>
+<br/>
+<h2>iServer Settings</h2><div>
+
+The iServer is a TCP/xAP gateway nominally used by the Joggler flash application.
+
+<fieldset>
+  <legend>iServer </legend>
+  <div class="setting">
+    <div class="label">Start service</div>
+	<input class="spaceradio" type="radio" value="1" name="enable" onclick="show_layer_ext(this, 'idph', true);"<% if(ini.enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+    <input class="spaceradio" type="radio" value="0" name="enable" onclick="show_layer_ext(this, 'idph', false);"<% if(ini.enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+  <div class="setting" id="idph">
+
+<fieldset>
+  <legend>Configuration</legend>
+
+  <div class="setting">
+    <div class="label">iServer Port</div>
+	 <input maxlength="5" size="5" name="port" value="<%= ini.port %>" onblur="valid_range(this,1,32767,'Port')"/>
+	 <span class="default">(Default: 9996)</span>
+  </div>
+
+  <div class="setting">
+    <div class="label">BSC Query pacing</div>
+	 <input maxlength="5" size="5" name="pacing" value="<%= ini.pacing %>" onblur="valid_range(this,10,1000,'Port')"/>
+	 <span class="default">(Default: 20ms)</span>
+  </div>
+
+  <div class="setting">
+    <div class="label">Client authentication mode</div>
+	<input class="spaceradio" type="radio" value="1" name="authmode" <% if(ini.authmode[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+        <input class="spaceradio" type="radio" value="0" name="authmode" <% if(ini.authmode[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+
+  <div class="setting">
+    <div class="label">Password</div>
+    <input maxlength="64" size="20" name="passwd"/>
+    <span class="default">Used when authentication enabled</span>
+  </div>
+</fieldset>
+
+</div>
+</fieldset>
+
+
+</div>
+<br/>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)"/>
+<input type="reset" value="Cancel Changes"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>

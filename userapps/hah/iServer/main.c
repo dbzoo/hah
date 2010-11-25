@@ -24,18 +24,40 @@ const char *policyResponse="<?xml version=\"1.0\" encoding=\"UTF-8\"?><cross-dom
 
 #define ST_WAIT_FOR_MESSAGE 0
 #define ST_CMD 1
-#define ST_ADD_FILTER 2
-#define ST_XAP 3
-#define ST_LOGIN 4
+#define ST_ADD_SOURCE_FILTER 2
+#define ST_ADD_CLASS_FILTER 3
+#define ST_XAP 4
+#define ST_LOGIN 5
+
+typedef struct _client
+{
+        int fd;
+        char *ip;
+        unsigned int txFrame;
+        unsigned int rxFrame;
+        char *source; // xap-heat/source from 1st heartbeat
+        xAPSocketConnection *xapSocketHandler;
+        xAPFilterCallback *firstHeartbeat;
+        // Parser items
+        unsigned char state; // Message state
+        char ident[XAP_DATA_LEN+1]; // Identifier
+        // LL
+        struct _client *next;
+}
+Client;
 
 int yylex();
 YYSTYPE yylval;
+Client *clientList = NULL;
 
 // Options
 char *interfaceName = "eth0";
 int opt_a; // authorisation mode
 int opt_b; // iServer port
+int opt_c = 20; // BSC Query pacing on client filter registration (ms)
 char *password;
+
+/**************************************/
 
 /** Send data to a file descriptor (socket)
  *
@@ -49,14 +71,13 @@ char *password;
  * @param len Length of buffer
  * @return -1 on failure. otherwise 0
  */
-int sendToClient(int s, char *buf, int len)
+int sendAll(int s, char *buf, int len)
 {
         len ++; // C strings include a NULL terminator send this on the wire too.
         int total = 0;        // how many bytes we've sent
         int bytesleft = len; // how many we have left to send
         int n;
 
-        info("%d msg: %s", s, buf);
         while(total < len) {
                 n = send(s, buf+total, bytesleft, 0);
                 if (n == -1) {
@@ -73,13 +94,27 @@ int sendToClient(int s, char *buf, int len)
         return n==-1?-1:0; // return -1 on failure, 0 on success
 }
 
+/** Send data to a Client bumping the number of frames the client has received
+ * 
+ * @param c Client
+ * @param buf Buffer to send, ZERO terminated.
+ * @param len Length of buffer
+ * @return -1 on failure. otherwise 0
+ */
+int sendToClient(Client *c, char *buf, int len)
+{
+        info("%s msg %s", c->ip, buf);
+        sendAll(c->fd, buf, len);
+        c->rxFrame++;
+}
+
 /** Incoming xAP packet that got past the client filters forward to the respective client.
  * 
  * @param userData pointer to client file descriptor  
  */
 void xAPtoClient(void *userData)
 {
-        int fd = *(int *)userData;
+        Client *c = (Client *)userData;
         char msg[XAP_DATA_LEN+12];
 
         strcpy(msg,"<xap>");
@@ -87,7 +122,7 @@ void xAPtoClient(void *userData)
         parsedMsgToRaw(&msg[5], sizeof(msg)-5);
         strcat(msg,"</xap>");
 
-        sendToClient(fd, msg, strlen(msg));
+        sendToClient(c, msg, strlen(msg));
 }
 
 /**
@@ -97,14 +132,14 @@ void xAPtoClient(void *userData)
  *
  * @param userData pointer to client file descriptor
  */
-void *sendBscQueryToFilters(void *pfd)
+void *sendBscQueryToFilters(void *userData)
 {
-        int fd = *(int *)pfd;
+        Client *c = (Client *)userData;
         xAPFilterCallback *f;
         char buff[XAP_DATA_LEN];
 
         LL_FOREACH(gXAP->filterList, f) {
-                if(f->callback == xAPtoClient && *(int *)f->user_data == fd) {
+                if(f->user_data == c) { // Any filter for this Client.
                         // We know there is only 1 FILTER in the linked list.
                         char *key = f->filter->key;
                         char *source = f->filter->value;
@@ -126,11 +161,12 @@ void *sendBscQueryToFilters(void *pfd)
                                          xapGetUID(), xapGetSource(), source);
                                 xapSend(buff);
                                 // So we don't saturate the bus or the client handling the reply.
-                                usleep(20); // microseconds
+                                usleep(opt_c); // microseconds
                         }
                 }
         }
         pthread_exit(NULL);
+        die("Thread didn't exit?");
 }
 
 /** When a client first registers.
@@ -141,30 +177,20 @@ void *sendBscQueryToFilters(void *pfd)
  */
 void firstClientHeartbeat(void *userData)
 {
-        int fd = *(int *)userData;
+        Client *c = (Client *)userData;
 
-        // FIXME: be better handled by XAPLIB if it supplied the filtercallback as (self).
-        // Delete this filter so it doesn't fire again.
-        xAPFilterCallback *f;
-        LL_FOREACH(gXAP->filterList, f) {
-                if(f->callback == firstClientHeartbeat && *(int *)f->user_data == fd)
-                        break;
-        }
-        if(f == NULL) { // Should never happen.
-                crit("socket %d - Failed to find ourselve?", fd);
-                return;
-        }
-        info("socket %d", fd);
-
-        // Register a filter to send targeted messages to the client
-        xAPFilter *sf = NULL;
-        xapAddFilter(&sf,"xap-header","target", xapGetValue("xap-hbeat","source"));
-        xapAddFilterAction(&xAPtoClient, sf, f->user_data); // user data is Client FD.
+        // Save the xAP originating source for reporting
+        c->source = strdup(xapGetValue("xap-hbeat","source"));
+        info("%s has source %s", c->ip, c->source);
 
         // remove this filter from being processed again.
-        // note: the userData was not free'd by this call
-        // which is ok as its reused in the new filter action above
-        xapDelFilterAction(f);
+        xapDelFilterAction(c->firstHeartbeat);
+        c->firstHeartbeat = NULL;
+
+        // Register a filter to send targeted messages to the client
+        xAPFilter *f = NULL;
+        xapAddFilter(&f,"xap-header","target", c->source);
+        xapAddFilterAction(&xAPtoClient, f, c);
 
         // Send a BSC query to each registered filter with an endpoint.
         // With a large number of filters this could generate a serious amount of data.
@@ -221,86 +247,131 @@ int uniqueFilter(char *source, int fd)
  * @param msg Buffer to send, ZERO terminated.
  * @param len Length of buffer
  */
-void parseiServerMsg(int fd, unsigned char *msg, int len)
+void parseiServerMsg(Client *c, unsigned char *msg, int len)
 {
-        int token, state = ST_WAIT_FOR_MESSAGE;
+        int token;
         char *filterType;
 
         yy_scan_bytes(msg, len);
         while( (token = yylex()) > 0) {
-                switch(state) {
+                switch(c->state) {
                 case ST_WAIT_FOR_MESSAGE:
                         switch(token) {
                         case YY_MSG_SEQUENCE: // protocol debug token
                                 info("Mesg Sequence %d", yylval.i);
                                 break;
                         case YY_START_CMD:
-                                state = ST_CMD;
+                                c->ident[0] = 0;
+                                c->state = ST_CMD;
                                 break;
                         case YY_START_XAP:
-                                state = ST_XAP;
+                                c->ident[0] = 0;
+                                c->state = ST_XAP;
                                 break;
                         default:
-                                state = ST_WAIT_FOR_MESSAGE;
+                                c->state = ST_WAIT_FOR_MESSAGE;
                         }
                         break;
                 case ST_LOGIN:
-                        if(token == YY_IDENT) {
+                        switch(token) {
+                        case YY_IDENT:
+                                strlcat(c->ident, yylval.s, XAP_DATA_LEN);
+                                break;
+                        case YY_END_CMD:
                                 info("Login password %s", yylval.s);
-	                        // If there is no authorisation or the password matched.
-	                        if (opt_a == 0 || strcmp(password, yylval.s) == 0) {
-	                                info("Authorized");
+                                // If there is no authorisation or the password matched.
+                                if (opt_a == 0 || strcmp(password, yylval.s) == 0) {
+                                        info("Authorized");
                                         // Send code back we are good to go.
                                         char *acl = "<ACL>Joggler</ACL>";
-                                        sendToClient(fd, acl, strlen(acl));
+                                        sendToClient(c, acl, strlen(acl));
                                 } else {
-	                                info("Access denied");
+                                        info("Access denied");
                                 }
-
+                                // drop through
+                        default:
+                                // On failure the iServer(windows) sends <ACL></ACL> again
+                                // but if the password already failed whats the point?
+                                // Just wait until the client disconnects and tries again.
+                                c->state = ST_WAIT_FOR_MESSAGE;
                         }
-                        // On failure the iServer(windows) sends <ACL></ACL> again
-                        // but if the password already failed whats the point?
-                        // Just wait until the client disconnects and tries again.
-                        state = ST_WAIT_FOR_MESSAGE;
                         break;
                 case ST_CMD:
                         switch(token) {
                         case YY_LOGIN:
-                                state = ST_LOGIN;
+                                c->state = ST_LOGIN;
                                 break;
                         case YY_SOURCE_FILTER:
-                                state = ST_ADD_FILTER;
-                                filterType = "source";
+                                c->state = ST_ADD_SOURCE_FILTER;
                                 break;
                         case YY_CLASS_FILTER:
-                                state = ST_ADD_FILTER;
-                                filterType = "class";
+                                c->state = ST_ADD_CLASS_FILTER;
                                 break;
                         default:
-                                state = ST_WAIT_FOR_MESSAGE;
+                                c->state = ST_WAIT_FOR_MESSAGE;
                         }
                         break;
-                case ST_ADD_FILTER:
-                        if(token == YY_IDENT) {
+                case ST_ADD_SOURCE_FILTER:
+                case ST_ADD_CLASS_FILTER:
+                        switch(token) {
+                        case YY_IDENT:
+	                        strlcat(c->ident, yylval.s, XAP_DATA_LEN);
+                                break;
+                        case YY_END_CMD:
+                                filterType = c->state == ST_ADD_SOURCE_FILTER ? "source" : "class";
                                 info("Add %s filter %s", filterType, yylval.s);
-                                if(uniqueFilter(yylval.s, fd)) {
+                                if(uniqueFilter(yylval.s, c->fd)) {
                                         xAPFilter *f = NULL;
                                         xapAddFilter(&f, "xap-header", filterType, yylval.s);
-                                        int *cfd = (int *)malloc(sizeof(int));
-                                        *cfd = fd;
-                                        xapAddFilterAction(&xAPtoClient, f, cfd);
+                                        xapAddFilterAction(&xAPtoClient, f, c);
                                 }
+                                // drop through
+                        default:
+                                c->state = ST_WAIT_FOR_MESSAGE;
                         }
-                        state = ST_WAIT_FOR_MESSAGE;
                         break;
                 case ST_XAP:
-                        if(token == YY_IDENT) {
+                        switch(token) {
+                        case YY_IDENT:
+	                        strlcat(c->ident, yylval.s, XAP_DATA_LEN);
+                                break;
+                        case YY_END_XAP:
+                                c->txFrame++;
                                 xapSend(yylval.s);
+                                // drop through
+                        default:
+                                c->state = ST_WAIT_FOR_MESSAGE;
                         }
-                        state = ST_WAIT_FOR_MESSAGE;
                         break;
                 }
         }
+}
+
+/** Disconnect a client
+ *
+ * @param c Client structure
+ */
+void delClient(Client *c)
+{
+        info("Disconnecting %s / %s", c->ip, c->source);
+        close(c->fd);
+        xapDelSocketListener(c->xapSocketHandler);
+
+        // Delete filters callbacks for the Client
+        // As the Client* is attached as user data to the callback this
+        // is used to locate the filterCallback and the filters to delete.
+        // TODO: Leaky xaplib2 API abstractions are showing here.
+        xAPFilterCallback *fc, *fctmp;
+        LL_FOREACH_SAFE(gXAP->filterList, fc, fctmp) {
+                if(fc->user_data == c) {
+                        xapDelFilterAction(fc);
+                }
+        }
+
+        LL_DELETE(clientList, c);
+        free(c->source);
+        free(c->ip);
+        free(c);
 }
 
 /** Handle incoming data from the client (Joggler)
@@ -310,31 +381,52 @@ void parseiServerMsg(int fd, unsigned char *msg, int len)
  */
 void clientListener(int fd, void *data)
 {
+        Client *c = (Client *)data;
         unsigned char buf[XAP_DATA_LEN+1];
 
         int bytes = recv(fd, buf, XAP_DATA_LEN, MSG_DONTWAIT);
         if(bytes == 0) {
-                info("socket %d hung up", fd);
-                close(fd);
-                xapDelSocketListener(xapFindSocketListenerByFD(fd));
-
-                // Delete filters callbacks for the Client
-                // As the client FD is attached as user data to the callback this
-                // is used to locate the filterCallback and the filters to delete.
-                // TODO: Leaky xaplib2 API abstractions are showing here.
-                xAPFilterCallback *fc, *fctmp;
-                LL_FOREACH_SAFE(gXAP->filterList, fc, fctmp) {
-                        if(*(int *)fc->user_data == fd) {
-                                // Call returns a pointer the user data.
-                                // Our malloc'd(int) for the client FD (free this too).
-                                free(xapDelFilterAction(fc));
-                        }
-                }
+                delClient(c);
                 return;
         }
 
         // we got some data from the client.
-        parseiServerMsg(fd, buf, bytes);
+        parseiServerMsg(c, buf, bytes);
+}
+/** Add and handle a client connection
+ * 
+ * @param fd Client socket file descriptor
+ * @param remote sockaddr of the client
+ * @return Client object
+ */
+Client *addClient(int fd, struct sockaddr_in *remote)
+{
+        char *myip = inet_ntoa(remote->sin_addr);
+        Client *c = (Client *)calloc(1, sizeof(Client));
+        if(c == NULL)
+        {
+                alert("Out of memory - Adding client from %s", myip);
+                return NULL;
+        }
+        c->fd = fd;
+        c->ip = strdup(myip);
+        c->state = ST_WAIT_FOR_MESSAGE;
+        c->xapSocketHandler = xapAddSocketListener(fd, &clientListener, c);
+        info("Connection from %s", c->ip);
+        LL_PREPEND(clientList, c);
+
+        // There is work to do once we see a heartbeat
+        xAPFilter *f = NULL;
+        xapAddFilter(&f,"xap-hbeat","class","xap-hbeat.alive");
+
+        // this fires once then deregisters itself.
+        c->firstHeartbeat = xapAddFilterAction(&firstClientHeartbeat, f, c);
+
+        // Initiate communication with client.
+        char *init = "<ACL></ACL>";
+        sendToClient(c, init, strlen(init));
+
+        return c;
 }
 
 /** iServer connection handler on port 9996
@@ -353,20 +445,7 @@ void serverListener(int fd, void *data)
         if(client < 0) {
                 err_strerror("accept");
         } else {
-                info("Connection from %s - %d", inet_ntoa(remote.sin_addr), client);
-                xapAddSocketListener(client, &clientListener, NULL);
-
-                // There is work to do once we see a heartbeat
-                xAPFilter *f = NULL;
-                xapAddFilter(&f,"xap-hbeat","class","xap-hbeat.alive");
-                int *cfd = (int *)malloc(sizeof(int));
-                *cfd = client;
-                // this fires once then deregisters itself.
-                xapAddFilterAction(&firstClientHeartbeat, f, cfd);
-
-                // Initiate communication with client.
-                char *init = "<ACL></ACL>";
-                sendToClient(client, init, strlen(init));
+                addClient(client, &remote);
         }
 }
 
@@ -390,7 +469,7 @@ void flashPolicyServerHandler(int fd, void *data)
                 info("Flash policy file request from %s", inet_ntoa(remote.sin_addr));
                 int bytes = recv(client, buf, sizeof(buf), 0);
                 if (strcmp("<policy-file-request/>", buf) == 0) {
-                        sendToClient(client, (char *)policyResponse, strlen(policyResponse));
+                        sendAll(client, (char *)policyResponse, strlen(policyResponse));
                 } else {
                         notice("Unrecognized flash policy request %s", buf);
                 }
@@ -409,10 +488,10 @@ int serverBind(int port)
         int listener;     // listening socket descriptor
         int yes=1;        // for setsockopt() SO_REUSEADDR, below
 
-	if(port <= 0) {
-		die("Invalid port %d", port);
-	}
-	
+        if(port <= 0) {
+                die("Invalid port %d", port);
+        }
+
         // get the listener
         if ((listener = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
                 die_strerror("socket");
@@ -448,6 +527,7 @@ void setupXAPini()
 
         opt_a = ini_getl("iserver","authmode",0,inifile);
         opt_b = ini_getl("iserver","port",9996,inifile);
+        opt_c = ini_getl("iserver","pacing",20,inifile);
 
         if(opt_a) {
                 password = getINIPassword("iserver","passwd", (char *)inifile);
@@ -463,8 +543,9 @@ static void usage(char *prog)
         printf("%s: [options]\n",prog);
         printf("  -i, --interface IF     Default %s\n", interfaceName);
         printf("  -d, --debug            0-7\n");
-	printf("  -a                     Enable authorisation mode (default off)\n");
+        printf("  -a                     Enable authorisation mode (default off)\n");
         printf("  -b PORT                Listening port (default 9996)\n");
+        printf("  -c pacing              BSC Query pacing (default 50ms)\n");
         printf("  -p PASSWD              Authorisation password\n");
         printf("  -h, --help\n");
         exit(1);
@@ -498,8 +579,13 @@ int main(int argc, char *argv[])
                         password = strdup(argv[++i]);
                 } else if(strcmp("-b", argv[i]) == 0)  {
                         opt_b = atoi(argv[++i]);
+                } else if(strcmp("-c", argv[i]) == 0)  {
+                        opt_c = atoi(argv[++i]);
                 }
         }
+        if(opt_c < 10)
+                opt_c = 10; // 10ms minimum
+        opt_c *= 1000; // convert to microseconds for sleep() call.
 
         xapAddSocketListener(serverBind(opt_b), &serverListener, NULL);
         // The Joggler never makes such a request - MS windows flash will.

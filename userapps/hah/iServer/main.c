@@ -278,9 +278,9 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                                 strlcat(c->ident, yylval.s, XAP_DATA_LEN);
                                 break;
                         case YY_END_CMD:
-                                info("Login password %s", yylval.s);
+	                        info("Login password %s", c->ident);
                                 // If there is no authorisation or the password matched.
-                                if (opt_a == 0 || strcmp(password, yylval.s) == 0) {
+	                        if (opt_a == 0 || strcmp(password, c->ident) == 0) {
                                         info("Authorized");
                                         // Send code back we are good to go.
                                         char *acl = "<ACL>Joggler</ACL>";
@@ -319,10 +319,10 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                                 break;
                         case YY_END_CMD:
                                 filterType = c->state == ST_ADD_SOURCE_FILTER ? "source" : "class";
-                                info("Add %s filter %s", filterType, yylval.s);
+                                info("Add %s filter %s", filterType, c->ident);
                                 if(uniqueFilter(yylval.s, c->fd)) {
                                         xAPFilter *f = NULL;
-                                        xapAddFilter(&f, "xap-header", filterType, yylval.s);
+	                                xapAddFilter(&f, "xap-header", filterType, c->ident);
                                         xapAddFilterAction(&xAPtoClient, f, c);
                                 }
                                 // drop through
@@ -337,7 +337,7 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                                 break;
                         case YY_END_XAP:
                                 c->txFrame++;
-                                xapSend(yylval.s);
+	                        xapSend(c->ident);
                                 // drop through
                         default:
                                 c->state = ST_WAIT_FOR_MESSAGE;

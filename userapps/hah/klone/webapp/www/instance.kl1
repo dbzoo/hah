@@ -23,7 +23,8 @@ struct _daemon {
 	       {"googlecal","Google Calendar","00DA",""},
 	       {"xap","Livebox","00DB", ""},
 	       {"currentcost","CurrentCost","00DC",""},
-	       {"sms","SMS","00DD",""}
+	       {"sms","SMS","00DD",""},
+	       {"iserver","iServer","00DE",""}
 };
 #define daemonCount (sizeof(daemons)/sizeof(daemons[0]))
 char iniInstance[32];

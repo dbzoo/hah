@@ -206,14 +206,14 @@ void firstClientHeartbeat(void *userData)
 /** Check for an already existing callback filter for this client xap source address
  * 
  * @param source xap-header source= value.
- * @param fd Client file descriptor
+ * @param client Client
  * @return 1 if unique, 0 otherwise 
  */
-int uniqueFilter(char *source, int fd)
+int uniqueFilter(char *source, Client *c)
 {
         xAPFilterCallback *f;
         LL_FOREACH(gXAP->filterList, f) {
-                if(f->callback == xAPtoClient && *(int *)f->user_data == fd) {
+                if(f->callback == xAPtoClient && f->user_data == c) {
                         // We know there is only 1 FILTER in the linked list.
                         // So we can safely just check the first entry.
                         if(strcmp(f->filter->key,"source") == 0 && strcmp(f->filter->value,source) == 0) {
@@ -320,7 +320,7 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                         case YY_END_CMD:
                                 filterType = c->state == ST_ADD_SOURCE_FILTER ? "source" : "class";
                                 info("Add %s filter %s", filterType, c->ident);
-                                if(uniqueFilter(yylval.s, c->fd)) {
+                                if(uniqueFilter(c->ident, c)) {
                                         xAPFilter *f = NULL;
 	                                xapAddFilter(&f, "xap-header", filterType, c->ident);
                                         xapAddFilterAction(&xAPtoClient, f, c);

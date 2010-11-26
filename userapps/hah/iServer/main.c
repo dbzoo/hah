@@ -47,6 +47,7 @@ typedef struct _client
 Client;
 
 int yylex();
+void *yy_scan_bytes();
 YYSTYPE yylval;
 Client *clientList = NULL;
 
@@ -252,7 +253,7 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
         int token;
         char *filterType;
 
-        yy_scan_bytes(msg, len);
+        void *b = yy_scan_bytes(msg, len);
         while( (token = yylex()) > 0) {
                 switch(c->state) {
                 case ST_WAIT_FOR_MESSAGE:
@@ -345,6 +346,7 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                         break;
                 }
         }
+	yy_delete_buffer(b);
 }
 
 /** Disconnect a client

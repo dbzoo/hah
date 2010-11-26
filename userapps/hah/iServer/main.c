@@ -29,6 +29,8 @@ const char *policyResponse="<?xml version=\"1.0\" encoding=\"UTF-8\"?><cross-dom
 #define ST_XAP 4
 #define ST_LOGIN 5
 
+#define BUFSIZE 8096
+
 typedef struct _client
 {
         int fd;
@@ -74,7 +76,6 @@ char *password;
  */
 int sendAll(int s, char *buf, int len)
 {
-        len ++; // C strings include a NULL terminator send this on the wire too.
         int total = 0;        // how many bytes we've sent
         int bytesleft = len; // how many we have left to send
         int n;
@@ -105,7 +106,7 @@ int sendAll(int s, char *buf, int len)
 int sendToClient(Client *c, char *buf, int len)
 {
         info("%s msg %s", c->ip, buf);
-        sendAll(c->fd, buf, len);
+	sendAll(c->fd, buf, len+1); // include null terminator
         c->rxFrame++;
 }
 
@@ -384,9 +385,9 @@ void delClient(Client *c)
 void clientListener(int fd, void *data)
 {
         Client *c = (Client *)data;
-        unsigned char buf[XAP_DATA_LEN+1];
+        unsigned char buf[BUFSIZE+1];
 
-        int bytes = recv(fd, buf, XAP_DATA_LEN, MSG_DONTWAIT);
+	int bytes = recv(fd, buf, BUFSIZE, MSG_DONTWAIT);
         if(bytes == 0) {
                 delClient(c);
                 return;
@@ -451,6 +452,59 @@ void serverListener(int fd, void *data)
         }
 }
 
+/** Micro WEB server
+ *  Allows you to see what clients have connected and some internal statistics
+ *
+ * @param fd Socket file descriptor
+ * @param data unused
+ */
+void webServerHandler(int fd, void *data)
+{
+	socklen_t addr_size;
+	struct sockaddr_in remote;
+	int ret, i, len;
+	static char buffer[BUFSIZE+1];
+	Client *c;
+	
+	addr_size = sizeof(remote);
+	int client = accept (fd, (struct sockaddr *)&remote, &addr_size);
+		
+	ret = read(client, buffer, BUFSIZE);
+	if(ret == 0 || ret == -1) { // read failure
+		err_strerror("read failure");
+		return;
+	}
+	if(ret > 0 && ret < BUFSIZE)
+		buffer[ret] = 0;
+	else
+		buffer[0] = 0;
+	
+	for(i=0;i<ret;i++)
+		if(buffer[i] == '\r' || buffer[i] == '\n') // remove CR/LF
+			buffer[i]='*';
+
+	if(strncmp(buffer,"GET ", 4) && strncmp(buffer, "get ",4))
+		error("Only simply GET operation is supported");
+
+	// Build response
+	strcpy(buffer,"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n");
+	if(clientList == NULL) {
+		strcat(buffer,"<i>No connected Clients</i>");
+	} else {
+		strcat(buffer,"<table>");
+		strcat(buffer,"<tr><th>IP</th><th>Source</th><th>Tx</th><th>Rx</th></tr>");
+		len=strlen(buffer);
+		LL_FOREACH(clientList, c) {
+			len += snprintf(&buffer[len], BUFSIZE-len,"<tr><td>%s</td><td>%s</td><td>%u</td><td>%u</td></tr>",
+			               c->ip, c->source, c->txFrame, c->rxFrame);
+		}
+		strlcat(buffer,"</table>",BUFSIZE);
+	}
+	sendAll(client, buffer, strlen(buffer));
+	
+	close(client);
+}
+
 /** Policy service handler listening on port 843
  * 
  * @param fd Socket file descriptor 
@@ -471,7 +525,7 @@ void flashPolicyServerHandler(int fd, void *data)
                 info("Flash policy file request from %s", inet_ntoa(remote.sin_addr));
                 int bytes = recv(client, buf, sizeof(buf), 0);
                 if (strcmp("<policy-file-request/>", buf) == 0) {
-                        sendAll(client, (char *)policyResponse, strlen(policyResponse));
+                        sendAll(client, (char *)policyResponse, strlen(policyResponse)+1);
                 } else {
                         notice("Unrecognized flash policy request %s", buf);
                 }
@@ -593,6 +647,7 @@ int main(int argc, char *argv[])
         // The Joggler never makes such a request - MS windows flash will.
         //http://www.adobe.com/devnet/flashplayer/articles/socket_policy_files.html
         xapAddSocketListener(serverBind(843), &flashPolicyServerHandler, NULL);
-        xapProcess();
+	xapAddSocketListener(serverBind(78), &webServerHandler, NULL);
+	xapProcess();
         return 0;
 }

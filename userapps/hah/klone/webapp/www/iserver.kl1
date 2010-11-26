@@ -4,6 +4,10 @@
 #include "const.h"
 #include "utils.h"
 #include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #define sizearray(x) (sizeof(x) / sizeof(x[0]))
 static int reboot = 0;
@@ -150,6 +154,32 @@ The iServer is a TCP/xAP gateway nominally used by the Joggler flash application
     <input maxlength="64" size="20" name="passwd"/>
     <span class="default">Used when authentication enabled</span>
   </div>
+</fieldset>
+
+<fieldset>
+  <legend>Status</legend>
+<%
+char buffer[1024];
+struct sockaddr_in serv;
+int fd;
+if((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+	io_printf(out, "socket(): %s", strerror(errno));
+} else {
+	   serv.sin_family = AF_INET;
+	   serv.sin_addr.s_addr = inet_addr("127.0.0.1");
+	   serv.sin_port = htons(78); // iServer listens here
+	   if(connect(fd, (struct sockaddr *)&serv, sizeof(serv)) < 0) {
+		   io_printf(out, "%s: check iServer is running", strerror(errno));
+	   }  else {
+		   write(fd,"GET /index.html \r\n",18);
+		   // A little nieve as we expect to get everything in 1x(1k) packet.
+		   int i = read(fd, buffer, 1024);
+		   char *body = strstr(buffer,"\r\n\r\n");
+		   io_write(out, body, i - (body - buffer));
+	   }
+	   close(fd);
+}
+%>
 </fieldset>
 
 </div>

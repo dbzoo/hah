@@ -15,6 +15,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <pthread.h>
+#include <time.h>
 
 #include "xap.h"
 #include "tokenize.h"
@@ -35,8 +36,7 @@ typedef struct _client
 {
         int fd;
         char *ip;
-	unsigned int txFrameLastMinute;
-	unsigned int rxFrameLastMinute;
+	time_t connectTime;
 	unsigned int txFrame;
         unsigned int rxFrame;
         char *source; // xap-heat/source from 1st heartbeat
@@ -429,6 +429,7 @@ Client *addClient(int fd, struct sockaddr_in *remote)
         c->fd = fd;
         c->ip = strdup(myip);
         c->state = ST_WAIT_FOR_MESSAGE;
+	c->connectTime = time(NULL);
         c->xapSocketHandler = xapAddSocketListener(fd, &clientListener, c);
         info("Connection from %s", c->ip);
         LL_PREPEND(clientList, c);
@@ -458,19 +459,6 @@ void serverListener(int fd, void *data)
         } else {
                 addClient(client, &remote);
         }
-}
-
-/** Every minute copy the Rx/Tx totals
- * 
- * @param interval Timeout interval
- * @param userData not used
- */
-void frameThroughput(int interval, void *userData) {
-	Client *c;
-	LL_FOREACH(clientList, c) {
-		c->txFrameLastMinute = c->txFrame;
-		c->rxFrameLastMinute = c->rxFrame;
-	}
 }
 
 /** Micro WEB server
@@ -512,9 +500,12 @@ void webServerHandler(int fd, void *data)
 	        strcat(buffer,"<tr><th>IP</th><th>Source</th><th>Tx</th><th>Rx</th><th>/min</td></tr>");
                 len=strlen(buffer);
                 LL_FOREACH(clientList, c) {
-	                len += snprintf(&buffer[len], BUFSIZE-len,"<tr><td>%s</td><td>%s</td><td align=\"right\">%u</td><td align=\"right\">%u</td><td align=\"right\">%u</td></tr>",
-                                        c->ip, c->source, c->txFrame, c->rxFrame,
-	                               c->rxFrame - c->rxFrameLastMinute + c->txFrame - c->txFrameLastMinute);
+	                int elapsedMinutes = (time(NULL) - c->connectTime)/60;
+	                int totalFrames = c->rxFrame + c->txFrame;
+	                float flowRate = elapsedMinutes == 0 ? totalFrames : totalFrames/elapsedMinutes;
+
+	                len += snprintf(&buffer[len], BUFSIZE-len,"<tr><td>%s</td><td>%s</td><td align=\"right\">%u</td><td align=\"right\">%u</td><td align=\"right\">%5.1f</td></tr>",
+	                                c->ip, c->source, c->txFrame, c->rxFrame, flowRate);
                 }
                 strlcat(buffer,"</table>",BUFSIZE);
         }
@@ -667,7 +658,6 @@ int main(int argc, char *argv[])
         //http://www.adobe.com/devnet/flashplayer/articles/socket_policy_files.html
         xapAddSocketListener(serverBind(843), &flashPolicyServerHandler, NULL);
         xapAddSocketListener(serverBind(78), &webServerHandler, NULL);
-	xapAddTimeoutAction(&frameThroughput, 60, NULL);
         xapProcess();
         return 0;
 }

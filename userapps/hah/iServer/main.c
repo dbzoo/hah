@@ -29,17 +29,19 @@ const char *policyResponse="<?xml version=\"1.0\" encoding=\"UTF-8\"?><cross-dom
 #define ST_XAP 4
 #define ST_LOGIN 5
 
-#define BUFSIZE 8096
+#define BUFSIZE 2048
 
 typedef struct _client
 {
         int fd;
         char *ip;
-        unsigned int txFrame;
+	unsigned int txFrameLastMinute;
+	unsigned int rxFrameLastMinute;
+	unsigned int txFrame;
         unsigned int rxFrame;
         char *source; // xap-heat/source from 1st heartbeat
         xAPSocketConnection *xapSocketHandler;
-        xAPFilterCallback *firstHeartbeat;
+        char firstMessage;
         // Parser items
         unsigned char state; // Message state
         char ident[XAP_DATA_LEN+1]; // Identifier
@@ -106,7 +108,7 @@ int sendAll(int s, char *buf, int len)
 int sendToClient(Client *c, char *buf, int len)
 {
         info("%s msg %s", c->ip, buf);
-	sendAll(c->fd, buf, len+1); // include null terminator
+        sendAll(c->fd, buf, len+1); // include null terminator
         c->rxFrame++;
 }
 
@@ -171,27 +173,36 @@ void *sendBscQueryToFilters(void *userData)
         die("Thread didn't exit?");
 }
 
-/** When a client first registers.
- * There are some house keeping tasks that need to be performed but we wait until
- * the heatbeat is seen so that the client is receptive to receiving data.
- * 
- * @param userData pointer to client file descriptor
+/** When the first xap-header of xap-hbeat message is seen
+ * from the client we setup a directed TARGET filter and start
+ * sending BSC queries for its filters.
+ *
+ * @param c pointer to client descriptor
  */
-void firstClientHeartbeat(void *userData)
+void firstClientMessage(Client *c)
 {
-        Client *c = (Client *)userData;
+        if(c->firstMessage == 0) // Already done.
+                return;
+
+        xAPFrame m;
+        m.len = strlcpy((char *)m.dataPacket, c->ident, XAP_DATA_LEN);
+        parseMsgF(&m);
+        char *source = xapGetValueF(&m, "xap-hbeat","source");
+        if(source == NULL)
+                source = xapGetValueF(&m, "xap-header","source");
+        if(source == NULL)
+                return;
+
+        // Stop us from being processed again
+        c->firstMessage = 0;
 
         // Save the xAP originating source for reporting
-        c->source = strdup(xapGetValue("xap-hbeat","source"));
-        info("%s has source %s", c->ip, c->source);
-
-        // remove this filter from being processed again.
-        xapDelFilterAction(c->firstHeartbeat);
-        c->firstHeartbeat = NULL;
+        c->source = strdup(source);
+        info("%s has source %s", c->ip, source);
 
         // Register a filter to send targeted messages to the client
         xAPFilter *f = NULL;
-        xapAddFilter(&f,"xap-header","target", c->source);
+        xapAddFilter(&f,"xap-header","target", source);
         xapAddFilterAction(&xAPtoClient, f, c);
 
         // Send a BSC query to each registered filter with an endpoint.
@@ -199,7 +210,7 @@ void firstClientHeartbeat(void *userData)
         // As we are single threaded we won't be able to relay the result and as they
         // are UDP they will back up and be lost.  So spawn the QUERY into a thread.
         pthread_t queryThread;
-        int rv = pthread_create(&queryThread, NULL, sendBscQueryToFilters, userData);
+        int rv = pthread_create(&queryThread, NULL, sendBscQueryToFilters, c);
         if(rv) {
                 error("pthread_create: ret %d", rv);
         }
@@ -280,9 +291,9 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                                 strlcat(c->ident, yylval.s, XAP_DATA_LEN);
                                 break;
                         case YY_END_CMD:
-	                        info("Login password %s", c->ident);
+                                info("Login password %s", c->ident);
                                 // If there is no authorisation or the password matched.
-	                        if (opt_a == 0 || strcmp(password, c->ident) == 0) {
+                                if (opt_a == 0 || strcmp(password, c->ident) == 0) {
                                         info("Authorized");
                                         // Send code back we are good to go.
                                         char *acl = "<ACL>Joggler</ACL>";
@@ -317,14 +328,14 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                 case ST_ADD_CLASS_FILTER:
                         switch(token) {
                         case YY_IDENT:
-	                        strlcat(c->ident, yylval.s, XAP_DATA_LEN);
+                                strlcat(c->ident, yylval.s, XAP_DATA_LEN);
                                 break;
                         case YY_END_CMD:
                                 filterType = c->state == ST_ADD_SOURCE_FILTER ? "source" : "class";
                                 info("Add %s filter %s", filterType, c->ident);
                                 if(uniqueFilter(c->ident, c)) {
                                         xAPFilter *f = NULL;
-	                                xapAddFilter(&f, "xap-header", filterType, c->ident);
+                                        xapAddFilter(&f, "xap-header", filterType, c->ident);
                                         xapAddFilterAction(&xAPtoClient, f, c);
                                 }
                                 // drop through
@@ -335,11 +346,12 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                 case ST_XAP:
                         switch(token) {
                         case YY_IDENT:
-	                        strlcat(c->ident, yylval.s, XAP_DATA_LEN);
+                                strlcat(c->ident, yylval.s, XAP_DATA_LEN);
                                 break;
                         case YY_END_XAP:
                                 c->txFrame++;
-	                        xapSend(c->ident);
+                                xapSend(c->ident);
+                                firstClientMessage(c);
                                 // drop through
                         default:
                                 c->state = ST_WAIT_FOR_MESSAGE;
@@ -347,7 +359,7 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                         break;
                 }
         }
-	yy_delete_buffer(b);
+        yy_delete_buffer(b);
 }
 
 /** Disconnect a client
@@ -385,16 +397,18 @@ void delClient(Client *c)
 void clientListener(int fd, void *data)
 {
         Client *c = (Client *)data;
-        unsigned char buf[BUFSIZE+1];
+        static unsigned char buf[XAP_DATA_LEN+1];
+        int bytes;
 
-	int bytes = recv(fd, buf, BUFSIZE, MSG_DONTWAIT);
-        if(bytes == 0) {
+        // Drain the socket of data.
+        while( (bytes = recv(fd, buf, XAP_DATA_LEN, MSG_DONTWAIT)) > 0) {
+                parseiServerMsg(c, buf, bytes);
+        }
+
+        if(bytes == 0) { // Disconnected client
                 delClient(c);
                 return;
         }
-
-        // we got some data from the client.
-        parseiServerMsg(c, buf, bytes);
 }
 /** Add and handle a client connection
  * 
@@ -411,19 +425,13 @@ Client *addClient(int fd, struct sockaddr_in *remote)
                 alert("Out of memory - Adding client from %s", myip);
                 return NULL;
         }
+        c->firstMessage = 1;
         c->fd = fd;
         c->ip = strdup(myip);
         c->state = ST_WAIT_FOR_MESSAGE;
         c->xapSocketHandler = xapAddSocketListener(fd, &clientListener, c);
         info("Connection from %s", c->ip);
         LL_PREPEND(clientList, c);
-
-        // There is work to do once we see a heartbeat
-        xAPFilter *f = NULL;
-        xapAddFilter(&f,"xap-hbeat","class","xap-hbeat.alive");
-
-        // this fires once then deregisters itself.
-        c->firstHeartbeat = xapAddFilterAction(&firstClientHeartbeat, f, c);
 
         // Initiate communication with client.
         char *init = "<ACL></ACL>";
@@ -452,6 +460,19 @@ void serverListener(int fd, void *data)
         }
 }
 
+/** Every minute copy the Rx/Tx totals
+ * 
+ * @param interval Timeout interval
+ * @param userData not used
+ */
+void frameThroughput(int interval, void *userData) {
+	Client *c;
+	LL_FOREACH(clientList, c) {
+		c->txFrameLastMinute = c->txFrame;
+		c->rxFrameLastMinute = c->rxFrame;
+	}
+}
+
 /** Micro WEB server
  *  Allows you to see what clients have connected and some internal statistics
  *
@@ -460,49 +481,46 @@ void serverListener(int fd, void *data)
  */
 void webServerHandler(int fd, void *data)
 {
-	socklen_t addr_size;
-	struct sockaddr_in remote;
-	int ret, i, len;
-	static char buffer[BUFSIZE+1];
-	Client *c;
-	
-	addr_size = sizeof(remote);
-	int client = accept (fd, (struct sockaddr *)&remote, &addr_size);
-		
-	ret = read(client, buffer, BUFSIZE);
-	if(ret == 0 || ret == -1) { // read failure
-		err_strerror("read failure");
-		return;
-	}
-	if(ret > 0 && ret < BUFSIZE)
-		buffer[ret] = 0;
-	else
-		buffer[0] = 0;
-	
-	for(i=0;i<ret;i++)
-		if(buffer[i] == '\r' || buffer[i] == '\n') // remove CR/LF
-			buffer[i]='*';
+        socklen_t addr_size;
+        struct sockaddr_in remote;
+        int ret, i, len;
+        static char buffer[BUFSIZE+1];
+        Client *c;
 
-	if(strncmp(buffer,"GET ", 4) && strncmp(buffer, "get ",4))
-		error("Only simply GET operation is supported");
+        addr_size = sizeof(remote);
+        int client = accept (fd, (struct sockaddr *)&remote, &addr_size);
 
-	// Build response
-	strcpy(buffer,"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n");
-	if(clientList == NULL) {
-		strcat(buffer,"<i>No connected Clients</i>");
-	} else {
-		strcat(buffer,"<table>");
-		strcat(buffer,"<tr><th>IP</th><th>Source</th><th>Tx</th><th>Rx</th></tr>");
-		len=strlen(buffer);
-		LL_FOREACH(clientList, c) {
-			len += snprintf(&buffer[len], BUFSIZE-len,"<tr><td>%s</td><td>%s</td><td>%u</td><td>%u</td></tr>",
-			               c->ip, c->source, c->txFrame, c->rxFrame);
-		}
-		strlcat(buffer,"</table>",BUFSIZE);
-	}
-	sendAll(client, buffer, strlen(buffer));
-	
-	close(client);
+        ret = read(client, buffer, BUFSIZE);
+        if(ret == 0 || ret == -1) { // read failure
+                err_strerror("read failure");
+                return;
+        }
+        if(ret > 0 && ret < BUFSIZE)
+                buffer[ret] = 0;
+        else
+                buffer[0] = 0;
+
+        if(strncmp(buffer,"GET ", 4) && strncmp(buffer, "get ",4))
+                error("Only simply GET operation is supported");
+
+        // Build response
+        strcpy(buffer,"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n");
+        if(clientList == NULL) {
+                strcat(buffer,"<i>No connected Clients</i>");
+        } else {
+                strcat(buffer,"<table>");
+	        strcat(buffer,"<tr><th>IP</th><th>Source</th><th>Tx</th><th>Rx</th><th>/min</td></tr>");
+                len=strlen(buffer);
+                LL_FOREACH(clientList, c) {
+	                len += snprintf(&buffer[len], BUFSIZE-len,"<tr><td>%s</td><td>%s</td><td align=\"right\">%u</td><td align=\"right\">%u</td><td align=\"right\">%u</td></tr>",
+                                        c->ip, c->source, c->txFrame, c->rxFrame,
+	                               c->rxFrame - c->rxFrameLastMinute + c->txFrame - c->txFrameLastMinute);
+                }
+                strlcat(buffer,"</table>",BUFSIZE);
+        }
+        sendAll(client, buffer, strlen(buffer));
+
+        close(client);
 }
 
 /** Policy service handler listening on port 843
@@ -514,7 +532,7 @@ void flashPolicyServerHandler(int fd, void *data)
 {
         socklen_t addr_size;
         struct sockaddr_in remote;
-        char buf[1024];
+        char buf[BUFSIZE+1];
 
         addr_size = sizeof(remote);
         int client = accept (fd, (struct sockaddr *)&remote, &addr_size);
@@ -523,7 +541,8 @@ void flashPolicyServerHandler(int fd, void *data)
                 err_strerror("accept");
         } else {
                 info("Flash policy file request from %s", inet_ntoa(remote.sin_addr));
-                int bytes = recv(client, buf, sizeof(buf), 0);
+                int bytes = recv(client, buf, BUFSIZE, 0);
+                buf[bytes] = 0;
                 if (strcmp("<policy-file-request/>", buf) == 0) {
                         sendAll(client, (char *)policyResponse, strlen(policyResponse)+1);
                 } else {
@@ -647,7 +666,8 @@ int main(int argc, char *argv[])
         // The Joggler never makes such a request - MS windows flash will.
         //http://www.adobe.com/devnet/flashplayer/articles/socket_policy_files.html
         xapAddSocketListener(serverBind(843), &flashPolicyServerHandler, NULL);
-	xapAddSocketListener(serverBind(78), &webServerHandler, NULL);
-	xapProcess();
+        xapAddSocketListener(serverBind(8888), &webServerHandler, NULL);
+	xapAddTimeoutAction(&frameThroughput, 60, NULL);
+        xapProcess();
         return 0;
 }

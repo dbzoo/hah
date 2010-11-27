@@ -55,11 +55,11 @@ static int buildSelectList(xAPSocketConnection *list, fd_set *socks) {
 }
 /// Check if data is present on the SOCKET if so dispatch to its handler.
 static void readSockets(fd_set *socks) {
-	xAPSocketConnection *list = gXAP->connectionList;
-	while(list) {
+	xAPSocketConnection *list, *tmp;
+	// We use safe as the callback could deregister the socket callback.
+	LL_FOREACH_SAFE(gXAP->connectionList, list, tmp) {
 		if (FD_ISSET(list->fd, socks))
 			(*list->callback)(list->fd, list->user_data);
-		list = list->next;
 	}
 }
 

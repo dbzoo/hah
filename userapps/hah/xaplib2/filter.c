@@ -181,8 +181,8 @@ xAPFilterCallback *xapAddFilterAction(void (*func)(void *), xAPFilter *filter, v
  */
 void filterDispatch()
 {
-        xAPFilterCallback *cb;
-        LL_FOREACH(gXAP->filterList, cb) {
+        xAPFilterCallback *cb, *tmp;
+        LL_FOREACH_SAFE(gXAP->filterList, cb, tmp) {
                 // Do all the filters for this Callback match?
                 if(xapCompareFilters(cb->filter)) {
                         (*cb->callback)(cb->user_data); // Dispatch it..

@@ -502,7 +502,7 @@ void webServerHandler(int fd, void *data)
                 LL_FOREACH(clientList, c) {
 	                int elapsedMinutes = (time(NULL) - c->connectTime)/60;
 	                int totalFrames = c->rxFrame + c->txFrame;
-	                float flowRate = elapsedMinutes == 0 ? totalFrames : totalFrames/elapsedMinutes;
+	                float flowRate = elapsedMinutes == 0 ? totalFrames : (float)totalFrames/(float)elapsedMinutes;
 
 	                len += snprintf(&buffer[len], BUFSIZE-len,"<tr><td>%s</td><td>%s</td><td align=\"right\">%u</td><td align=\"right\">%u</td><td align=\"right\">%5.1f</td></tr>",
 	                                c->ip, c->source, c->txFrame, c->rxFrame, flowRate);

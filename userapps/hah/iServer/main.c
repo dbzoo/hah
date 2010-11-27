@@ -666,7 +666,7 @@ int main(int argc, char *argv[])
         // The Joggler never makes such a request - MS windows flash will.
         //http://www.adobe.com/devnet/flashplayer/articles/socket_policy_files.html
         xapAddSocketListener(serverBind(843), &flashPolicyServerHandler, NULL);
-        xapAddSocketListener(serverBind(8888), &webServerHandler, NULL);
+        xapAddSocketListener(serverBind(78), &webServerHandler, NULL);
 	xapAddTimeoutAction(&frameThroughput, 60, NULL);
         xapProcess();
         return 0;

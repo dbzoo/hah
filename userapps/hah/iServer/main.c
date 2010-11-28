@@ -494,22 +494,22 @@ void webServerHandler(int fd, void *data)
         // Build response
         strcpy(buffer,"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n");
         if(clientList == NULL) {
-                strcat(buffer,"<i>No connected Clients</i>");
+                len = strlcat(buffer,BUFSIZE,"<i>No connected Clients</i>");
+	        sendAll(client, buffer, len);
         } else {
-                strcat(buffer,"<table>");
-	        strcat(buffer,"<tr><th>IP</th><th>Source</th><th>Tx</th><th>Rx</th><th>/min</td></tr>");
-                len=strlen(buffer);
+	        len = strlcat(buffer,BUFSIZE,"<table><tr><th>FD</th><th>IP</th><th>Source</th><th>Tx</th><th>Rx</th><th>/min</th></tr>");
+	        sendAll(client, buffer, len);
                 LL_FOREACH(clientList, c) {
 	                int elapsedMinutes = (time(NULL) - c->connectTime)/60;
 	                int totalFrames = c->rxFrame + c->txFrame;
 	                float flowRate = elapsedMinutes == 0 ? totalFrames : (float)totalFrames/(float)elapsedMinutes;
 
-	                len += snprintf(&buffer[len], BUFSIZE-len,"<tr><td>%s</td><td>%s</td><td align=\"right\">%u</td><td align=\"right\">%u</td><td align=\"right\">%5.1f</td></tr>",
-	                                c->ip, c->source, c->txFrame, c->rxFrame, flowRate);
+	                len = snprintf(buffer, BUFSIZE,"<tr><td>%d</td><td>%s</td><td>%s</td><td align=\"right\">%u</td><td align=\"right\">%u</td><td align=\"right\">%5.1f</td></tr>",
+	                                c->fd, c->ip, c->source, c->txFrame, c->rxFrame, flowRate);
+	                sendAll(client, buffer, len);
                 }
-                strlcat(buffer,"</table>",BUFSIZE);
+	        sendAll(client, "</table>", 8);
         }
-        sendAll(client, buffer, strlen(buffer));
 
         close(client);
 }

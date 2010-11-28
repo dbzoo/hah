@@ -494,10 +494,10 @@ void webServerHandler(int fd, void *data)
         // Build response
         strcpy(buffer,"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n");
         if(clientList == NULL) {
-                len = strlcat(buffer,BUFSIZE,"<i>No connected Clients</i>");
+	        len = strlcat(buffer,"<i>No connected Clients</i>",BUFSIZE);
 	        sendAll(client, buffer, len);
         } else {
-	        len = strlcat(buffer,BUFSIZE,"<table><tr><th>FD</th><th>IP</th><th>Source</th><th>Tx</th><th>Rx</th><th>/min</th></tr>");
+	        len = strlcat(buffer,"<table><tr><th>FD</th><th>IP</th><th>Source</th><th>Tx</th><th>Rx</th><th>/min</th></tr>",BUFSIZE);
 	        sendAll(client, buffer, len);
                 LL_FOREACH(clientList, c) {
 	                int elapsedMinutes = (time(NULL) - c->connectTime)/60;

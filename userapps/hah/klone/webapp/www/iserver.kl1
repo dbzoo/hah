@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <errno.h>
 
 #define sizearray(x) (sizeof(x) / sizeof(x[0]))
 static int reboot = 0;
@@ -172,13 +173,14 @@ if((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		   io_printf(out, "%s: check iServer is running", strerror(errno));
 	   }  else {
 		   write(fd,"GET /index.html \r\n",18);
-		   int i = read(fd, buffer, 511);
+		   int i = recv(fd, buffer, 510, 0);
 		   buffer[i] = 0;
 		   char *body = strstr(buffer,"\r\n\r\n");
 		   io_write(out, body, i - (body - buffer));
 		   // In case there is more....
-		   while( (i = read(fd, buffer, 512)) > 0)
-			   io_write(out, body, i);
+		   while( (i = recv(fd, buffer, 511, 0)) > 0)
+			   io_write(out, buffer, i);
+		   if(errno) io_printf(out,"<!--err:%s--!>", strerror(errno));
 	   }
 	   close(fd);
 }

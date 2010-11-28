@@ -69,8 +69,6 @@ char *password;
  * Due to circumstances beyond our control if the kernel decides not to send
  * all the data out in one chunk make sure it gets out there.
  *
- * The ZERO terminator will be included in the transmission.
- *
  * @param s Socket descriptor
  * @param buf Buffer to send, ZERO terminated.
  * @param len Length of buffer
@@ -108,8 +106,8 @@ int sendAll(int s, char *buf, int len)
 int sendToClient(Client *c, char *buf, int len)
 {
         info("%s msg %s", c->ip, buf);
-        sendAll(c->fd, buf, len+1); // include null terminator
-        c->rxFrame++;
+	c->rxFrame++;
+	return sendAll(c->fd, buf, len+1); // include null terminator
 }
 
 /** Incoming xAP packet that got past the client filters forward to the respective client.
@@ -407,7 +405,6 @@ void clientListener(int fd, void *data)
 
         if(bytes == 0) { // Disconnected client
                 delClient(c);
-                return;
         }
 }
 /** Add and handle a client connection
@@ -456,9 +453,10 @@ void serverListener(int fd, void *data)
 
         if(client < 0) {
                 err_strerror("accept");
-        } else {
-                addClient(client, &remote);
+	        return;
         }
+	
+        addClient(client, &remote);
 }
 
 /** Micro WEB server
@@ -659,5 +657,5 @@ int main(int argc, char *argv[])
         xapAddSocketListener(serverBind(843), &flashPolicyServerHandler, NULL);
         xapAddSocketListener(serverBind(78), &webServerHandler, NULL);
         xapProcess();
-        return 0;
+	return 0; // never reached
 }

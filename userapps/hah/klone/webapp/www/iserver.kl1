@@ -8,7 +8,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <errno.h>
 
 #define sizearray(x) (sizeof(x) / sizeof(x[0]))
 static int reboot = 0;
@@ -180,7 +179,6 @@ if((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		   // In case there is more....
 		   while( (i = recv(fd, buffer, 511, 0)) > 0)
 			   io_write(out, buffer, i);
-		   if(errno) io_printf(out,"<!--err:%s--!>", strerror(errno));
 	   }
 	   close(fd);
 }

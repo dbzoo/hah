@@ -36,12 +36,13 @@ typedef struct _client
 {
         int fd;
         char *ip;
-	time_t connectTime;
-	unsigned int txFrame;
+        time_t connectTime;
+        unsigned int txFrame;
         unsigned int rxFrame;
         char *source; // xap-heat/source from 1st heartbeat
         xAPSocketConnection *xapSocketHandler;
         char firstMessage;
+        pthread_t thread;
         // Parser items
         unsigned char state; // Message state
         char ident[XAP_DATA_LEN+1]; // Identifier
@@ -105,9 +106,9 @@ int sendAll(int s, char *buf, int len)
  */
 int sendToClient(Client *c, char *buf, int len)
 {
-        info("%s msg %s", c->ip, buf);
-	c->rxFrame++;
-	return sendAll(c->fd, buf, len+1); // include null terminator
+        debug("%s msg %s", c->ip, buf);
+        c->rxFrame++;
+        return sendAll(c->fd, buf, len+1); // include null terminator
 }
 
 /** Incoming xAP packet that got past the client filters forward to the respective client.
@@ -140,6 +141,7 @@ void *sendBscQueryToFilters(void *userData)
         xAPFilterCallback *f;
         char buff[XAP_DATA_LEN];
 
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
         LL_FOREACH(gXAP->filterList, f) {
                 if(f->user_data == c) { // Any filter for this Client.
                         // We know there is only 1 FILTER in the linked list.
@@ -164,11 +166,13 @@ void *sendBscQueryToFilters(void *userData)
                                 xapSend(buff);
                                 // So we don't saturate the bus or the client handling the reply.
                                 usleep(opt_c); // microseconds
+	                        // Sleep is a cancelation point too but explicity check anyway.
+	                        pthread_testcancel();
                         }
                 }
         }
-        pthread_exit(NULL);
-        die("Thread didn't exit?");
+	pthread_exit(NULL);
+	die("Thread didn't exit?");	
 }
 
 /** When the first xap-header of xap-hbeat message is seen
@@ -207,8 +211,7 @@ void firstClientMessage(Client *c)
         // With a large number of filters this could generate a serious amount of data.
         // As we are single threaded we won't be able to relay the result and as they
         // are UDP they will back up and be lost.  So spawn the QUERY into a thread.
-        pthread_t queryThread;
-        int rv = pthread_create(&queryThread, NULL, sendBscQueryToFilters, c);
+        int rv = pthread_create(&c->thread, NULL, sendBscQueryToFilters, c);
         if(rv) {
                 error("pthread_create: ret %d", rv);
         }
@@ -367,6 +370,10 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
 void delClient(Client *c)
 {
         info("Disconnecting %s / %s", c->ip, c->source);
+	
+	// The thread may not be running that's fine we don't care about the error
+        pthread_cancel(c->thread);
+	
         close(c->fd);
         xapDelSocketListener(c->xapSocketHandler);
 
@@ -426,7 +433,7 @@ Client *addClient(int fd, struct sockaddr_in *remote)
         c->fd = fd;
         c->ip = strdup(myip);
         c->state = ST_WAIT_FOR_MESSAGE;
-	c->connectTime = time(NULL);
+        c->connectTime = time(NULL);
         c->xapSocketHandler = xapAddSocketListener(fd, &clientListener, c);
         info("Connection from %s", c->ip);
         LL_PREPEND(clientList, c);
@@ -453,9 +460,9 @@ void serverListener(int fd, void *data)
 
         if(client < 0) {
                 err_strerror("accept");
-	        return;
+                return;
         }
-	
+
         addClient(client, &remote);
 }
 
@@ -492,21 +499,21 @@ void webServerHandler(int fd, void *data)
         // Build response
         strcpy(buffer,"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n");
         if(clientList == NULL) {
-	        len = strlcat(buffer,"<i>No connected Clients</i>",BUFSIZE);
-	        sendAll(client, buffer, len);
+                len = strlcat(buffer,"<i>No connected Clients</i>",BUFSIZE);
+                sendAll(client, buffer, len);
         } else {
-	        len = strlcat(buffer,"<table><tr><th>FD</th><th>IP</th><th>Source</th><th>Tx</th><th>Rx</th><th>/min</th></tr>",BUFSIZE);
-	        sendAll(client, buffer, len);
+                len = strlcat(buffer,"<table><tr><th>FD</th><th>IP</th><th>Source</th><th>Tx</th><th>Rx</th><th>/min</th></tr>",BUFSIZE);
+                sendAll(client, buffer, len);
                 LL_FOREACH(clientList, c) {
-	                int elapsedMinutes = (time(NULL) - c->connectTime)/60;
-	                int totalFrames = c->rxFrame + c->txFrame;
-	                float flowRate = elapsedMinutes == 0 ? totalFrames : (float)totalFrames/(float)elapsedMinutes;
+                        int elapsedMinutes = (time(NULL) - c->connectTime)/60;
+                        int totalFrames = c->rxFrame + c->txFrame;
+                        float flowRate = elapsedMinutes == 0 ? totalFrames : (float)totalFrames/(float)elapsedMinutes;
 
-	                len = snprintf(buffer, BUFSIZE,"<tr><td>%d</td><td>%s</td><td>%s</td><td align=\"right\">%u</td><td align=\"right\">%u</td><td align=\"right\">%5.1f</td></tr>",
-	                                c->fd, c->ip, c->source, c->txFrame, c->rxFrame, flowRate);
-	                sendAll(client, buffer, len);
+                        len = snprintf(buffer, BUFSIZE,"<tr><td>%d</td><td>%s</td><td>%s</td><td align=\"right\">%u</td><td align=\"right\">%u</td><td align=\"right\">%5.1f</td></tr>",
+                                       c->fd, c->ip, c->source, c->txFrame, c->rxFrame, flowRate);
+                        sendAll(client, buffer, len);
                 }
-	        sendAll(client, "</table>", 8);
+                sendAll(client, "</table>", 8);
         }
 
         close(client);
@@ -657,5 +664,5 @@ int main(int argc, char *argv[])
         xapAddSocketListener(serverBind(843), &flashPolicyServerHandler, NULL);
         xapAddSocketListener(serverBind(78), &webServerHandler, NULL);
         xapProcess();
-	return 0; // never reached
+        return 0; // never reached
 }

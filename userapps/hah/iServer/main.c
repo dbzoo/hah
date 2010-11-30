@@ -372,7 +372,7 @@ void delClient(Client *c)
         info("Disconnecting %s / %s", c->ip, c->source);
 	
 	// The thread may not be running that's fine we don't care about the error
-        pthread_cancel(c->thread);
+	if(c->firstMessage == 0) pthread_cancel(c->thread);
 	
         close(c->fd);
         xapDelSocketListener(c->xapSocketHandler);

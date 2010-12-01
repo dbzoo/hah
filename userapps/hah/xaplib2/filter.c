@@ -69,7 +69,6 @@ int xapFilterAddrSubaddress(char *filterAddr, char *addr)
 	                        }
 	                        filterAddr++;
 	                        break;
-                                return 1;
                         case '*': // skip a field in the addr
                         	while(*addr && !(*addr == '.' || *addr == ':')) {
                                         addr++;
@@ -82,6 +81,10 @@ int xapFilterAddrSubaddress(char *filterAddr, char *addr)
 			if(*filterAddr) filterAddr++;
                         if(*addr) addr++;
                 }
+	        if(match) {
+		        // Make sure the pattern and target where fully compared.
+		        match = *filterAddr == '\0' && *addr == '\0';
+	        }
         }
         return match;
 }

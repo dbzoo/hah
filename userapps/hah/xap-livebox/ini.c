@@ -28,7 +28,7 @@ const char *inifile = "/etc/xap-livebox.ini";
 * @param prefix [INI] file key processing prefix.
 * @param value String to include in the display texts
 */
-static void infoEventLabeled(bscEndpoint *e, char *clazz, char *prefix, char *value)
+static int infoEventLabeled(bscEndpoint *e, char *clazz, char *prefix, char *value)
 {
         if(e->displayText == NULL)
                 e->displayText = (char *)malloc(64);
@@ -42,7 +42,7 @@ static void infoEventLabeled(bscEndpoint *e, char *clazz, char *prefix, char *va
                 *e->displayText = '\0';
         }
         // do the default.
-        bscInfoEvent(e, clazz);
+        return 1;
 }
 /** Augment default xapBSC.info & xapBSC.event handler.
 * Adds displaytext for Binary endpoints.
@@ -50,12 +50,12 @@ static void infoEventLabeled(bscEndpoint *e, char *clazz, char *prefix, char *va
 * @param e Endpoint to generate the xap message for
 * @param clazz either the string "xapBSC.info" or "xapBSC.event"
 */
-void infoEventBinary(bscEndpoint *e, char *clazz)
+int infoEventBinary(bscEndpoint *e, char *clazz)
 {
         // Locate an INI label of the form, where X is the endpoint name.
         // [X]
         // X1.label=
-        infoEventLabeled(e, clazz, e->name, bscStateToString(e));
+        return infoEventLabeled(e, clazz, e->name, bscStateToString(e));
 }
 
 /** Augment default xapBSC.info & xapBSC.event handler.
@@ -63,7 +63,7 @@ void infoEventBinary(bscEndpoint *e, char *clazz)
 * @param e Endpoint to generate the xap message for
 * @param clazz either the string "xapBSC.info" or "xapBSC.event"
 */
-static void infoEvent1wire (bscEndpoint *e, char *clazz)
+static int infoEvent1wire (bscEndpoint *e, char *clazz)
 {
         // [1wire]
         // sensor1.label=

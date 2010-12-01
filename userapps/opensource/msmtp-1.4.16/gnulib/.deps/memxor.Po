@@ -1,8 +1,0 @@
-memxor.o memxor.o: memxor.c ../config.h memxor.h \
-  /opt/toolchains/uclibc/lib/gcc-lib/mips-linux/3.2.2/include/stddef.h
-
-../config.h:
-
-memxor.h:
-
-/opt/toolchains/uclibc/lib/gcc-lib/mips-linux/3.2.2/include/stddef.h:

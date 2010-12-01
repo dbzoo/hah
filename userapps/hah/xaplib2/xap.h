@@ -116,15 +116,15 @@ void heartbeatHandler(int interval, void *data);
 
 // tx.c
 void xapSend(const char *mess);
-char *fillShortXap(char *shortMsg, char *uid, char *source);
+char *fillShortXap(char *shortMsg);
 
 // timeout.c
 xAPTimeoutCallback *xapAddTimeoutAction(void (*func)(int, void *), int interval, void *data);
 xAPTimeoutCallback *xapFindTimeoutByFunc(void (*func)(int, void*));
 void timeoutDispatch();
-void *xapDelTimeoutAction(xAPTimeoutCallback *cb);
+void *xapDelTimeoutAction(xAPTimeoutCallback *);
 void *xapDelTimeoutActionByFunc(void (*func)(int, void *));
-void xapTimeoutReset(xAPTimeoutCallback *cb);
+void xapTimeoutReset(xAPTimeoutCallback *);
 
 // rx.c
 void xapProcess();
@@ -143,22 +143,22 @@ int xapIsValueF(xAPFrame *,char *section, char *key, char *value);
 int parsedMsgToRawF(xAPFrame *,char *msg, int size);
 int parsedMsgToRawWithoutSectionF(xAPFrame *,char *msg, int size, char *section);
 int parseMsgF(xAPFrame *);
-void xapLowerMessageF(xAPFrame *frame);
+void xapLowerMessageF(xAPFrame *);
 void xapLowerMessage();
 
 //filter.c
-int xapCompareFilters(xAPFilter *f);
-xAPFilterCallback *xapAddFilterAction(void (*func)(void *), xAPFilter *filter, void *data);
+int xapCompareFilters(xAPFilter *);
+xAPFilterCallback *xapAddFilterAction(void (*func)(void *), xAPFilter *, void *);
 void filterDispatch();
-xAPFilter *xapAddFilter(xAPFilter **f, char *section, char *key, char *value);
+xAPFilter *xapAddFilter(xAPFilter **, char *section, char *key, char *value);
 int xapFilterAddrSubaddress(char *filterAddr, char *addr);
-void xapFreeFilterList(xAPFilter *head);
-void *xapDelFilterAction(xAPFilterCallback *f);
+void xapFreeFilterList(xAPFilter *);
+void *xapDelFilterAction(xAPFilterCallback *);
 
 // safe string copy
 size_t strlcpy(char *dst, const char *src, size_t size);
 size_t strlcat(char *dst, const char *src, size_t size);
 char *getINIPassword(char *section, char *key, char *inifile);
-char *xapLowerString(char *str);
+char *xapLowerString(char *s);
 
 #endif

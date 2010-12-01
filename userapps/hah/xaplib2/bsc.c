@@ -13,6 +13,8 @@
 #include "xap.h"
 #include "bsc.h"
 
+static void bscInfoEvent(bscEndpoint *, char *);
+
 static char *io_str[] = {"input","output"};
 static char *state_str[] = {"off","on","?","?"};
 static unsigned char id = 1; // Endpoint UID -> FFxxxx(id)
@@ -50,6 +52,16 @@ static char *bscFQEN(char *target, bscEndpoint *e)
         return strdup(addr);
 }
 
+/// Set the DisplayText
+void bscSetDisplayText(bscEndpoint *e, char *text)
+{
+        if(e->displayText)
+                free(e->displayText);
+        e->displayText = strdup(text);
+	info("displaytext=%s", e->displayText);
+}
+
+
 /// Set the value of a BSC STREAM device type
 void bscSetText(bscEndpoint *e, char *text)
 {
@@ -65,16 +77,29 @@ inline void bscSetLevel(bscEndpoint *e, char *level)
         bscSetText(e, level);
 }
 
+/** Send a xAPBSC.info or xAPBSC.event
+
+   The user callback will determine if the message goes out on the wire or not.
+   If no callback was supplied when the endpoint was setup we will be using
+   the bscInfoEventDefault() will always allow the message to be transmitted.
+ */
+static void bscSendInfoEvent(bscEndpoint *e, char *clazz) {
+	if((*e->infoEvent)(e, clazz))
+		bscInfoEvent(e, clazz);
+}
+
+/** When an xAPBSC.cmd is recieved or if an external EVENT changes an endpoint
+    this function must be called.  If will Perform endpoint specific logic
+    and take care of notifications.
+ */
 void bscSendCmdEvent(bscEndpoint *e) {
-	if(*e->cmd) (*e->cmd)(e);
-	if(*e->infoEvent) {
-		(*e->infoEvent)(e, BSC_EVENT_CLASS);
-	}
+	if(*e->cmd) (*e->cmd)(e);  // Perform Endpoint action.
+	bscSendInfoEvent(e, BSC_EVENT_CLASS); // Generate an xAPBSC.event
 }
 
 /** Set the value of a BSC BINARY device type.
-* @param e Bsc endpoint to operate upon
-* @param state Values 0 (off), 1(on), 2(toggle)
+    @param e Bsc endpoint to operate upon
+    @param state Values 0 (off), 1(on), 2(toggle)
 */
 inline void bscSetState(bscEndpoint *e, int state)
 {
@@ -115,9 +140,9 @@ bscEndpoint *bscFindEndpoint(bscEndpoint *head, char *name, char *subaddr)
 }
 
 /** Parse BSC LEVEL device type value.
- *
- * An XAP BSC level message may be of the form.
- *     level = <value>/<range>  i.e: 256/512 = 50
+ 
+    An XAP BSC level message may be of the form.
+    level = <value>/<range>  i.e: 256/512 = 50
  */
 int bscParseLevel(char *str)
 {
@@ -132,7 +157,7 @@ int bscParseLevel(char *str)
 }
 
 /** Handle an incoming xapBSC.cmd class control message
- * directed at an endpoint or a set of endpoints.
+    directed at an endpoint or a set of endpoints.
  */
 static void bscIncomingCmd(void *data)
 {
@@ -165,8 +190,7 @@ static void bscIncomingCmd(void *data)
                                 bscSetText(e, xapGetValue(section, "text"));
                         }
 
-                        // Perform Endpoint action.
-	                bscSendCmdEvent(e);
+			bscSendCmdEvent(e);
                 }
         }
 }
@@ -176,30 +200,33 @@ static void bscIncomingQuery(void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
 	info("xapBSC.query detected for %s", e->source);	
-	if(e->infoEvent) {
-                (*e->infoEvent)(e, BSC_INFO_CLASS);
-        }
+	bscSendInfoEvent(e, BSC_INFO_CLASS);
 }
 
 /** Send XAP INFO message for this endpoint (TIMEOUT).
-*
-* To reduce traffic if the device is sending EVENTS then we postpone
-* the regular INFO message until the INTERVAL time has elasped and no
-* xapBSC.query or xapBSC.event has been seen.
+
+   To reduce traffic if the device is sending EVENTS then we postpone
+   the regular INFO message until the INTERVAL time has elasped and no
+   xapBSC.query or xapBSC.event has been seen.
 */
 static void bscInfoTimeout(int interval, void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
         time_t now = time(NULL);
-        if(e->infoEvent && (e->last_report == 0 || e->last_report + interval <= now )) {
+        if(e->last_report == 0 || e->last_report + interval <= now ) {
 	        info("Timeout for %s", e->source);
-                (*e->infoEvent)(e, BSC_INFO_CLASS);
+		bscSendInfoEvent(e, BSC_INFO_CLASS);
         }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-void bscInfoEvent(bscEndpoint *e, char *clazz)
+// By default we always send
+static int bscInfoEventDefault(bscEndpoint *e, char *clazz) {
+	return 1;
+}
+
+static void bscInfoEvent(bscEndpoint *e, char *clazz)
 {
         int len;
 
@@ -236,7 +263,7 @@ void bscInfoEvent(bscEndpoint *e, char *clazz)
 }
 
 /** Manual specify starting point for future Endpoints added.
-* Auto incremented as endpoints are added by bscAddEndpoint()
+    Auto incremented as endpoints are added by bscAddEndpoint()
 */
 void bscSetEndpointUID(int nid) {
 	id = nid;
@@ -249,7 +276,7 @@ int bscGetEndpointUID() {
 /// Create a BSC endpoint these are use for automation control.
 bscEndpoint *bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, unsigned int dir, unsigned int typ,
                     void (*cmd)(struct _bscEndpoint *self),
-                    void (*infoEvent)(struct _bscEndpoint *self, char *clazz)
+                    int (*infoEvent)(struct _bscEndpoint *self, char *clazz)
                    )
 {
 	char s_id[3];
@@ -273,7 +300,7 @@ bscEndpoint *bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, unsig
 		e->state = typ == BSC_BINARY ? BSC_STATE_OFF : BSC_STATE_ON;
         e->cmd = cmd;
         // If the user hasn't supplied handlers use the defaults.
-        e->infoEvent = infoEvent == NULL ? &bscInfoEvent : infoEvent;
+        e->infoEvent = infoEvent == NULL ? &bscInfoEventDefault : infoEvent;
 
 	// LEVEL & STREAM initialize to unknown
 	if(e->type != BSC_BINARY) { 
@@ -290,6 +317,19 @@ void bscAddEndpointFilterList(bscEndpoint *head, int info_interval) {
 	while(head) {
 		bscAddEndpointFilter(head, info_interval);
 		head = head->next;
+	}
+}
+
+void bscFreeEndpointFilterList(bscEndpoint *head) {
+	bscEndpoint *e, *tmp;
+	LL_FOREACH_SAFE(head, e, tmp) {
+		if(e->userData) free(e->userData);
+		if(e->displayText) free(e->displayText);
+		free(e->name);
+		free(e->id);
+		free(e->source);
+		free(e->uid);
+		free(e);
 	}
 }
 

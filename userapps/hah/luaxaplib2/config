@@ -1,0 +1,40 @@
+#------
+# LuaXaplib makefile configuration
+#
+
+#------
+# Output file names
+#
+EXT=so
+XAPLIB_SO=xap.$(EXT)
+
+#------
+# Lua includes and libraries
+#
+LUAINC=-I$(INSTALL_TOP)/include
+
+#------
+# Top of your Lua installation
+# Relative paths will be inside the src tree
+#
+INSTALL_TOP_SHARE=$(INSTALL_TOP)/share/lua/5.1
+INSTALL_TOP_LIB=$(INSTALL_TOP)/lib/lua/5.1
+
+# version 2.0.1
+SWIG=swig
+
+INSTALL_DATA=cp
+INSTALL_EXEC=cp
+
+#------
+# Compiler and linker settings
+# for Linux
+#CC=gcc
+#DEF=-DLUASOCKET_DEBUG
+#CFLAGS= $(LUAINC) $(DEF) -pedantic -Wall -O2 -fpic
+#LDFLAGS=-O -shared -fpic
+#LD=gcc
+
+#------
+# End of makefile configuration
+#

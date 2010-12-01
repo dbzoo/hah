@@ -40,9 +40,8 @@ static void usage(char *prog)
         printf("  -f, --filter <section> <key> <value>\n\n");
         printf("XAP pattern matching applies\n");
         printf("Examples:\n");
-        printf("-c xapBSC.event -t dbzoo.livebox.Controller:>\n");
-        printf("-c alias -s dbzoo.livebox.GoogleCal\n");
-        printf("-t dbzoo.livebox.*\n");
+        printf("-t dbzoo.livebox.GoogleCal\n");
+        printf("-s dbzoo.livebox.Controller:>\n");
         exit(1);
 }
 

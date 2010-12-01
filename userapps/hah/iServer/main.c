@@ -29,6 +29,8 @@ const char *policyResponse="<?xml version=\"1.0\" encoding=\"UTF-8\"?><cross-dom
 #define ST_ADD_CLASS_FILTER 3
 #define ST_XAP 4
 #define ST_LOGIN 5
+#define ST_DEL_SOURCE_FILTER 6
+#define ST_DEL_CLASS_FILTER 7
 
 #define BUFSIZE 2048
 
@@ -141,7 +143,7 @@ void *sendBscQueryToFilters(void *userData)
         xAPFilterCallback *f;
         char buff[XAP_DATA_LEN];
 
-	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
         LL_FOREACH(gXAP->filterList, f) {
                 if(f->user_data == c) { // Any filter for this Client.
                         // We know there is only 1 FILTER in the linked list.
@@ -166,13 +168,13 @@ void *sendBscQueryToFilters(void *userData)
                                 xapSend(buff);
                                 // So we don't saturate the bus or the client handling the reply.
                                 usleep(opt_c); // microseconds
-	                        // Sleep is a cancelation point too but explicity check anyway.
-	                        pthread_testcancel();
+                                // Sleep is a cancelation point too but explicity check anyway.
+                                pthread_testcancel();
                         }
                 }
         }
-	pthread_exit(NULL);
-	die("Thread didn't exit?");	
+        pthread_exit(NULL);
+        die("Thread didn't exit?");
 }
 
 /** When the first xap-header of xap-hbeat message is seen
@@ -315,11 +317,17 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                         case YY_LOGIN:
                                 c->state = ST_LOGIN;
                                 break;
-                        case YY_SOURCE_FILTER:
+                        case YY_ADD_SOURCE_FILTER:
                                 c->state = ST_ADD_SOURCE_FILTER;
                                 break;
-                        case YY_CLASS_FILTER:
+                        case YY_ADD_CLASS_FILTER:
                                 c->state = ST_ADD_CLASS_FILTER;
+                                break;
+                        case YY_DEL_SOURCE_FILTER:
+                                c->state = ST_DEL_SOURCE_FILTER;
+                                break;
+                        case YY_DEL_CLASS_FILTER:
+                                c->state = ST_DEL_CLASS_FILTER;
                                 break;
                         default:
                                 c->state = ST_WAIT_FOR_MESSAGE;
@@ -331,6 +339,8 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                         case YY_IDENT:
                                 strlcat(c->ident, yylval.s, XAP_DATA_LEN);
                                 break;
+                        case YY_ADD_SOURCE_FILTER_E:
+                        case YY_ADD_CLASS_FILTER_E:
                         case YY_END_CMD:
                                 filterType = c->state == ST_ADD_SOURCE_FILTER ? "source" : "class";
                                 info("Add %s filter %s", filterType, c->ident);
@@ -338,6 +348,32 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                                         xAPFilter *f = NULL;
                                         xapAddFilter(&f, "xap-header", filterType, c->ident);
                                         xapAddFilterAction(&xAPtoClient, f, c);
+                                }
+                                // drop through
+                        default:
+                                c->state = ST_WAIT_FOR_MESSAGE;
+                        }
+                        break;
+                case ST_DEL_SOURCE_FILTER:
+                case ST_DEL_CLASS_FILTER:
+                        switch(token) {
+                        case YY_IDENT:
+                                strlcat(c->ident, yylval.s, XAP_DATA_LEN);
+                                break;
+                        case YY_DEL_SOURCE_FILTER_E:
+                        case YY_DEL_CLASS_FILTER_E:
+                        case YY_END_CMD:
+                                filterType = c->state == ST_DEL_SOURCE_FILTER ? "source" : "class";
+                                info("Delete %s filter %s", filterType, c->ident);
+                                xAPFilterCallback *fc, *fctmp;
+                                LL_FOREACH_SAFE(gXAP->filterList, fc, fctmp) {
+                                        if(fc->callback == xAPtoClient &&
+                                           fc->user_data == c &&
+                                           strcmp(fc->filter->section,"xap-header") == 0 &&
+                                           strcmp(fc->filter->key,filterType) == 0 &&
+                                           strcmp(fc->filter->value, c->ident) == 0) {
+                                                xapDelFilterAction(fc);
+                                        }
                                 }
                                 // drop through
                         default:
@@ -370,10 +406,11 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
 void delClient(Client *c)
 {
         info("Disconnecting %s / %s", c->ip, c->source);
-	
-	// The thread may not be running that's fine we don't care about the error
-	if(c->firstMessage == 0) pthread_cancel(c->thread);
-	
+
+        // The thread may not be running that's fine we don't care about the error
+        if(c->firstMessage == 0)
+                pthread_cancel(c->thread);
+
         close(c->fd);
         xapDelSocketListener(c->xapSocketHandler);
 

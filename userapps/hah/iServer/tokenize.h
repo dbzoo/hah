@@ -10,14 +10,20 @@
 */
 
 #define YY_MSG_SEQUENCE 1
-#define YY_SOURCE_FILTER 2
+#define YY_ADD_SOURCE_FILTER 2
 #define YY_START_CMD 3
 #define YY_START_XAP 4
 #define YY_END_CMD 5
 #define YY_END_XAP 6
 #define YY_IDENT 7
 #define YY_LOGIN 8
-#define YY_CLASS_FILTER 9
+#define YY_ADD_CLASS_FILTER 9
+#define YY_DEL_SOURCE_FILTER 10
+#define YY_DEL_CLASS_FILTER 11
+#define YY_ADD_SOURCE_FILTER_E 12
+#define YY_ADD_CLASS_FILTER_E 13
+#define YY_DEL_SOURCE_FILTER_E 14
+#define YY_DEL_CLASS_FILTER_E 15
 
 union yy_lval
 {

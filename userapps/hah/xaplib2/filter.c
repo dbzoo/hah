@@ -63,10 +63,15 @@ int xapFilterAddrSubaddress(char *filterAddr, char *addr)
                 // match using wildcard logic
                 while(*filterAddr && *addr && match) {
                         switch(*filterAddr) {
-                        case '>':  // FilterAddr matches rest of addr...
+                        case '>':  // FilterAddr matches rest of addr up to : if present.
+                        	while(*addr && *addr != ':') {
+		                        addr++;
+	                        }
+	                        filterAddr++;
+	                        break;
                                 return 1;
                         case '*': // skip a field in the addr
-                                while(*addr && *addr != '.') {
+                        	while(*addr && !(*addr == '.' || *addr == ':')) {
                                         addr++;
                                 }
                                 filterAddr++;

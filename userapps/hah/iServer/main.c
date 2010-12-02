@@ -64,6 +64,7 @@ int opt_a; // authorisation mode
 int opt_b; // iServer port
 int opt_c = 20; // BSC Query pacing on client filter registration (ms)
 char *password;
+int lowerData = 0;
 
 /**************************************/
 
@@ -113,6 +114,20 @@ int sendToClient(Client *c, char *buf, int len)
         return sendAll(c->fd, buf, len+1); // include null terminator
 }
 
+/** Rx socket handler callback for all incoming UDP packets.
+*/
+void incomingXapPacket(int fd, void *data)
+{
+	if(readXapData() > 0) {
+                // OK we got the data but we don't need to process it (yet).
+		if(gXAP->filterList == NULL)
+			return;
+		parseMsg();
+		lowerData = 0;
+		filterDispatch();
+	}
+}
+
 /** Incoming xAP packet that got past the client filters forward to the respective client.
  * 
  * @param userData pointer to client file descriptor  
@@ -120,14 +135,20 @@ int sendToClient(Client *c, char *buf, int len)
 void xAPtoClient(void *userData)
 {
         Client *c = (Client *)userData;
-        char msg[XAP_DATA_LEN+12];
+        static char msg[XAP_DATA_LEN+12];
+        static int msglen = 0;
 
-        strcpy(msg,"<xap>");
-        xapLowerMessage();
-        parsedMsgToRaw(&msg[5], sizeof(msg)-5);
-        strcat(msg,"</xap>");
+	// Only build and lowercase the message once PER incoming UDP message.
+        if(lowerData == 0) {
+                strcpy(msg,"<xap>");
+                xapLowerMessage();
+                parsedMsgToRaw(&msg[5], sizeof(msg)-5);
+                strcat(msg,"</xap>");
+                msglen = strlen(msg);
+                lowerData = 1;
+        }
 
-        sendToClient(c, msg, strlen(msg));
+        sendToClient(c, msg, msglen);
 }
 
 /**
@@ -368,10 +389,10 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                                 xAPFilterCallback *fc, *fctmp;
                                 LL_FOREACH_SAFE(gXAP->filterList, fc, fctmp) {
                                         if(fc->callback == xAPtoClient &&
-                                           fc->user_data == c &&
-                                           strcmp(fc->filter->section,"xap-header") == 0 &&
-                                           strcmp(fc->filter->key,filterType) == 0 &&
-                                           strcmp(fc->filter->value, c->ident) == 0) {
+                                                        fc->user_data == c &&
+                                                        strcmp(fc->filter->section,"xap-header") == 0 &&
+                                                        strcmp(fc->filter->key,filterType) == 0 &&
+                                                        strcmp(fc->filter->value, c->ident) == 0) {
                                                 xapDelFilterAction(fc);
                                         }
                                 }
@@ -695,6 +716,10 @@ int main(int argc, char *argv[])
                 opt_c = 10; // 10ms minimum
         opt_c *= 1000; // convert to microseconds for sleep() call.
 
+	// Remove the default UDP handler and use our own.
+	xapDelSocketListener(xapFindSocketListenerByFD(gXAP->rxSockfd));
+	xapAddSocketListener(gXAP->rxSockfd, incomingXapPacket, NULL);
+	
         xapAddSocketListener(serverBind(opt_b), &serverListener, NULL);
         // The Joggler never makes such a request - MS windows flash will.
         //http://www.adobe.com/devnet/flashplayer/articles/socket_policy_files.html

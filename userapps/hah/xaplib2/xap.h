@@ -129,6 +129,7 @@ void xapTimeoutReset(xAPTimeoutCallback *cb);
 // rx.c
 void xapProcess();
 void handleXapPacket(int fd, void *data);
+int readXapData();
 
 //parse.c
 inline int xapGetType();

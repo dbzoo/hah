@@ -118,12 +118,15 @@ int xapCompareFilters(xAPFilter *head)
                 }
 
                 if(strcasecmp("xap-header", f->section) == 0 &&
-		   (strcasecmp("target", f->key) == 0 || strcasecmp("source",f->key) == 0)) {
+		   (strcasecmp("target", f->key) == 0 ||
+		    strcasecmp("source",f->key) == 0 ||
+		    strcasecmp("class", f->key) == 0)) {
 			if(strcasecmp("target", f->key) == 0) {
 				// for target the WILD CARD will be in inbound xAP message
 				match = xapFilterAddrSubaddress(value, (char *)f->value);
-			} else if (strcasecmp("source", f->key) == 0) {
-				// for source the WILD CARD will be in the FILTER itself.
+			} else if (strcasecmp("source", f->key) == 0 ||
+			           strcasecmp("class", f->key) == 0 ) {
+				// for these the WILD CARD will be in the FILTER itself.
 				match = xapFilterAddrSubaddress((char *)f->value, value);
 			}
                 } else {

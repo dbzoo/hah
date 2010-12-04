@@ -36,6 +36,7 @@ const char *policyResponse="<?xml version=\"1.0\" encoding=\"UTF-8\"?><cross-dom
 
 typedef struct _client
 {
+	int connected;
         int fd;
         char *ip;
         time_t connectTime;
@@ -76,7 +77,7 @@ int lowerData = 0;
  * @param s Socket descriptor
  * @param buf Buffer to send, ZERO terminated.
  * @param len Length of buffer
- * @return -1 on failure. otherwise 0
+ * @return -1 on data failure, -2 client disconnected during send, otherwise 0
  */
 int sendAll(int s, char *buf, int len)
 {
@@ -85,8 +86,12 @@ int sendAll(int s, char *buf, int len)
         int n;
 
         while(total < len) {
-                n = send(s, buf+total, bytesleft, 0);
+                n = send(s, buf+total, bytesleft, MSG_NOSIGNAL);
                 if (n == -1) {
+			// Client disconnected during send
+			if(errno == EPIPE) {
+				return -2;
+			}
                         err_strerror("send");
                         break;
                 }
@@ -97,7 +102,7 @@ int sendAll(int s, char *buf, int len)
                 error("Failed to send %d bytes", bytesleft);
         }
 
-        return n==-1?-1:0; // return -1 on failure, 0 on success
+        return n==-1?-1:0; // return -1 on data failure, 0 on success
 }
 
 /** Send data to a Client bumping the number of frames the client has received
@@ -111,7 +116,8 @@ int sendToClient(Client *c, char *buf, int len)
 {
         debug("%s msg %s", c->ip, buf);
         c->rxFrame++;
-        return sendAll(c->fd, buf, len+1); // include null terminator
+	if(sendAll(c->fd, buf, len+1) == -2)  // include null terminator
+		c->connected = 0;
 }
 
 /** Rx socket handler callback for all incoming UDP packets.
@@ -290,7 +296,7 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
         char *filterType;
 
         void *b = yy_scan_bytes(msg, len);
-        while( (token = yylex()) > 0) {
+        while( c->connected && (token = yylex()) > 0) {
                 switch(c->state) {
                 case ST_WAIT_FOR_MESSAGE:
                         switch(token) {
@@ -468,7 +474,7 @@ void clientListener(int fd, void *data)
                 parseiServerMsg(c, buf, bytes);
         }
 
-        if(bytes == 0) { // Disconnected client
+        if(bytes == 0 || c->connected == 0) { // Disconnected client
                 delClient(c);
         }
 }
@@ -487,6 +493,7 @@ Client *addClient(int fd, struct sockaddr_in *remote)
                 alert("Out of memory - Adding client from %s", myip);
                 return NULL;
         }
+	c->connected = 1;
         c->firstMessage = 1;
         c->fd = fd;
         c->ip = strdup(myip);

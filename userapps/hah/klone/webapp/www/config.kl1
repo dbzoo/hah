@@ -183,9 +183,7 @@ if(ini.devicesrf > 0) {
 <fieldset>
 <legend>Input</legend>
 <table>
-<tr>
-<th>Item</th>
-<th>Label</th>
+<tr><th>Item</th><th>Label</th></tr>
 <%
 for(i=1; i<5; i++) {
 io_printf(out,"<tr>%sInput %d</td>", alt_td(i), i);
@@ -202,9 +200,7 @@ io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"input%
 <td valign="top"><fieldset>
 <legend>Relay</legend>
 <table>
-<tr>
-<th>Item</th>
-<th>Label</th>
+<tr><th>Item</th><th>Label</th></tr>
 <%
 for(i=1; i<5; i++) {
 io_printf(out,"<tr>%sRelay %d</td>", alt_td(i), i);
@@ -218,9 +214,7 @@ io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"relay%
 <fieldset>
 <legend>RF</legend>
 <table>
-<tr>
-<th>Item</th>
-<th>Label</th>
+<tr><th>Item</th><th>Label</th></tr>
 <%
 for(i=1; i<=ini.devicesrf; i++) {
 	   io_printf(out,"<tr>%sRF %d</td>", alt_td(i), i);
@@ -236,9 +230,7 @@ if(ini.devices1wire > 0) {
 <td valign="top"><fieldset>
 <legend>Temperature</legend>
 <table>
-<tr>
-<th>Item</th>
-<th>Label</th>
+<tr><th>Item</th><th>Label</th></tr>
 <%
 for(i=1; i<=ini.devices1wire; i++) {
 io_printf(out,"<tr>%sSensor %d</td>", alt_td(i), i);

@@ -176,9 +176,6 @@ int i;
 <h2>HAH Hardware</h2>
 <table><tr>
 
-<%
-if(ini.devicesrf > 0) {
-%>
 <td valign="top">
 <fieldset>
 <legend>Input</legend>
@@ -193,9 +190,6 @@ io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"input%
 </table>
 </fieldset>
 </td>
-<%
-}
-%>
 
 <td valign="top"><fieldset>
 <legend>Relay</legend>
@@ -211,6 +205,9 @@ io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"relay%
 </fieldset></td>
 </tr><tr>
 <td valign="top">
+<%
+if(ini.devicesrf > 0) {
+%>
 <fieldset>
 <legend>RF</legend>
 <table>
@@ -223,6 +220,9 @@ for(i=1; i<=ini.devicesrf; i++) {
 %>
 </table>
 </fieldset>
+<%
+}
+%>
 </td>
 <%
 if(ini.devices1wire > 0) {

@@ -189,6 +189,7 @@ typedef struct {
 	}
 %}
 
+%nodefaultdtor Timer;
 typedef struct {
   int interval;
   %extend {
@@ -208,14 +209,10 @@ typedef struct {
 		return NULL;
 	}
 
-	void stop() {
+	Timer *stop() {
 		xapDelTimeoutAction(self->cb);
 		self->cb = NULL;
-	}
-
-	~Timer() {
-		// FIXUP: Why is the GC calling this when the timer is still active?
-		//if(self->cb) Timer_stop(self);
+		return self;
 	}
 
 	Timer *start() {
@@ -231,6 +228,10 @@ typedef struct {
 		return self;
 	}
 
+	void delete() {
+		if(self->cb) Timer_stop(self);
+		free(self);
+	}
    }	
 } Timer;
 
@@ -245,6 +246,7 @@ typedef struct {
 	}
 %}
 
+%nodefaultdtor Select;
 typedef struct {
   %extend {
 	Select(SWIGLUA_FN fn, int fd) {
@@ -265,12 +267,8 @@ typedef struct {
 	void delete() {
 		xapDelSocketListener(self->cb);
 		self->cb = NULL;
+		free(self);
 	}
-
-	~Select() {
-		if(self->cb) Select_delete(self);
-	}
-
    }	
 } Select;
 
@@ -411,18 +409,11 @@ typedef struct {
 	}
 } bscEndpoint;
 
+
+%nodefaultdtor BSC;
+
 typedef struct {
 	%extend {
-		BSC() {
-			BSC *b = (BSC *)malloc(sizeof(BSC));
-			b->list = NULL;
-			return b;
-		}
-		~BSC() {
-			bscFreeEndpointFilterList(self->list);
-			free(self);
-		}
-
 		bscEndpoint *add(char *name, char *subaddr, int inout, int type, SWIGLUA_FN cmd, SWIGLUA_FN infoevent ) {
 			bscEndpoint *e = bscAddEndpoint(&self->list, name, subaddr, inout, type, bscLuaCmd, bscLuaInfoEvent);
 

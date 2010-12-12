@@ -13,10 +13,11 @@
 
 char *xapLowerString(char *str)
 {
-	char *s = str;
-	for(s=str; *s; s++)
-		*s = tolower(*s);
-	return str;
+        char *s = str;
+        if(s)
+                for(s=str; *s; s++)
+                        *s = tolower(*s);
+        return str;
 }
 
 char *rot47(char *s)
@@ -50,7 +51,7 @@ char *str2hex(char *str)
 
 char *getINIPassword(char *section, char *key, char *inifile)
 {
-	long n;
+        long n;
         char inipasswd[64];
 
         while(1) {
@@ -58,13 +59,13 @@ char *getINIPassword(char *section, char *key, char *inifile)
                 if (n == 0)
                         return NULL;
 
-	        if(strncmp("{frob}", inipasswd, 6) == 0) {
-	                return strdup(rot47(&inipasswd[6]));
+                if(strncmp("{frob}", inipasswd, 6) == 0) {
+                        return strdup(rot47(&inipasswd[6]));
                 }
 
                 char passwd[80];
-	        strcpy(passwd, "{frob}");
-	        strcat(passwd, rot47(inipasswd));
+                strcpy(passwd, "{frob}");
+                strcat(passwd, rot47(inipasswd));
                 ini_puts(section, key, passwd, inifile);
         }
 }

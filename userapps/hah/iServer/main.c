@@ -36,6 +36,7 @@ const char *policyResponse="<?xml version=\"1.0\" encoding=\"UTF-8\"?><cross-dom
 
 typedef struct _client
 {
+	int connected;
         int fd;
         char *ip;
         time_t connectTime;
@@ -64,6 +65,7 @@ int opt_a; // authorisation mode
 int opt_b; // iServer port
 int opt_c = 20; // BSC Query pacing on client filter registration (ms)
 char *password;
+int lowerData = 0;
 
 /**************************************/
 
@@ -75,7 +77,7 @@ char *password;
  * @param s Socket descriptor
  * @param buf Buffer to send, ZERO terminated.
  * @param len Length of buffer
- * @return -1 on failure. otherwise 0
+ * @return -1 on data failure, -2 client disconnected during send, otherwise 0
  */
 int sendAll(int s, char *buf, int len)
 {
@@ -84,8 +86,12 @@ int sendAll(int s, char *buf, int len)
         int n;
 
         while(total < len) {
-                n = send(s, buf+total, bytesleft, 0);
+                n = send(s, buf+total, bytesleft, MSG_NOSIGNAL);
                 if (n == -1) {
+			// Client disconnected during send
+			if(errno == EPIPE) {
+				return -2;
+			}
                         err_strerror("send");
                         break;
                 }
@@ -96,7 +102,7 @@ int sendAll(int s, char *buf, int len)
                 error("Failed to send %d bytes", bytesleft);
         }
 
-        return n==-1?-1:0; // return -1 on failure, 0 on success
+        return n==-1?-1:0; // return -1 on data failure, 0 on success
 }
 
 /** Send data to a Client bumping the number of frames the client has received
@@ -110,7 +116,22 @@ int sendToClient(Client *c, char *buf, int len)
 {
         debug("%s msg %s", c->ip, buf);
         c->rxFrame++;
-        return sendAll(c->fd, buf, len+1); // include null terminator
+	if(sendAll(c->fd, buf, len+1) == -2)  // include null terminator
+		c->connected = 0;
+}
+
+/** Rx socket handler callback for all incoming UDP packets.
+*/
+void incomingXapPacket(int fd, void *data)
+{
+	if(readXapData() > 0) {
+                // OK we got the data but we don't need to process it (yet).
+		if(gXAP->filterList == NULL)
+			return;
+		parseMsg();
+		lowerData = 0;
+		filterDispatch();
+	}
 }
 
 /** Incoming xAP packet that got past the client filters forward to the respective client.
@@ -120,14 +141,20 @@ int sendToClient(Client *c, char *buf, int len)
 void xAPtoClient(void *userData)
 {
         Client *c = (Client *)userData;
-        char msg[XAP_DATA_LEN+12];
+        static char msg[XAP_DATA_LEN+12];
+        static int msglen = 0;
 
-        strcpy(msg,"<xap>");
-        xapLowerMessage();
-        parsedMsgToRaw(&msg[5], sizeof(msg)-5);
-        strcat(msg,"</xap>");
+	// Only build and lowercase the message once PER incoming UDP message.
+        if(lowerData == 0) {
+                strcpy(msg,"<xap>");
+                xapLowerMessage();
+                parsedMsgToRaw(&msg[5], sizeof(msg)-5);
+                strcat(msg,"</xap>");
+                msglen = strlen(msg);
+                lowerData = 1;
+        }
 
-        sendToClient(c, msg, strlen(msg));
+        sendToClient(c, msg, msglen);
 }
 
 /**
@@ -269,7 +296,7 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
         char *filterType;
 
         void *b = yy_scan_bytes(msg, len);
-        while( (token = yylex()) > 0) {
+        while( c->connected && (token = yylex()) > 0) {
                 switch(c->state) {
                 case ST_WAIT_FOR_MESSAGE:
                         switch(token) {
@@ -368,10 +395,10 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                                 xAPFilterCallback *fc, *fctmp;
                                 LL_FOREACH_SAFE(gXAP->filterList, fc, fctmp) {
                                         if(fc->callback == xAPtoClient &&
-                                           fc->user_data == c &&
-                                           strcmp(fc->filter->section,"xap-header") == 0 &&
-                                           strcmp(fc->filter->key,filterType) == 0 &&
-                                           strcmp(fc->filter->value, c->ident) == 0) {
+                                                        fc->user_data == c &&
+                                                        strcmp(fc->filter->section,"xap-header") == 0 &&
+                                                        strcmp(fc->filter->key,filterType) == 0 &&
+                                                        strcmp(fc->filter->value, c->ident) == 0) {
                                                 xapDelFilterAction(fc);
                                         }
                                 }
@@ -447,7 +474,7 @@ void clientListener(int fd, void *data)
                 parseiServerMsg(c, buf, bytes);
         }
 
-        if(bytes == 0) { // Disconnected client
+        if(bytes == 0 || c->connected == 0) { // Disconnected client
                 delClient(c);
         }
 }
@@ -466,6 +493,7 @@ Client *addClient(int fd, struct sockaddr_in *remote)
                 alert("Out of memory - Adding client from %s", myip);
                 return NULL;
         }
+	c->connected = 1;
         c->firstMessage = 1;
         c->fd = fd;
         c->ip = strdup(myip);
@@ -695,6 +723,10 @@ int main(int argc, char *argv[])
                 opt_c = 10; // 10ms minimum
         opt_c *= 1000; // convert to microseconds for sleep() call.
 
+	// Remove the default UDP handler and use our own.
+	xapDelSocketListener(xapFindSocketListenerByFD(gXAP->rxSockfd));
+	xapAddSocketListener(gXAP->rxSockfd, incomingXapPacket, NULL);
+	
         xapAddSocketListener(serverBind(opt_b), &serverListener, NULL);
         // The Joggler never makes such a request - MS windows flash will.
         //http://www.adobe.com/devnet/flashplayer/articles/socket_policy_files.html

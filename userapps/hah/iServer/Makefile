@@ -7,5 +7,11 @@ all: $(OBJECTS)
 
 tokenize.c: tokenize.l
 
+loadTest: loadTest.o
+	$(CC) -o loadTest loadTest.o -L$(XAPLIB) -lxap2
+
+loadClient: loadClient.o
+	$(CC) -o loadClient loadClient.o -L$(XAPLIB) -lxap2
+
 clean:
-	$(RM) -f *.o iServer tokenize.c *~
+	$(RM) -f *.o iServer loadClient loadTest tokenize.c *~

@@ -15,7 +15,7 @@
 #include "xap.h"
 
 /// Receive xAP packet data
-static int readXapData() {
+int readXapData() {
 	gXAP->frame.len = recvfrom(gXAP->rxSockfd, gXAP->frame.dataPacket, XAP_DATA_LEN-1, 0, 0, 0);
 	if (gXAP->frame.len > 0) {
 		 // terminate the buffer so we can treat it as a conventional string

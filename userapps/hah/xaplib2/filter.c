@@ -69,7 +69,6 @@ int xapFilterAddrSubaddress(char *filterAddr, char *addr)
 	                        }
 	                        filterAddr++;
 	                        break;
-                                return 1;
                         case '*': // skip a field in the addr
                         	while(*addr && !(*addr == '.' || *addr == ':')) {
                                         addr++;
@@ -82,6 +81,10 @@ int xapFilterAddrSubaddress(char *filterAddr, char *addr)
 			if(*filterAddr) filterAddr++;
                         if(*addr) addr++;
                 }
+	        if(match) {
+		        // Make sure the pattern and target where fully compared.
+		        match = *filterAddr == '\0' && *addr == '\0';
+	        }
         }
         return match;
 }
@@ -115,12 +118,15 @@ int xapCompareFilters(xAPFilter *head)
                 }
 
                 if(strcasecmp("xap-header", f->section) == 0 &&
-		   (strcasecmp("target", f->key) == 0 || strcasecmp("source",f->key) == 0)) {
+		   (strcasecmp("target", f->key) == 0 ||
+		    strcasecmp("source",f->key) == 0 ||
+		    strcasecmp("class", f->key) == 0)) {
 			if(strcasecmp("target", f->key) == 0) {
 				// for target the WILD CARD will be in inbound xAP message
 				match = xapFilterAddrSubaddress(value, (char *)f->value);
-			} else if (strcasecmp("source", f->key) == 0) {
-				// for source the WILD CARD will be in the FILTER itself.
+			} else if (strcasecmp("source", f->key) == 0 ||
+			           strcasecmp("class", f->key) == 0 ) {
+				// for these the WILD CARD will be in the FILTER itself.
 				match = xapFilterAddrSubaddress((char *)f->value, value);
 			}
                 } else {

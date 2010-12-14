@@ -17,15 +17,15 @@ function reaper(t)
     v.ttl = v.ttl - t.interval
     if v.ttl <= 0 and v.isalive then
       v.isalive = false
-      msg = string.format("xap-header\
-{\
-class=hbeat.stopped\
-}\
-body\
-{\
-source=%s\
-}", k)
-      xap.send(xap.fillShort(msg))
+      msg = string.format([[xap-header
+{
+class=hbeat.stopped
+}
+body
+{
+source=%s
+}]], k)
+      xap.sendShort(msg)
     end
   end
 end

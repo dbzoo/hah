@@ -1,5 +1,7 @@
 --[[
    Turn relay 1 off automatically after 30sec of it being switched on.
+   Its a bit nieve in that the timer does not reset if the relay is
+   switched on and then off again within those 30secs.
 --]]
 
 module(...,package.seeall)
@@ -12,18 +14,17 @@ info={
 
 function relayOff(self)
   print("Relay 1 auto off")
-  xap.send(xap.fillShort("xap-header\
-{\
-target=dbzoo.livebox.Controller:relay.1\
-class=xAPBSC.cmd\
-}\
-output.state.1\
-{\
-id=*\
-state=off\
-}\
-"))
-  self:stop()
+  xap.sendShort([[xap-header
+{
+target=dbzoo.livebox.Controller:relay.1
+class=xAPBSC.cmd
+}
+output.state.1
+{
+id=*
+state=off
+}]])
+  self:delete()
 end
 
 function relayOn()

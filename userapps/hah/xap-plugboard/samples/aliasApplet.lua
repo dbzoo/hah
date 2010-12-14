@@ -9,7 +9,6 @@ module(...,package.seeall)
 
 require("xap")
 require("string")
-require("twitter")
 rex = require("rex_posix")
 
 info={
@@ -18,20 +17,24 @@ info={
 
 pat={
     [rex.new("(relay|rf) ([1-4]) (on|off)")]=function(m) rfRelayCmd(m) end,
-    [rex.new("tweet (.*)")]=function(m) twitter.tweet(unpack(m)) end
+    [rex.new("tweet (.*)")]=function(m) tweet(unpack(m)) end
 }
 
 function sendBscCmd(target,body)
-  xap.send(xap.fillShort(string.format("xap-header\
-{\
-target=%s\
-class=xAPBSC.cmd\
-}\
-output.state.1\
-{\
-id=*\
-%s\
-}", target, body)))
+  xap.sendShort(string.format([[xap-header
+{
+target=%s
+class=xAPBSC.cmd
+}
+output.state.1
+{
+id=*
+%s
+}]], target, body))
+end
+
+function tweet(msg)
+  sendBscCmd("dbzoo.livebox.Twitter","text="..msg)
 end
 
 function rfRelaycmd(t)

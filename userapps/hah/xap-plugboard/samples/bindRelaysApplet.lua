@@ -22,7 +22,7 @@ end
 
 -- Timer callback
 local function oneShot(self)
-  self:stop()
+  self:delete()
   ignoreNextEvent = false
 end
 
@@ -60,16 +60,16 @@ local function relayBind(relays)
 
    for _,i in pairs(relays)
    do
-     xap.send(xap.fillShort(string.format("xap-header\
-{\
-target=%s%s\
-class=xAPBSC.cmd\
-}\
-output.state.1\
-{\
-id=*\
-state=%s\
-}", source, i, state)))
+     xap.sendShort(string.format([[xap-header
+{
+target=%s%s
+class=xAPBSC.cmd
+}
+output.state.1
+{
+id=*
+state=%s
+}]], source, i, state))
 
    end
 end

@@ -22,17 +22,17 @@ function fromSocket()
    local line, error = c:receive()
    local ip,port = c:getpeername()
    --print("Received '"..line.."' from "..ip..":"..port)
-   local msg = string.format("xap-header\
-{\
-class=tcp.data\
-}\
-tcp.rx\
-{\
-ip=%s\
-port=%s\
-data=%s\
-}", ip,port,line)
-   xap.send(xap.fillShort(msg))
+   local msg = string.format([[xap-header
+{
+class=tcp.data
+}
+tcp.rx
+{
+ip=%s
+port=%s
+data=%s
+}]], ip,port,line)
+   xap.sendShort(msg)
 end
 
 function toSocket()

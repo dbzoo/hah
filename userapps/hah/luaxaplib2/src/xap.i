@@ -6,7 +6,7 @@
    All derivative work must retain this message and
    acknowledge the work of the original author.
 
-   SWIG xaplib2 MAPPING for LUA
+   SWIG(2.0.1) xaplib2 MAPPING for LUA
 */
 %module xap
 
@@ -287,6 +287,14 @@ char *xapGetIP();
 void xapSend(const char *mess);
 %rename(fillShort) fillShortXap;
 char *fillShortXap(char *shortMsg);
+
+void sendShort(const char *);
+%{
+	// A common happy meal
+	void sendShort(const char *m) {
+		xapSend(fillShortXap((char *)m));
+	}
+%}
 
 
 // rx.c

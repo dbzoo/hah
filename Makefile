@@ -79,7 +79,8 @@ SUBDIRS_OPENSOURCE = \
 	$(OPENSOURCE_DIR)/lua \
 	$(OPENSOURCE_DIR)/lrexlib \
 	$(OPENSOURCE_DIR)/luafilesystem \
-	$(OPENSOURCE_DIR)/luasocket
+	$(OPENSOURCE_DIR)/luasocket \
+	$(OPENSOURCE_DIR)/penlight
 
 export BROADCOM_DIR=$(USERAPPS_DIR)/broadcom
 
@@ -112,7 +113,7 @@ SUBDIRS_HAH = \
 SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIRS_HAH)
 
 OPENSOURCE_APPS = brctl dropbear ftpd iptables busybox ntpclient ini mtd lua \
-	lrexlib luafilesystem luasocket
+	lrexlib luafilesystem luasocket penlight
 INVENTEL_APPS = inventelbin sendarp ledctrl
 HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-pachube xap-sms iServer \
 	xap-currentcost xap-googlecal xap-twitter xap-serial klone xap-plugboard luaxaplib2
@@ -287,6 +288,11 @@ klone: libcurl
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/klone/kloned $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/kloned
+
+penlight:
+	install -m 755 -d $(INSTALL_DIR)/usr/share/lua/5.1/pl
+	install -m 644 $(OPENSOURCE_DIR)/penlight/lua/init.lua $(INSTALL_DIR)/usr/share/lua/5.1/pl
+	install -m 644 $(OPENSOURCE_DIR)/penlight/lua/pl/* $(INSTALL_DIR)/usr/share/lua/5.1/pl
 
 lua:
 	$(MAKE) -C $(OPENSOURCE_DIR)/lua linux CC=$(CC)

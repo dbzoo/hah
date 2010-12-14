@@ -31,6 +31,17 @@ function loadApplet(file)
       applet.init()
 end
 
+function require_path(p)
+    if not path.isabs(p) then
+        p = path.join(lfs.currentdir(),p)
+    end
+    if p:sub(-1,-1) ~= path.sep then
+        p = p..path.sep
+    end
+    local lsep = package.path:find '^;' and '' or ';'
+    package.path = ('%s?.lua;%s?%sinit.lua%s%s'):format(p,p,path.sep,lsep,package.path)
+end
+
 -- MAIN
 if args.help then
       print(spec)
@@ -40,7 +51,8 @@ if args.debug then
       xap.setLoglevel(args.debug)
 end
 
-app.require_here()
+require_path(args.appletdir)
+
 xap.init("dbzoo.livebox.Plugboard","FF00D800",args.interface)
 tablex.foreach(dir.getfiles(args.appletdir,"*Applet.lua"), loadApplet)
 print("Running...")

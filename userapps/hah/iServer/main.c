@@ -192,6 +192,7 @@ void *sendBscQueryToFilters(void *userData)
                                          "{\n"
                                          "}\n",
                                          xapGetUID(), xapGetSource(), source);
+                                c->txFrame++;
                                 xapSend(buff);
                                 // So we don't saturate the bus or the client handling the reply.
                                 usleep(opt_c); // microseconds

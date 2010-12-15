@@ -18,6 +18,8 @@ static struct {
 	 char enable[2];
 	 char port[5];
 	 char pacing[5];
+	 char txseq[2];
+	 char rxseq[2];
 } ini;
 
 static void readIni() {
@@ -26,6 +28,8 @@ static void readIni() {
 	 ini_gets("iserver","authmode","0",ini.authmode,sizeof(ini.authmode),con.inifile);
 	 ini_gets("iserver","port","9996",ini.port,sizeof(ini.port),con.inifile);
 	 ini_gets("iserver","pacing","20",ini.pacing,sizeof(ini.pacing),con.inifile);
+	 ini_gets("iserver","txseq","0",ini.txseq,sizeof(ini.txseq),con.inifile);
+	 ini_gets("iserver","rxseq","0",ini.rxseq,sizeof(ini.rxseq),con.inifile);
 }
 
 static void submit_form() {
@@ -63,6 +67,18 @@ static void submit_form() {
 	 const char *auth = request_get_arg(request,"authmode");
 	 if(auth && strcmp(auth,ini.authmode)) {
 		  ini_puts("iserver","authmode",auth,con.inifile);
+		  restart = 1;
+	 }
+
+	 const char *txseq = request_get_arg(request,"txseq");
+	 if(txseq && strlen(txseq) > 0 && strcmp(txseq,ini.txseq)) {
+		  ini_puts("iserver","txseq",txseq,con.inifile);
+		  restart = 1;
+	 }
+
+	 const char *rxseq = request_get_arg(request,"rxseq");
+	 if(rxseq && strlen(rxseq) > 0 && strcmp(rxseq,ini.rxseq)) {
+		  ini_puts("iserver","rxseq",rxseq,con.inifile);
 		  restart = 1;
 	 }
 
@@ -155,7 +171,25 @@ The iServer is a TCP/xAP gateway used by the xAPFlash/Joggler HMI application
     <span class="default">Used when authentication enabled</span>
   </div>
 </fieldset>
-
+<%
+	if (request_get_arg(request, "debug")) {
+%>
+<fieldset>
+  <legend>Debugging</legend>
+  <div class="setting">
+	<div class="label">Tx Sequence number injection</div>
+	<input class="spaceradio" type="radio" value="1" name="txseq" <% if(ini.txseq[0] == '1') { %> checked="checked"<% } %>/>On&nbsp;
+        <input class="spaceradio" type="radio" value="0" name="txseq" <% if(ini.txseq[0] == '0') { %> checked="checked"<% } %>/>Off
+  </div>
+  <div class="setting">
+    <div class="label">Rx Sequence number injection</div>
+	<input class="spaceradio" type="radio" value="1" name="rxseq" <% if(ini.rxseq[0] == '1') { %> checked="checked"<% } %>/>On&nbsp;
+        <input class="spaceradio" type="radio" value="0" name="rxseq" <% if(ini.rxseq[0] == '0') { %> checked="checked"<% } %>/>Off
+  </div>
+  </fieldset>
+<%
+  }
+%>
 <fieldset>
   <legend>Status</legend>
 <%

@@ -148,11 +148,10 @@ void injectFrameSequence(char *buf, int frame)
 		warning("Not enough room for seq data");
 		return;
 	}
-	char *lParen = strchr(buf, '{');
+	char *lParen = strchr(buf, '}');
 	if(lParen == NULL) return;
 	// rxFrame+1 is the Frame is will be when sent.
-	int slen = sprintf(seq,"seq=%u\n", frame);
-	lParen+=2; // Position on the x char after }\nx
+	int slen = sprintf(seq,"iseq=%u\n", frame);
 	memmove(lParen+slen, lParen, len-(buf-lParen));
 	memcpy(lParen, seq, slen);
 }

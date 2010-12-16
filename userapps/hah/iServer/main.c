@@ -118,7 +118,7 @@ int sendToClient(Client *c, char *buf, int len)
 {
         debug("%s msg %s", c->ip, buf);
         c->rxFrame++;
-	if(sendAll(c->fd, buf, len+1) == -2)  // include null terminator
+	if(sendAll(c->fd, buf, len) == -2)
 		c->connected = 0;
 }
 

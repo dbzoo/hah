@@ -222,7 +222,6 @@ void addIniEndpoints()
                                 n = 15;
                         bscSetEndpointUID(128);
 			long t = ini_getl("1wire", "timeout", -1, inifile);
-			if(t == 1) t = -1; // We can't handle 1 min timeout check, disable
                         for(i=1; i<=n; i++) {
                                 snprintf(buff,sizeof buff,"%d", i);
                                 bscEndpoint *e = bscAddEndpoint(&endpointList, "1wire", buff, BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);
@@ -233,8 +232,8 @@ void addIniEndpoints()
 			// If a 1wire device has a constant reading for the timeout period
 			// the timeoutCheck1wire will trigger it to '?' as the timeout code
 			// was to detect the 1wire device not on the bus we will force an
-			// AVR report of all devices 1 min before the timeout period.
-			if(t>0) xapAddTimeoutAction(&timeoutReport, (t-1)*60, NULL);
+			// AVR report of all devices 10 sec before the timeout period.
+			if(t>0) xapAddTimeoutAction(&timeoutReport, t*60-10, NULL);
                 } else if(strcmp("rf",section) == 0) {
                         int j;
                         char rf[20];

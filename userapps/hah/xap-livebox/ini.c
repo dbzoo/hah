@@ -92,16 +92,16 @@ static void cmdRF(bscEndpoint *e)
 void timeoutCheck1wire(int interval, void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
-        long t = ini_getl("1wire", "timeout", -1, inifile);
-        if (t < 1)
-                return;
-        t *= 60; // minutes to seconds
-
         time_t now = time(NULL);
-        if(now > *(time_t *)e->userData + t) {
+        if(now > *(time_t *)e->userData + interval) {
                 bscSetState(e, BSC_STATE_UNKNOWN);
                 bscSetText(e, "?");
         }
+}
+
+void timeoutReport(int interval, void *data)
+{
+	serialSend("report"); // Ask AVR firmware to report current endpoints states	
 }
 
 /** Drive an I2C PPE in PIN mode for a targeted xAPBSC.cmd
@@ -221,13 +221,19 @@ void addIniEndpoints()
                         if (n > 15)
                                 n = 15;
                         bscSetEndpointUID(128);
+			long t = ini_getl("1wire", "timeout", -1, inifile);
                         for(i=1; i<=n; i++) {
                                 snprintf(buff,sizeof buff,"%d", i);
                                 bscEndpoint *e = bscAddEndpoint(&endpointList, "1wire", buff, BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);
                                 // extra data to hold last 1wire event serial time.
                                 e->userData = (void *)malloc(sizeof(time_t));
-	                        xapAddTimeoutAction(&timeoutCheck1wire, 60, (void *)e);
+				if(t) xapAddTimeoutAction(&timeoutCheck1wire, t*60, (void *)e);
                         }
+			// If a 1wire device has a constant reading for the timeout period
+			// the timeoutCheck1wire will trigger it to '?' as the timeout code
+			// was to detect the 1wire device not on the bus we will force an
+			// AVR report of all devices 1 min before the timeout period.
+			if(t) xapAddTimeoutAction(&timeoutReport, (t-1)*60, NULL);
                 } else if(strcmp("rf",section) == 0) {
                         int j;
                         char rf[20];

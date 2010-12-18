@@ -227,13 +227,13 @@ void addIniEndpoints()
                                 bscEndpoint *e = bscAddEndpoint(&endpointList, "1wire", buff, BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);
                                 // extra data to hold last 1wire event serial time.
                                 e->userData = (void *)malloc(sizeof(time_t));
-				if(t) xapAddTimeoutAction(&timeoutCheck1wire, t*60, (void *)e);
+				if(t>0) xapAddTimeoutAction(&timeoutCheck1wire, t*60, (void *)e);
                         }
 			// If a 1wire device has a constant reading for the timeout period
 			// the timeoutCheck1wire will trigger it to '?' as the timeout code
 			// was to detect the 1wire device not on the bus we will force an
 			// AVR report of all devices 1 min before the timeout period.
-			if(t) xapAddTimeoutAction(&timeoutReport, (t-1)*60, NULL);
+			if(t>0) xapAddTimeoutAction(&timeoutReport, (t-1)*60, NULL);
                 } else if(strcmp("rf",section) == 0) {
                         int j;
                         char rf[20];

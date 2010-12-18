@@ -222,6 +222,7 @@ void addIniEndpoints()
                                 n = 15;
                         bscSetEndpointUID(128);
 			long t = ini_getl("1wire", "timeout", -1, inifile);
+			if(t == 1) t = -1; // We can't handle 1 min timeout check, disable
                         for(i=1; i<=n; i++) {
                                 snprintf(buff,sizeof buff,"%d", i);
                                 bscEndpoint *e = bscAddEndpoint(&endpointList, "1wire", buff, BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);

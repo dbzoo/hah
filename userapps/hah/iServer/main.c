@@ -116,10 +116,13 @@ int sendAll(int s, char *buf, int len)
  */
 int sendToClient(Client *c, char *buf, int len)
 {
+	int ret;
+	
         debug("%s msg %s", c->ip, buf);
         c->rxFrame++;
-	if(sendAll(c->fd, buf, len) == -2)
+	if((ret = sendAll(c->fd, buf, len)) == -2)
 		c->connected = 0;
+	return ret;
 }
 
 /** Rx socket handler callback for all incoming UDP packets.
@@ -483,7 +486,8 @@ void delClient(Client *c)
         }
 
         LL_DELETE(clientList, c);
-        free(c->source);
+        // If the client disconnected before we see a message from it c->source will still be NULL.
+        if(c->source) free(c->source);
         free(c->ip);
         free(c);
 }
@@ -535,8 +539,10 @@ Client *addClient(int fd, struct sockaddr_in *remote)
 
         // Initiate communication with client.
         char *init = "<ACL></ACL>";
-        sendToClient(c, init, strlen(init));
-
+	if(sendToClient(c, init, strlen(init)) != 0) {
+		delClient(c);
+		return NULL;
+	}	
         return c;
 }
 

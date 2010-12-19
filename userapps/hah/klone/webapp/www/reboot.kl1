@@ -19,7 +19,7 @@ if(REQUIRE_AUTH(SCRIPT_NAME)) { // Only reboot once authenticated
 <html>
 <head>
 <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
-<meta http-equiv="refresh" content="40;url=http://<%= myip(request) %>/"/>
+<meta http-equiv="refresh" content="50;url=http://<%= myip(request) %>/"/>
 <script type="text/javascript" src="common.js"></script>
 <link type="text/css" rel="stylesheet" href="style/current/style.css" />
 <!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css" /><![endif]-->

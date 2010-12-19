@@ -91,7 +91,7 @@ int sendAll(int s, char *buf, int len)
                 n = send(s, buf+total, bytesleft, MSG_NOSIGNAL);
                 if (n == -1) {
 			// Client disconnected during send
-			if(errno == EPIPE) {
+			if(errno == EPIPE || errno == ECONNRESET) {
 				return -2;
 			}
                         err_strerror("send");

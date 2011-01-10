@@ -268,7 +268,7 @@ Dim B As Byte
 Dim Ii As Byte
 Dim Ij As Byte
 Dim Ik As Byte
-Dim Bi As Byte
+Dim Bi As Word
 Dim Di As Byte
 Dim Imeas As Word
 Dim Temp As Integer

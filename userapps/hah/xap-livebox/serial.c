@@ -18,6 +18,8 @@ Serial interfacing to the external AVR hardware
 #include "log.h"
 
 int gSerialfd;
+static int major_firmware = 1;
+static int minor_firmware = 0;
 
 typedef struct _cmd
 {
@@ -29,14 +31,39 @@ cmd_t;
 static void serin_input(cmd_t *, bscEndpoint *, char **);
 static void serin_1wire(cmd_t *, bscEndpoint *, char **);
 static void serin_ppe(cmd_t *, bscEndpoint *, char **);
+static void serin_firmware_rev(cmd_t *, bscEndpoint *, char **);
 
 // incoming serial command dispatch table.
 static cmd_t cmd[] = {
                              {"input", &serin_input},
                              {"1wire", &serin_1wire},
                              {"i2c-ppe", &serin_ppe},
+                             {"rev", &serin_firmware_rev},
                              { NULL, NULL }
                      };
+
+int firmwareMajor() {
+	return major_firmware;
+}
+
+int firmwareMinor() {
+	return minor_firmware;
+}
+
+static void serin_firmware_rev(cmd_t *s, bscEndpoint *unused, char *argv[])
+{
+	// string returned MAJOR.MINOR or MAJOR
+	char *dot = strchr(argv[0],'.');
+	if(dot == NULL) {
+		major_firmware = atoi(argv[0]);
+		minor_firmware = 0;
+	} else {
+		*dot = '\0';
+		major_firmware = atoi(argv[0]);
+		minor_firmware = atoi(dot+1);
+	}
+        info("AVR firmware version: %d.%d", major_firmware, minor_firmware);
+}
 
 /** Process inbound SERIAL command for an INPUT endpoint.
 *
@@ -211,6 +238,13 @@ void serialSend(char *buf)
         }
 }
 
+static void getFirmwareVersion()
+{
+	serialSend("version"); // Get AVR version
+	usleep(150 * 1000);    // wait for response - 150ms
+	serialInputHandler(gSerialfd, NULL);	// non-blocking read
+}
+
 /** Setup the serial port.
 * @param serialport Path to serial device
 * @param baud a TERMIOS baud rate value
@@ -232,5 +266,8 @@ int setupSerialPort(char *serialport, int baud)
         tcflush(fd, TCIFLUSH);
         tcsetattr(fd, TCSANOW, &newtio);
         gSerialfd = fd;
+
+	getFirmwareVersion();
+
         return fd;
 }

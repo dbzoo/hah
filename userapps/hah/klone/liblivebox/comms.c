@@ -67,7 +67,7 @@ char *send_cmd(char *cmd) {
 	 }
 
 	 if (rp == NULL) {               /* No address succeeded */
-		  return "Could not connect";
+		  return "?Err?";
 	 }
 
 	 freeaddrinfo(result);           /* No longer needed */

@@ -40,6 +40,28 @@ static void cmdLCD(bscEndpoint *e)
         serialSend(buf);
 }
 
+// Univeral RF endpoint
+static void rfXmit(void *userData) {
+	unsigned char bitsPerFrame = atoi(xapGetValue("rf","bitsperframe"));
+	char *pulseDef = xapGetValue("rf","pulsedef");
+	unsigned char burst = atoi(xapGetValue("rf","burstcount"));
+	unsigned char interburstDelay = atoi(xapGetValue("rf","interburstDelay"));
+	unsigned char frames = atoi(xapGetValue("rf","frames"));
+	char *hexStream = xapGetValue("rf","stream");
+		
+	char rf[256];
+	snprintf(rf,sizeof(rf),"urf %02x%s%02x%02x%02x%s",bitsPerFrame,pulseDef,burst,interburstDelay,frames,hexStream);
+	serialSend(rf);
+}
+
+// Univeral RF endpoint
+static void rfXmitPacked(void *userData) {
+	char rf[256];
+	strcpy(rf, "urf ");
+	strlcat(rf, xapGetValue("rf","data"), sizeof(rf));
+	serialSend(rf);
+}
+
 /// Display usage information and exit.
 static void usage(char *prog) {
 	 printf("%s: [options]\n",prog);
@@ -76,8 +98,8 @@ int main(int argc, char *argv[])
 
 	/* Endpoint UID mapping - Identifies a particular hardware device for life.
 	   As endpoints can be dynamically added we define ranges so this remains true.
-	  LCD / Inputs  (0-63)     - 1 LCD + 4 INPUT on current hardware.
-	  I2C           (64-95)    - PPE chips map at 64-71 natively on the i2c bus.
+	  LCD / Inputs  (0-31)     - 1 LCD + 4 INPUT on current hardware.
+	  I2C           (32-95)    - 64 endpoints is 8x PPE chips on the i2c bus (PIN mode)
 	  Relays        (96-127)   - 32 devices (firmware can only handle 4)
 	  1-Wire        (128-159)  - 32 devices (firmware can only handle 16)
 	  RF            (160+)     - 96 devices (firmware can only handle 12)
@@ -96,6 +118,27 @@ int main(int argc, char *argv[])
 
 	// Register the endpoints
         bscAddEndpointFilterList(endpointList, INFO_INTERVAL);
+
+	if(firmwareMajor() > 1) {
+		// Universal RF endpoint - As separate components.
+		xAPFilter *f = NULL;
+		xapAddFilter(&f, "xap-header", "target", xapGetSource());
+		xapAddFilter(&f, "xap-header", "class", "rf.xmit");
+		xapAddFilter(&f, "rf", "bitsperframe", XAP_FILTER_ANY);
+		xapAddFilter(&f, "rf", "pulsedef", XAP_FILTER_ANY);
+		xapAddFilter(&f, "rf", "burstcount", XAP_FILTER_ANY);
+		xapAddFilter(&f, "rf", "interburstdelay", XAP_FILTER_ANY);
+		xapAddFilter(&f, "rf", "frames", XAP_FILTER_ANY);
+		xapAddFilter(&f, "rf", "stream", XAP_FILTER_ANY);
+		xapAddFilterAction(&rfXmit, f, NULL);
+		
+		// As a single packed data stream
+		f = NULL;
+		xapAddFilter(&f, "xap-header", "target", xapGetSource());
+		xapAddFilter(&f, "xap-header", "class", "rf.xmit");
+		xapAddFilter(&f, "rf", "data", XAP_FILTER_ANY);
+		xapAddFilterAction(&rfXmitPacked, f, NULL);
+	}
 
 	// If the serial port is setup register a listener
 	if(gSerialfd > 0)

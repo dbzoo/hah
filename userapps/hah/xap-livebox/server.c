@@ -17,8 +17,10 @@
 #include "server.h"
 #include "bsc.h"
 #include "log.h"
+#include "serial.h"
 
 extern bscEndpoint *endpointList;
+
 
 /* CMD: query <endpoint>
  * Ret: <state>
@@ -88,14 +90,13 @@ static char *msg_handler(char *a_cmd) {
 	char *cmd = strtok(a_cmd," ");
 	char *args = strtok(NULL, "");
 
-	// Everything needs at least 1 argument
-	if(!(args && *args)) {
-		return "missing argument";
-	}
-
 	// Process command: each will return either "ok" or an error message.
 	if(strcmp(cmd,"query") == 0) {
 		return msg_query(args);
+	} else if(strcmp(cmd,"version") == 0) {
+		static char rev[4];
+		sprintf(rev,"%d.%d", firmwareMajor(), firmwareMinor());
+		return rev;
 	} 
 	else if(strcmp(cmd,"action") == 0) {
 		return msg_action(args);

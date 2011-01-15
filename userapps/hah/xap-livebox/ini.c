@@ -17,6 +17,7 @@ INI file processing
 #include "serial.h"
 
 // *** DO NOT CHANGE UNLESS YOU ALIGN WITH THE AVR FIRMWARE ***
+// Applicable for Firmware Version 1 only.
 #define MAXCHANNEL 16
 
 const char *inifile = "/etc/xap-livebox.ini";
@@ -70,7 +71,7 @@ static void infoEvent1wire (bscEndpoint *e, char *clazz)
         infoEventLabeled(e, clazz, "sensor", e->text);
 }
 
-/** Handle xapBSC.cmd for the RF endpoints.
+/** Handle xapBSC.cmd for the RF endpoints (AVR rev=1)
 *
 * @param e BSC endpoint requiring processing
 */
@@ -80,6 +81,33 @@ static void cmdRF(bscEndpoint *e)
         int i = atoi(e->subaddr); // RF 1 - is channel 5 on the firmware.
         snprintf(buf, sizeof(buf), "%s %d", bscStateToString(e), i+4);
         serialSend(buf);
+}
+
+/** Handle xapBSC.cmd for the RF endpoints (AVR rev>1)
+ *  Universal RF.
+ *
+ * @param e BSC endpoint requiring processing
+ */
+static void cmdURF(bscEndpoint *e)
+{
+        char relay_key[10];
+        char rf[256];
+	char serial_cmd[256];
+	long n;
+
+	// From the key RF1.ON find the [rf] section control sequence.
+	snprintf(relay_key,sizeof(relay_key),"rf%s.%s", e->subaddr, bscStateToString(e));
+	n = ini_gets("rf", relay_key, "", rf, sizeof(rf), inifile);
+	if(n) {	
+		info("%s = %s", relay_key, rf);
+		strcpy(serial_cmd,"urf ");
+		strlcat(serial_cmd, rf, sizeof(serial_cmd));
+		
+		serialSend(serial_cmd);
+	} else {
+		notice("section [rf] key %s not found", relay_key);
+                bscSetState(e, BSC_STATE_UNKNOWN);		
+	}
 }
 
 /** Check each 1wire device has transmitted from the AVR within the timeout period.
@@ -101,7 +129,11 @@ void timeoutCheck1wire(int interval, void *data)
 
 void timeoutReport(int interval, void *data)
 {
-	serialSend("report"); // Ask AVR firmware to report current endpoints states	
+	// Ask AVR firmware to report current endpoints states	
+	if(firmwareMajor() > 1)
+		serialSend("report 1wire");
+	else
+		serialSend("report");
 }
 
 /** Drive an I2C PPE in PIN mode for a targeted xAPBSC.cmd
@@ -185,11 +217,11 @@ void addIniEndpoints()
                 if(strncmp("ppe", section, 3) == 0) {
                         n = ini_gets(section, "address", "", s_addr, sizeof(s_addr), inifile);
                         if (n == 0) {
-                                err(section,"Missing address=[0x40-0x47]");
+                                err(section,"Missing address=[0x40-0x4E]");
                                 continue;
                         }
                         sscanf(s_addr,"%x", &addr);
-                        if(addr < 0x40 || addr > 0x47) {
+                        if(addr < 0x40 || addr > 0x4e) {
                                 err(section,"Invalid address %s", s_addr);
                                 continue;
                         }
@@ -198,7 +230,11 @@ void addIniEndpoints()
                                 err(section,"Missing mode=[byte|pin]");
                                 continue;
                         }
-                        bscSetEndpointUID(addr);
+			
+			// PCF8574 I2C address - 0 1 0 0 A2 A1 A0 0 - 0x40 to 0x4E
+			int real_addr = (addr >> 1) & 0x7; // Range 0-7
+                        bscSetEndpointUID(real_addr*8+32); // UID range 32-95
+
                         if(strcmp(mode,"byte") == 0) {
                                 snprintf(buff,sizeof buff,"%02X", addr);
                                 bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_STREAM, &cmdPPEbyte, NULL);
@@ -234,7 +270,8 @@ void addIniEndpoints()
 			// was to detect the 1wire device not on the bus we will force an
 			// AVR report of all devices 10 sec before the timeout period.
 			if(t>0) xapAddTimeoutAction(&timeoutReport, t*60-10, NULL);
-                } else if(strcmp("rf",section) == 0) {
+                } else if(firmwareMajor() == 1 && strcmp("rf",section) == 0) {
+			// Single RF transmitter
                         int j;
                         char rf[20];
                         char serialrf[40];
@@ -264,6 +301,22 @@ void addIniEndpoints()
                                         }
                                 }
                         }
-                }
+                } else if(firmwareMajor() > 1 && strcmp("rf",section) == 0) {
+			// Universal RF transmitter
+                        char buff[3];
+                        int devices;
+
+                        devices = ini_getl(section, "devices", -1, inifile);
+                        if (devices > 96) {
+				n = 96; // See livebox.c for range of UID mapping.
+				notice("Maximum RF devices reached");
+			}
+                        bscSetEndpointUID(160);
+                        for(i = 1; i <= devices; i++) {
+                                snprintf(buff,sizeof buff,"%d", i);
+                                bscAddEndpoint(&endpointList, "rf", buff, BSC_OUTPUT, BSC_BINARY, &cmdURF, &infoEventBinary);
+                        }
+                }                
+
         }
 }

@@ -12,7 +12,12 @@
 time_t now = time(0);
 %>
 <div id="statusInfo">
-<div class="info">Build: <%= con.build %></div>
+<%
+  if (con.avrBuild == NULL) {
+    con.avrBuild = strdup(send_cmd("version"));
+  }
+%>
+<div class="info">Build: <%= con.build %>/<%= con.avrBuild %></div>
 <div class="info"><%= ctime(&now) %></div>
 <div id="info">up
 <%

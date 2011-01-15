@@ -15,8 +15,8 @@
 
 //
 // Add in the order: Section key, Class key, Target key
-const char *XAP_FILTER_ANY = "XAP_FILTER_ANY";
-const char *XAP_FILTER_ABSENT = "XAP_FILTER_ABSENT";
+char *XAP_FILTER_ANY = "XAP_FILTER_ANY";
+char *XAP_FILTER_ABSENT = "XAP_FILTER_ABSENT";
 
 /** Add a new filter pattern to a chain of filters.
  * As filters are PREPENDED to the list the *most* significant filter, that

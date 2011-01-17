@@ -1,6 +1,6 @@
 '********************************************************************
 '* Livebox HAH firmware
-'* Language:       BASCOM-AVR 1.11.9.1
+'* Language:       BASCOM-AVR 2.0.3
 '*
 '* $Id$
 '********************************************************************
@@ -495,9 +495,7 @@ Sub Docommand
   End If
 
   Select Case Gspcinput
-     Case "version" :
-                     Waitms 100                             ' let the reader get ready.
-                     Print "rev " ; Fwmajor ; "." ; Fwminor
+     Case "version" : Print "rev " ; Fwmajor ; "." ; Fwminor
      Case "report" : Report = &HFF
      Case "report input" : Report.repinput = 1
      Case "report 1wire" : Report.rep1wire = 1
@@ -921,6 +919,7 @@ Sub Universalrf(pos As Byte)
   Gppos = Pos
   Setuprf
 
+  Stop Timer1
   Disable Interrupts
   While Burtstosend > 0
     Xmitrf
@@ -928,6 +927,7 @@ Sub Universalrf(pos As Byte)
     Decr Burtstosend
   Wend
   Enable Interrupts
+  Start Timer1
 
 #if Allow_interactive
   If Interactive = 1 Then

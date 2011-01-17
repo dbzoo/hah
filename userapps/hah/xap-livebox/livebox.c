@@ -40,7 +40,7 @@ static void cmdLCD(bscEndpoint *e)
         serialSend(buf);
 }
 
-// Univeral RF endpoint
+// Universal RF endpoint
 static void rfXmit(void *userData) {
 	unsigned char bitsPerFrame = atoi(xapGetValue("rf","bitsperframe"));
 	char *pulseDef = xapGetValue("rf","pulsedef");
@@ -54,7 +54,7 @@ static void rfXmit(void *userData) {
 	serialSend(rf);
 }
 
-// Univeral RF endpoint
+// Universal RF endpoint
 static void rfXmitPacked(void *userData) {
 	char rf[256];
 	strcpy(rf, "urf ");
@@ -101,8 +101,8 @@ int main(int argc, char *argv[])
 	  LCD / Inputs  (0-31)     - 1 LCD + 4 INPUT on current hardware.
 	  I2C           (32-95)    - 64 endpoints is 8x PPE chips on the i2c bus (PIN mode)
 	  Relays        (96-127)   - 32 devices (firmware can only handle 4)
-	  1-Wire        (128-159)  - 32 devices (firmware can only handle 16)
-	  RF            (160+)     - 96 devices (firmware can only handle 12)
+	  1-Wire        (128-159)  - 32 devices (v1 firmware can only handle 16, v2 31)
+	  RF            (160+)     - 96 devices (v1 firmware can only handle 12, v2 unlimited/96 )
 	*/
 	lcd = bscAddEndpoint(&endpointList, "lcd",  NULL, BSC_OUTPUT, BSC_STREAM, &cmdLCD, NULL);
 	bscAddEndpoint(&endpointList, "input", "1", BSC_INPUT, BSC_BINARY, NULL, &infoEventBinary);

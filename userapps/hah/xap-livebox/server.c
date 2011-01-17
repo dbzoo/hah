@@ -97,6 +97,9 @@ static char *msg_handler(char *a_cmd) {
 		static char rev[4];
 		sprintf(rev,"%d.%d", firmwareMajor(), firmwareMinor());
 		return rev;
+	} else if(strcmp(cmd,"1wirereset") == 0) {
+		serialSend("1wirereset");
+		return "ok";
 	} 
 	else if(strcmp(cmd,"action") == 0) {
 		return msg_action(args);

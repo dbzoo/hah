@@ -156,6 +156,11 @@ function reboot(F) {
 	 F.action.value = "Reboot";
 	 apply(F);
 }
+function wirereset(F) {
+	 F.onewirereset.value = "Resetting";
+	 F.action.value = "onewirereset";
+	 apply(F);
+}
 </script>
 </head>
 <title>HAH configuration</title>
@@ -262,6 +267,13 @@ io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"sensor
   <div class="label">Timeout check</div>
     <input class="num" type="text" name="timeout_1wire" onblur="valid_range(this,0,99,'Timeout')" value="<% io_printf(out,"%d",ini.timeout_1wire); %>" maxlength="2" size="2"/> Minute(s)
   </div>
+  <input type="button" name="onewirereset" value="Reset 1-Wire Bus" onclick="wirereset(this.form)" />
+<%
+if(action && strcmp(action,"onewirereset") == 0) {
+	char *result = send_cmd("1wirereset");
+	io_printf(out,"<b>%s</b>", result);
+}
+%>
 </fieldset>
 
 

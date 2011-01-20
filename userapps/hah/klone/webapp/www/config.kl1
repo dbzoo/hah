@@ -5,8 +5,6 @@
 
 #define sizearray(a)  (sizeof(a) / sizeof((a)[0]))
 
-static int reboot = 0;
-
 static struct {
 	 char temp_unit[2];
 	 int devices1wire;
@@ -92,7 +90,6 @@ static void submit_form() {
 	 if(wire != ini.devices1wire) {
 		  ini_puts("1wire","devices", dev1wire, con.inifile);
 		  ini.devices1wire = wire;
-		  reboot = 1;
 	 }
 
 	 const char *temp_unit = request_get_arg(request, "temp");
@@ -131,12 +128,9 @@ char *kv(char *name, int id) {
 REQUIRE_AUTH(SCRIPT_NAME);
 readIni();
 const char *action = request_get_arg(request,"action");
-if(action && strcmp(action,"Apply") == 0) {
+if(action && (strcmp(action,"Apply") == 0 || strcmp(action,"onewirereset") == 0)) {
 	 submit_form(out);
 	 readIni();
-}
-if(action && strcmp(action,"Reboot") == 0) {
-	  response_redirect(response, "reboot.kl1");
 }
 %>
 <html>
@@ -150,11 +144,6 @@ function to_submit(F) {
 	F.save_button.value = "Saving";
 	F.action.value = "Apply";
 	apply(F);
-}
-function reboot(F) {
-	 F.reboot_button.value = "Rebooting";
-	 F.action.value = "Reboot";
-	 apply(F);
 }
 function wirereset(F) {
 	 F.onewirereset.value = "Resetting";
@@ -256,7 +245,7 @@ io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"sensor
 <legend>1wire devices</legend>
   <div class="setting">
     <div class="label">Sensor Count</div>
-	<input class="num" type="text" name="sensor_count" onblur="valid_range(this,1,15,'Sensors')" value="<% io_printf(out,"%d",ini.devices1wire); %>" maxlength="2" size="2"/>
+	<input class="num" type="text" name="sensor_count" onblur="valid_range(this,0,15,'Sensors')" value="<% io_printf(out,"%d",ini.devices1wire); %>" maxlength="2" size="2"/>
   </div>
   <div class="setting">
     <div class="label">Temperature units</div>
@@ -270,6 +259,7 @@ io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"sensor
   <input type="button" name="onewirereset" value="Reset 1-Wire Bus" onclick="wirereset(this.form)" />
 <%
 if(action && strcmp(action,"onewirereset") == 0) {
+	// Reset the 1wire endpoints and AVR bus.
 	char *result = send_cmd("1wirereset");
 	io_printf(out,"<b>%s</b>", result);
 }
@@ -282,7 +272,6 @@ if(action && strcmp(action,"onewirereset") == 0) {
 <div class="submitFooter">
 <input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)" />
 <input type="reset" value="Cancel Changes"/>
-<% if(reboot) { %><input type="button" name="reboot_button" value="Reboot" onclick="reboot(this.form)" /><% } %>
 </div>
 </form>
 

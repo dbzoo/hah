@@ -114,6 +114,31 @@ bscEndpoint *bscFindEndpoint(bscEndpoint *head, char *name, char *subaddr)
         return NULL;
 }
 
+/** Delete a BSC endpoint
+ *
+ * @param b bscEndpoint to delete
+ * @return pointer to user data, caller is responsible for this memory.
+ */
+void *bscDelEndpoint(bscEndpoint *b) {
+	void *userData = b->userData;
+
+	info("Deleting %s", b->source);
+
+	xapDelFilterActionForUserData(b);
+	xAPTimeoutCallback *tc = xapFindTimeoutByUserData(b);
+	if(tc) xapDelTimeoutAction(tc);
+
+	free(b->name);
+	free(b->subaddr);
+	free(b->id);
+	free(b->text);
+	free(b->source);
+	free(b->uid);
+	free(b);
+	return userData;
+}
+
+
 /** Parse BSC LEVEL device type value.
  *
  * An XAP BSC level message may be of the form.

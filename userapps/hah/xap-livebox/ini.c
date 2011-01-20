@@ -127,7 +127,7 @@ void timeoutCheck1wire(int interval, void *data)
         }
 }
 
-void timeoutReport(int interval, void *data)
+static void timeoutReport1wire(int interval, void *data)
 {
 	// Ask AVR firmware to report current endpoints states	
 	if(firmwareMajor() > 1)
@@ -193,6 +193,72 @@ static void reset_i2c_ppe()
         serialSend("i2c R");
 }
 
+#define IMMEDIATE 1
+#define DELAYED 0
+static int addOneWireIniEndpoints(int mode) 
+{
+	long n;
+	int i;
+        char buff[5];
+
+	n = ini_getl("1wire", "devices", -1, inifile);
+	if (n > 15)
+		n = 15;
+	bscSetEndpointUID(128);
+	long t = ini_getl("1wire", "timeout", -1, inifile);
+	for(i=1; i<=n; i++) {
+		info("Adding 1wire.%d", i);
+		snprintf(buff,sizeof buff,"%d", i);
+		bscEndpoint *e = bscAddEndpoint(&endpointList, "1wire", buff, BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);
+		// extra data to hold last 1wire event serial time.
+		e->userData = (void *)malloc(sizeof(time_t));
+		if(t>0) xapAddTimeoutAction(&timeoutCheck1wire, t*60, (void *)e);
+		if(mode == IMMEDIATE) {
+			bscAddEndpointFilter(e, 120); // info interval
+		}
+	}
+	// If a 1wire device has a constant reading for the timeout period
+	// the timeoutCheck1wire will trigger it to '?' as the timeout code
+	// was to detect the 1wire device not on the bus we will force an
+	// AVR report of all devices 10 sec before the timeout period.
+	if(t>0) xapAddTimeoutAction(&timeoutReport1wire, t*60-10, NULL);
+
+	return n;
+}
+
+// Delete endpoints and reload the .INI file 
+void resetOneWireEndpoints() 
+{
+	// Reset the one wire bus to discover new/deleted 1-wire devices.
+	serialSend("1wirereset");
+
+	// Delete all existing 1wire endpoints.
+        bscEndpoint *e, *tmp;
+	LL_FOREACH_SAFE(endpointList, e, tmp) {
+                if(strcmp(e->name, "1wire") == 0) {
+			LL_DELETE(endpointList, e);
+
+			xAPTimeoutCallback *cb = xapFindTimeoutByUserData(e);
+			if(cb) {
+				info("Deleting timeout action");
+				xapDelTimeoutAction(cb);
+			}
+
+			time_t *lastSerialTime = bscDelEndpoint(e);
+			free(lastSerialTime);
+                }
+        }
+
+	info("Remove the 1wire timeout check (if found)");
+	xapDelTimeoutActionByFunc(&timeoutReport1wire);
+
+	info("Setup new 1-wire endpoints based on the .INI File");
+	if(addOneWireIniEndpoints(IMMEDIATE) > 0) {
+		// Make the ALL 1wire devices report in now.
+		timeoutReport1wire(0, NULL);
+	}
+}
+
 /** Parse the .ini file and dynamically create XAP endpoints.
  */
 void addIniEndpoints()
@@ -253,23 +319,7 @@ void addIniEndpoints()
                         }
                 }  // Handle section: [1wire]
                 else if(strcmp("1wire", section) == 0) {
-                        n = ini_getl(section, "devices", -1, inifile);
-                        if (n > 15)
-                                n = 15;
-                        bscSetEndpointUID(128);
-			long t = ini_getl("1wire", "timeout", -1, inifile);
-                        for(i=1; i<=n; i++) {
-                                snprintf(buff,sizeof buff,"%d", i);
-                                bscEndpoint *e = bscAddEndpoint(&endpointList, "1wire", buff, BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);
-                                // extra data to hold last 1wire event serial time.
-                                e->userData = (void *)malloc(sizeof(time_t));
-				if(t>0) xapAddTimeoutAction(&timeoutCheck1wire, t*60, (void *)e);
-                        }
-			// If a 1wire device has a constant reading for the timeout period
-			// the timeoutCheck1wire will trigger it to '?' as the timeout code
-			// was to detect the 1wire device not on the bus we will force an
-			// AVR report of all devices 10 sec before the timeout period.
-			if(t>0) xapAddTimeoutAction(&timeoutReport, t*60-10, NULL);
+			addOneWireIniEndpoints(DELAYED);
                 } else if(firmwareMajor() == 1 && strcmp("rf",section) == 0) {
 			// Single RF transmitter
                         int j;

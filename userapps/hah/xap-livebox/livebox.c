@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 
 	// If the serial port is setup register a listener
 	if(gSerialfd > 0)
-		xapAddSocketListener(gSerialfd, &serialInputHandler, endpointList);
+		xapAddSocketListener(gSerialfd, &serialInputHandler, NULL);
 
 	// Handle WEB server requests
 	xapAddSocketListener(svr_bind(WEB_PORT), &webHandler, endpointList);

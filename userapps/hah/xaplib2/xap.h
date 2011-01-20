@@ -121,6 +121,7 @@ char *fillShortXap(char *shortMsg, char *uid, char *source);
 // timeout.c
 xAPTimeoutCallback *xapAddTimeoutAction(void (*func)(int, void *), int interval, void *data);
 xAPTimeoutCallback *xapFindTimeoutByFunc(void (*func)(int, void*));
+xAPTimeoutCallback *xapFindTimeoutByUserData(void *userData);
 void timeoutDispatch();
 void *xapDelTimeoutAction(xAPTimeoutCallback *cb);
 void *xapDelTimeoutActionByFunc(void (*func)(int, void *));
@@ -155,6 +156,7 @@ xAPFilter *xapAddFilter(xAPFilter **f, char *section, char *key, char *value);
 int xapFilterAddrSubaddress(char *filterAddr, char *addr);
 void xapFreeFilterList(xAPFilter *head);
 void *xapDelFilterAction(xAPFilterCallback *f);
+int xapDelFilterActionForUserData(void *userData);
 
 // safe string copy
 size_t strlcpy(char *dst, const char *src, size_t size);

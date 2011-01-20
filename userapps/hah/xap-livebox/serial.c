@@ -17,6 +17,8 @@ Serial interfacing to the external AVR hardware
 #include "bsc.h"
 #include "log.h"
 
+extern bscEndpoint *endpointList;
+
 int gSerialfd;
 static int major_firmware = 1;
 static int minor_firmware = 0;
@@ -122,7 +124,9 @@ static void serin_1wire(cmd_t *s, bscEndpoint *head, char *argv[])
 	        bscSendCmdEvent(e);
                 // record the last time this 1wire device reported in.
                 *(time_t *)e->userData = time(NULL);
-        }
+        } else {
+		notice("Endpoint 1wire.%s not found", argv[0]);
+	}
 }
 
 /** Processing inbound SERIAL command from the I2C PPE chip.
@@ -206,7 +210,6 @@ static void processSerialCommand(bscEndpoint *head, char *a_cmd)
 */
 void serialInputHandler(int fd, void *data)
 {
-        bscEndpoint *head = (bscEndpoint *)data;
         char serial_buff[128];
         int i, len;
 
@@ -219,7 +222,7 @@ void serialInputHandler(int fd, void *data)
                 if (cmd[pos] == '\r' || cmd[pos] == '\n') {
                         cmd[pos] = '\0';
                         if(pos)
-                                processSerialCommand(head, cmd);
+                                processSerialCommand(endpointList, cmd);
                         pos = 0;
                 } else if(pos < sizeof(cmd)) {
                         pos++;

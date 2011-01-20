@@ -165,6 +165,23 @@ void *xapDelFilterAction(xAPFilterCallback *f) {
 	return userData;
 }
 
+/** Delete a filter callback by its User Data
+ *
+ * @param userData matching address for deletions
+ * @return number of filters callbacks deleted
+ */
+int xapDelFilterActionForUserData(void *userData) {
+	xAPFilterCallback *f, *tmp;
+	int i = 0;
+	LL_FOREACH_SAFE(gXAP->filterList, f, tmp) {
+		if(f->user_data == userData) {
+			xapDelFilterAction(f);
+			i++;
+		}
+	}
+	return i;
+}
+
 /** Add a filter action
  * 
  * @param (* func)( void * ) User callback function, User data pointer will handed back.

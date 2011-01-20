@@ -14,13 +14,11 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include "ini.h"
 #include "server.h"
 #include "bsc.h"
 #include "log.h"
 #include "serial.h"
-
-extern bscEndpoint *endpointList;
-
 
 /* CMD: query <endpoint>
  * Ret: <state>
@@ -98,7 +96,7 @@ static char *msg_handler(char *a_cmd) {
 		sprintf(rev,"%d.%d", firmwareMajor(), firmwareMinor());
 		return rev;
 	} else if(strcmp(cmd,"1wirereset") == 0) {
-		serialSend("1wirereset");
+		resetOneWireEndpoints();
 		return "ok";
 	} 
 	else if(strcmp(cmd,"action") == 0) {

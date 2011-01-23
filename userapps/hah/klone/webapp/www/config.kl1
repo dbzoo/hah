@@ -2,109 +2,33 @@
 #include "minIni.h"
 #include "login.h"
 #include "const.h"
+#include "utils.h"
+#include "comms.h"
 
-#define sizearray(a)  (sizeof(a) / sizeof((a)[0]))
+int AVRmajor, AVRminor;
 
 static struct {
 	 char temp_unit[2];
 	 int devices1wire;
 	 int devicesrf;
          int timeout_1wire;
-         char sms_enable[2];
-	 char sms_usbserial[16];
 } ini;
 
-struct _label {
-	 int id;
-	 char *name;
-	 char *section;
-	 char *deflt;
-} labels[] = {
-	 {1,"rf","rf","RF 1"},
-	 {2,"rf","rf","RF 2"},
-	 {3,"rf","rf","RF 3"},
-	 {4,"rf","rf","RF 4"},
-	 {5,"rf","rf","RF 5"},
-	 {6,"rf","rf","RF 6"},
-	 {7,"rf","rf","RF 7"},
-	 {8,"rf","rf","RF 8"},
-	 {9,"rf","rf","RF 9"},
-	 {10,"rf","rf","RF 10"},
-	 {11,"rf","rf","RF 11"},
-	 {12,"rf","rf","RF 12"},
-	 {1,"input","input","Input 1"},
-	 {2,"input","input","Input 2"},
-	 {3,"input","input","Input 3"},
-	 {4,"input","input","Input 4"},
-	 {1,"relay","relay","Relay 1"},
-	 {2,"relay","relay","Relay 2"},
-	 {3,"relay","relay","Relay 3"},
-	 {4,"relay","relay","Relay 4"},
-	 {1,"sensor","1wire","Sensor 1"},
-	 {2,"sensor","1wire","Sensor 2"},
-	 {3,"sensor","1wire","Sensor 3"},
-	 {4,"sensor","1wire","Sensor 4"},
-	 {5,"sensor","1wire","Sensor 5"},
-	 {6,"sensor","1wire","Sensor 6"},
-	 {7,"sensor","1wire","Sensor 7"},
-	 {8,"sensor","1wire","Sensor 8"},
-	 {9,"sensor","1wire","Sensor 9"},
-	 {10,"sensor","1wire","Sensor 10"},
-	 {11,"sensor","1wire","Sensor 11"},
-	 {12,"sensor","1wire","Sensor 12"},
-	 {13,"sensor","1wire","Sensor 13"},
-	 {14,"sensor","1wire","Sensor 14"},
-	 {15,"sensor","1wire","Sensor 15"},
-};
-
-struct _label *findLabel(int id, char *name) {
-	 int i=0;
-	 for(i=0; i < sizearray(labels); i++) {
-		  if(labels[i].id == id && strcmp(labels[i].name,name) == 0)
-			   return &labels[i];
-	 }
-	 return NULL;
-}
-
-static void upperstr(char *s) {
-	 while(*s) {
-		  *s = toupper(*s);
-		  s++;
-	 }
-}
-
 static void submit_form() {
-	 int i;
-	 char key[50];
-	 for(i=0; i<sizearray(labels); i++) {
-		  sprintf(key,"%s%d",labels[i].name, labels[i].id);
-		  const char *value = request_get_arg(request, key);
-		  if(value) {
-			   strcat(key,".label");
-			   ini_puts(labels[i].section,key,value,con.inifile);
-		  }
-	 }
+	submit_dynkeys(request,"input","input%d.label", 4);
+	submit_dynkeys(request,"relay","relay%d.label", 4);
+	submit_dynkeys(request,"rf","rf%d.label", ini.devicesrf);
+	submit_dynkeys(request,"rf","rf%d.off", ini.devicesrf);
+	submit_dynkeys(request,"rf","rf%d.on", ini.devicesrf);
+	submit_dynkeys(request,"1wire","sensor%d.label", ini.devices1wire);
+	if(AVRmajor > 1) {
+	  submit_dynkeys(request,"1wire","sensor%d.romid", ini.devices1wire);
+	}
 	 
-	 const char *dev1wire = request_get_arg(request, "sensor_count");
-	 int wire = atoi(dev1wire);
-	 if(wire != ini.devices1wire) {
-		  ini_puts("1wire","devices", dev1wire, con.inifile);
-		  ini.devices1wire = wire;
-	 }
-
-	 const char *temp_unit = request_get_arg(request, "temp");
-	 if(*temp_unit != ini.temp_unit[0]) {
-		  ini_puts("1wire","temp_unit", temp_unit, con.inifile);
-		  ini.temp_unit[0] = *temp_unit;
-	 }
-
-	 const char *ctimeout_1wire = request_get_arg(request, "timeout_1wire");
-	 int timeout_1wire = atoi(ctimeout_1wire);
-	 if(timeout_1wire != ini.timeout_1wire) {
-		 ini_puts("1wire","timeout", ctimeout_1wire, con.inifile);
-		 ini.timeout_1wire = timeout_1wire;
-	 }
-
+	submit_statickey(request,"1wire","devices");
+	submit_statickey(request,"1wire","timeout");
+	submit_statickey(request,"1wire","temp_unit");
+	submit_statickey(request,"rf","devices");
 }
 
 static void readIni() {
@@ -112,16 +36,6 @@ static void readIni() {
 	 ini.devicesrf = ini_getl("rf","devices", 0, con.inifile);
 	 ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), con.inifile);
 	 ini.timeout_1wire = ini_getl("1wire","timeout", 0, con.inifile);
-}
-
-static char buf[20];
-char *kv(char *name, int id) {
-	 struct _label *label = findLabel(id, name);
-	 if (label == NULL) return "?";
-	 char key[30];
-	 sprintf(key, "%s%d.label", name, id);
-	 ini_gets(label->section, key, label->deflt, buf, sizeof(buf), con.inifile);
-	 return buf;
 }
 %>
 <%
@@ -132,6 +46,7 @@ if(action && (strcmp(action,"Apply") == 0 || strcmp(action,"onewirereset") == 0)
 	 submit_form(out);
 	 readIni();
 }
+getAVRfirmwareVersion(&AVRmajor, &AVRminor);
 %>
 <html>
 <head>
@@ -177,8 +92,8 @@ int i;
 <tr><th>Item</th><th>Label</th></tr>
 <%
 for(i=1; i<5; i++) {
-io_printf(out,"<tr>%sInput %d</td>", alt_td(i), i);
-io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"input%d\" value=\"%s\"></td></tr>", alt_td(i), i, kv("input",i));
+  io_printf(out,"<tr>%sInput %d</td>", alt_td(i), i);
+  io_printf(out,"<td><input type=\"text\" name=\"input%d.label\" value=\"%s\"></td></tr>\n", i, iniGetDynLabel("input",i));
 }
 %>
 </table>
@@ -191,78 +106,89 @@ io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"input%
 <tr><th>Item</th><th>Label</th></tr>
 <%
 for(i=1; i<5; i++) {
-io_printf(out,"<tr>%sRelay %d</td>", alt_td(i), i);
-io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"relay%d\" value=\"%s\"></td></tr>", alt_td(i), i, kv("relay",i));
+  io_printf(out,"<tr>%sRelay %d</td>", alt_td(i), i);
+  io_printf(out,"<td><input type=\"text\" name=\"relay%d.label\" value=\"%s\"></td></tr>\n", i, iniGetDynLabel("relay",i));
 }
 %>
 </table>
 </fieldset></td>
-</tr><tr>
-<td valign="top">
-<%
-if(ini.devicesrf > 0) {
-%>
-<fieldset>
-<legend>RF</legend>
-<table>
-<tr><th>Item</th><th>Label</th></tr>
-<%
-for(i=1; i<=ini.devicesrf; i++) {
-	   io_printf(out,"<tr>%sRF %d</td>", alt_td(i), i);
-	   io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"rf%d\" value=\"%s\"></td></tr>", alt_td(i), i, kv("rf",i));
-}
-%>
-</table>
-</fieldset>
-<%
-}
-%>
-</td>
-<%
-if(ini.devices1wire > 0) {
-%>
-<td valign="top"><fieldset>
-<legend>Temperature</legend>
-<table>
-<tr><th>Item</th><th>Label</th></tr>
-<%
-for(i=1; i<=ini.devices1wire; i++) {
-io_printf(out,"<tr>%sSensor %d</td>", alt_td(i), i);
-io_printf(out,"%s<input maxlength=\"20\" size=\"20\" type=\"text\" name=\"sensor%d\" value=\"%s\"></td></tr>", alt_td(i), i, kv("sensor",i));
-		  }
-%>
-</table>
-</fieldset></td>
-<%
-}
-%>
 </tr>
 </table>
 
-<br/>
-<h2>Additional Hardware</h2>
+<fieldset>
+<legend>RF</legend>
+
+<table>
+<tr><th>Item</th><th>Label</th><th>On</th><th>Off</th></tr>
+<%
+for(i=1; i<=ini.devicesrf; i++) {
+  io_printf(out,"<tr><td>RF %d</td>", i);
+  io_printf(out,"<td><input size=\"10\" type=\"text\" name=\"rf%d.label\" value=\"%s\"></td>\n", i, iniGetDynLabel("rf",i));
+  io_printf(out,"<td><input type=\"text\" name=\"rf%d.on\" value=\"%s\"></td>\n", i, iniGetDynKey("rf","rf%d.on", i));
+  io_printf(out,"<td><input type=\"text\" name=\"rf%d.off\" value=\"%s\"></td>\n", i, iniGetDynKey("rf","rf%d.off", i));
+  io_printf(out,"</tr>");
+}
+%>
+</table>
+  <div class="setting">
+    <div class="label">RF Devices</div>
+	<input class="num" type="text" name="rf.devices" onblur="valid_range(this,0,12,'RF count')" value="<% io_printf(out,"%d",ini.devicesrf); %>" maxlength="2" size="2"/>
+  </div>
+
+</fieldset>
+
 <fieldset>
 <legend>1wire devices</legend>
+<%
+if(ini.devices1wire > 0) {
+%>
+<table>
+<tr><th>Item</th><th>Label</th>
+<%
+if(AVRmajor > 1) io_printf(out,"<th>ROM ID</th>");
+%>
+</tr>
+<%
+for(i=1; i<=ini.devices1wire; i++) {
+   io_printf(out,"<tr><td>Sensor %d</td>", i);
+   io_printf(out,"<td><input type=\"text\" name=\"sensor%d.label\" value=\"%s\"></td>", i, iniGetDynLabel("sensor",i));
+   if(AVRmajor > 1) {
+	   io_printf(out,"<td><input size=\"19\" maxlength=\"18\" type=\"text\" name=\"sensor%d.romid\" value=\"%s\"></td>", 
+		     i, iniGetDynKey("1wire","sensor%d.romid", i));
+   }
+   io_printf(out,"</tr>\n");
+}
+%>
+</table>
+<%
+}
+%>
+
   <div class="setting">
-    <div class="label">Sensor Count</div>
-	<input class="num" type="text" name="sensor_count" onblur="valid_range(this,0,15,'Sensors')" value="<% io_printf(out,"%d",ini.devices1wire); %>" maxlength="2" size="2"/>
+    <div class="label">Number of Sensors</div>
+	<input class="num" type="text" name="1wire.devices" onblur="valid_range(this,0,15,'Sensors')" value="<% io_printf(out,"%d",ini.devices1wire); %>" maxlength="2" size="2"/>
   </div>
   <div class="setting">
     <div class="label">Temperature units</div>
-	<input class="spaceradio" type="radio" value="C" name="temp" <% if(ini.temp_unit[0] == 'C') { %> checked="checked"<% } %>/>Celsius&nbsp;
-    <input class="spaceradio" type="radio" value="F" name="temp" <% if(ini.temp_unit[0] == 'F') { %> checked="checked"<% } %>/>Fahrenheit
+	<input class="spaceradio" type="radio" value="C" name="1wire.temp_unit" <% if(ini.temp_unit[0] == 'C') { %> checked="checked"<% } %>/>Celsius&nbsp;
+    <input class="spaceradio" type="radio" value="F" name="1wire.temp_unit" <% if(ini.temp_unit[0] == 'F') { %> checked="checked"<% } %>/>Fahrenheit
   </div>
   <div class="setting">
   <div class="label">Timeout check</div>
-    <input class="num" type="text" name="timeout_1wire" onblur="valid_range(this,0,99,'Timeout')" value="<% io_printf(out,"%d",ini.timeout_1wire); %>" maxlength="2" size="2"/> Minute(s)
+    <input class="num" type="text" name="1wire.timeout" onblur="valid_range(this,0,99,'Timeout')" value="<% io_printf(out,"%d",ini.timeout_1wire); %>" maxlength="2" size="2"/> Minute(s)
   </div>
+
+<% 
+    // Displays HTML table of unassigned ROMID built by the xap-livebox process
+    io_printf(out, send_cmd("1wireroms"));
+%>
+
   <input type="button" name="onewirereset" value="Reset 1-Wire Bus" onclick="wirereset(this.form)" />
 <%
-if(action && strcmp(action,"onewirereset") == 0) {
-	// Reset the 1wire endpoints and AVR bus.
-	char *result = send_cmd("1wirereset");
-	io_printf(out,"<b>%s</b>", result);
-}
+  if(action && strcmp(action,"onewirereset") == 0) {
+  	// Reset the 1wire endpoints and AVR bus.
+  	io_printf(out,"<b>%s</b>", send_cmd("1wirereset"));
+  }
 %>
 </fieldset>
 
@@ -272,6 +198,7 @@ if(action && strcmp(action,"onewirereset") == 0) {
 <div class="submitFooter">
 <input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)" />
 <input type="reset" value="Cancel Changes"/>
+<input type="submit" value="Refresh"/>
 </div>
 </form>
 

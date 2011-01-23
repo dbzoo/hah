@@ -16,6 +16,7 @@ Serial interfacing to the external AVR hardware
 #include "xap.h"
 #include "bsc.h"
 #include "log.h"
+#include "ini.h"
 
 extern bscEndpoint *endpointList;
 
@@ -107,26 +108,76 @@ static void serin_input(cmd_t *s, bscEndpoint *head, char *argv[])
 
 /** Process inbound SERIAL command for a 1wire endpoint.
 *
-* 1wire N L
-*
+* V1 - 1wire N L
+* V2 - 1wire ROMID L
+* 
 * N - is the number of the i2c/1-wire device on the BUS we support a larger number
 *     by amending the endpoint struct.
 * L - a numeric value.  Temp, Pressure etc..
 */
+
+static bscEndpoint *findROMID(bscEndpoint *head, char *name, char *romid)
+{
+        debug("name %s romid %s", name, romid);
+        bscEndpoint *e;
+	LL_FOREACH(head, e) {
+                if(strcmp(e->name, name) == 0 && 
+		   strcmp(((struct tempSensor *)e->userData)->romid, romid) == 0)
+		{
+	                info("Found ", e->source);
+                        return e;
+                }
+        }
+        return NULL;
+}
+
 static void serin_1wire(cmd_t *s, bscEndpoint *head, char *argv[])
 {
         if(argv[0] == NULL)
                 return;  // Bad input shouldn't happen?!
-        bscEndpoint *e = bscFindEndpoint(head, "1wire", argv[0]);
-        if(e) {
-                bscSetState(e, BSC_STATE_ON);  // got a serial event we know its alive.
-                bscSetText(e, argv[1]);
-	        bscSendCmdEvent(e);
-                // record the last time this 1wire device reported in.
-                *(time_t *)e->userData = time(NULL);
-        } else {
-		notice("Endpoint 1wire.%s not found", argv[0]);
+	char *temp = argv[1];
+
+	bscEndpoint *e;
+	if(firmwareMajor() > 1) {
+		char *romid = argv[0]; // 1wire ROMID L
+		e = findROMID(head, "1wire", romid);		
+		if(e == NULL) { 
+			notice("ROMID %s %s not assigned", romid, temp);
+
+			// Add the ROM ID if not found, always update the current temperature so
+			// its reported to the WEB interface.  It may help with assignment.
+			struct unassignedROMID *u;
+			int toadd = 1;
+			LL_FOREACH(unassignedROMIDList, u) {
+				if(strcmp(u->romid, romid) == 0) {
+					toadd = 0;
+					break;
+				}
+			}
+			if(toadd) {
+				info("Adding unassigned ROMID to list");
+				u = (struct unassignedROMID *)calloc(1,sizeof(struct unassignedROMID));
+				strlcpy(u->romid, romid, sizeof(u->romid));
+				LL_PREPEND(unassignedROMIDList, u);
+			}
+			strlcpy(u->temperature, temp, sizeof(u->temperature));
+			return;
+		}
+	} else {
+		char *id = argv[0]; // 1wire N L
+		e = bscFindEndpoint(head, "1wire", id);
+		if(e == NULL) { 
+			notice("Endpoint 1wire.%s not found", id);
+			return;
+		}
 	}
+
+	bscSetState(e, BSC_STATE_ON);  // got a serial event we know its alive.
+	bscSetText(e, temp);
+	bscSendCmdEvent(e);
+	// record the last time this 1wire device reported in.
+	((struct tempSensor *)e->userData)->lastSerialEvent = time(NULL);
+
 }
 
 /** Processing inbound SERIAL command from the I2C PPE chip.
@@ -185,19 +236,28 @@ static void processSerialCommand(bscEndpoint *head, char *a_cmd)
 {
         cmd_t *s = &cmd[0];
         char *command = NULL;
-
-        command = strtok(a_cmd," ");
+	int i = 0;
+	char *argv[8];
+	
+	command = a_cmd;
+	char *space = strchr(a_cmd,' ');
+	if(space) {
+		*space = '\0';
+		a_cmd = space + 1;
+	}
+	
         while(s->name) {
                 if(strcmp(command, s->name) == 0) {
-                        int i;
-                        char *argv[8];
-                        char *arg;
-                        for(i=0; i < sizeof(argv); i++) {
-                                arg = strtok(NULL," ,");
-                                if(arg == NULL)
-                                        break;
-                                argv[i] = arg;
-                        }
+			while(*a_cmd) {
+				argv[i++] = a_cmd;
+				if(i > 7) break;
+				while(*a_cmd && !isspace(*a_cmd ) && *a_cmd != ',')
+					a_cmd++;
+				if(*a_cmd) {
+					*a_cmd = '\0';
+					a_cmd++;
+				}
+			}
                         (*s->func)(s, head, argv);
                         break;
                 }

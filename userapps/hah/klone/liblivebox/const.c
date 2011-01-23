@@ -24,9 +24,6 @@ const_init() {
 		  u_free(file);
 	 }
 
-	 con.avrBuild = NULL;
-
-
 	// What is our IP?
 /*
 	 struct ifreq i_interface;

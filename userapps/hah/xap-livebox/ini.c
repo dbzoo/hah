@@ -22,6 +22,8 @@ INI file processing
 
 const char *inifile = "/etc/xap-livebox.ini";
 
+struct unassignedROMID *unassignedROMIDList = NULL;
+
 /** Generate an event/info and lookup the displaytext
 *
 * @param e Endpoint to generate the xap message for
@@ -120,8 +122,9 @@ static void cmdURF(bscEndpoint *e)
 void timeoutCheck1wire(int interval, void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
+	struct tempSensor *userData = (struct tempSensor *)e->userData;
         time_t now = time(NULL);
-        if(now > *(time_t *)e->userData + interval) {
+        if(now > userData->lastSerialEvent + interval) {
                 bscSetState(e, BSC_STATE_UNKNOWN);
                 bscSetText(e, "?");
         }
@@ -130,10 +133,10 @@ void timeoutCheck1wire(int interval, void *data)
 static void timeoutReport1wire(int interval, void *data)
 {
 	// Ask AVR firmware to report current endpoints states	
-	if(firmwareMajor() > 1)
-		serialSend("report 1wire");
-	else
+	if(firmwareMajor() == 1 && firmwareMinor() == 0)
 		serialSend("report");
+	else
+		serialSend("report 1wire");
 }
 
 /** Drive an I2C PPE in PIN mode for a targeted xAPBSC.cmd
@@ -199,19 +202,36 @@ static int addOneWireIniEndpoints(int mode)
 {
 	long n;
 	int i;
-        char buff[5];
+        char buff[17];
+	const int maxDevices = firmwareMajor() > 1 ? 31 : 15;
+	char romid[19];
 
 	n = ini_getl("1wire", "devices", -1, inifile);
-	if (n > 15)
-		n = 15;
+	if (n > maxDevices) n = maxDevices;
+
 	bscSetEndpointUID(128);
 	long t = ini_getl("1wire", "timeout", -1, inifile);
 	for(i=1; i<=n; i++) {
 		info("Adding 1wire.%d", i);
-		snprintf(buff,sizeof buff,"%d", i);
+
+		if(firmwareMajor() > 1) { // Need a ROMID
+			snprintf(buff,sizeof(buff),"sensor%d.romid", i);
+			info("Looking for %s", buff);
+			if(ini_gets("1wire", buff, "", romid, sizeof(romid), inifile) != 18) {
+				warning("sensor%d.romid : Missing or invalid ROMID", i);
+				continue;
+			}
+		}
+
+		info("Creating endpoint");
+		snprintf(buff,sizeof(buff),"%d", i);
 		bscEndpoint *e = bscAddEndpoint(&endpointList, "1wire", buff, BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);
-		// extra data to hold last 1wire event serial time.
-		e->userData = (void *)malloc(sizeof(time_t));
+
+		struct tempSensor *sensor = (struct tempSensor *)malloc(sizeof(struct tempSensor));
+		sensor->lastSerialEvent = 0;
+		if(firmwareMajor() > 1) strcpy(sensor->romid, romid);
+		e->userData = sensor;
+
 		if(t>0) xapAddTimeoutAction(&timeoutCheck1wire, t*60, (void *)e);
 		if(mode == IMMEDIATE) {
 			bscAddEndpointFilter(e, 120); // info interval
@@ -229,6 +249,14 @@ static int addOneWireIniEndpoints(int mode)
 // Delete endpoints and reload the .INI file 
 void resetOneWireEndpoints() 
 {
+	// Clear all the assigned ROMID's
+	if(firmwareMajor() > 1) {
+		struct unassignedROMID *e, *tmp;
+		LL_FOREACH_SAFE(unassignedROMIDList, e, tmp) {
+			LL_DELETE(unassignedROMIDList, e);
+		}
+	}
+
 	// Reset the one wire bus to discover new/deleted 1-wire devices.
 	serialSend("1wirereset");
 
@@ -244,8 +272,8 @@ void resetOneWireEndpoints()
 				xapDelTimeoutAction(cb);
 			}
 
-			time_t *lastSerialTime = bscDelEndpoint(e);
-			free(lastSerialTime);
+			struct tempSensor *sensor = (struct tempSensor *)bscDelEndpoint(e);
+			free(sensor);
                 }
         }
 
@@ -259,6 +287,58 @@ void resetOneWireEndpoints()
 	}
 }
 
+/* Add I2C/PPE endpoints for the INI file [ppeX] section.
+ */
+static void addPPEendpoints(char *section) {
+        char s_addr[5];
+        int addr;
+        char mode[5];
+	long n;
+        char buff[30];
+
+	int section_number = atoi(section+3); // The digit is its endpoint: ppe.1
+	if(section_number < 1 || section_number > 8) {
+		err("%s: Section out of range [1-8]", section);
+		return;
+	}
+	n = ini_gets(section, "address", "", s_addr, sizeof(s_addr), inifile);
+	if (n == 0) {
+		err("%s: Missing address=[0x20-0x4E]", section);
+		return;
+	}
+	// PCF8574  - 0 1 0 0 A2 A1 A0 0 - 0x40 to 0x4E
+	// PCF8574A - 0 0 1 1 1 A2 A1 A0 - 0x38 to 0x3F
+	// PCF8574N - 0 0 1 0 0 A2 A1 A0 - 0x20 to 0x27
+	sscanf(s_addr,"%x", &addr);
+	if(addr < 0x20 || addr > 0x4e) { // not perfect but it'll do.
+		err("%s: Invalid address %s", section, s_addr);
+		return;
+	}
+	n = ini_gets(section, "mode", "", mode, sizeof(mode), inifile);
+	if(n == 0) {
+		err("%s: Missing mode=[byte|pin]", section);
+		return;
+	}			
+	bscSetEndpointUID((section_number-1)*8+32); // UID range 32-95
+	
+	if(strcmp(mode,"byte") == 0) {
+		snprintf(buff,sizeof buff,"%d", section_number);
+		bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_STREAM, &cmdPPEbyte, NULL);
+		setup_i2c_ppe(addr);
+	} else if(strcmp(mode,"pin") == 0) {
+		int pin;
+		
+		for(pin=0; pin<7; pin++) {
+			snprintf(buff,sizeof buff,"%d.%d", section_number, pin);
+			bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_BINARY, &cmdPPEpin, NULL);
+		}
+		setup_i2c_ppe(addr);
+	} else {
+		err("%s: Invalid mode: %s", section, mode);
+		return;
+	}		
+}
+
 /** Parse the .ini file and dynamically create XAP endpoints.
  */
 void addIniEndpoints()
@@ -267,9 +347,6 @@ void addIniEndpoints()
         long n;
         int s, i;
         char buff[30];
-        char s_addr[5];
-        int addr;
-        char mode[5];
 
         reset_i2c_ppe();
         for (s = 0; ini_getsection(s, section, sizeof(section), inifile) > 0; s++) {
@@ -281,42 +358,7 @@ void addIniEndpoints()
                    another.
                 */
                 if(strncmp("ppe", section, 3) == 0) {
-                        n = ini_gets(section, "address", "", s_addr, sizeof(s_addr), inifile);
-                        if (n == 0) {
-                                err(section,"Missing address=[0x40-0x4E]");
-                                continue;
-                        }
-                        sscanf(s_addr,"%x", &addr);
-                        if(addr < 0x40 || addr > 0x4e) {
-                                err(section,"Invalid address %s", s_addr);
-                                continue;
-                        }
-                        n = ini_gets(section, "mode", "", mode, sizeof(mode), inifile);
-                        if(n == 0) {
-                                err(section,"Missing mode=[byte|pin]");
-                                continue;
-                        }
-			
-			// PCF8574 I2C address - 0 1 0 0 A2 A1 A0 0 - 0x40 to 0x4E
-			int real_addr = (addr >> 1) & 0x7; // Range 0-7
-                        bscSetEndpointUID(real_addr*8+32); // UID range 32-95
-
-                        if(strcmp(mode,"byte") == 0) {
-                                snprintf(buff,sizeof buff,"%02X", addr);
-                                bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_STREAM, &cmdPPEbyte, NULL);
-                                setup_i2c_ppe(addr);
-                        } else if(strcmp(mode,"pin") == 0) {
-                                int pin;
-
-                                for(pin=0; pin<7; pin++) {
-                                        snprintf(buff,sizeof buff,"%02X.%d", addr, pin);
-                                        bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_BINARY, &cmdPPEpin, NULL);
-                                }
-                                setup_i2c_ppe(addr);
-                        } else {
-                                err(section,"Invalid mode: %s", mode);
-                                continue;
-                        }
+			addPPEendpoints(section);
                 }  // Handle section: [1wire]
                 else if(strcmp("1wire", section) == 0) {
 			addOneWireIniEndpoints(DELAYED);

@@ -10,7 +10,7 @@ $regfile = "m328pdef.dat"
 
 ' Firmware revision
 Const Fwmajor = 2
-Const Fwminor = 0
+Const Fwminor = 1
 
 ' Allow interactive debug mode - increases code size.
 Const Allow_interactive = 1
@@ -269,7 +269,7 @@ Dim Pulsehi(16) As Word                                     ' (1<<maxencbits)
 Dim Pulselo(16) As Word
 Dim Frames As Byte
 Dim Bitsperframe As Byte
-Dim Burtstosend As Byte
+Dim Burststosend As Byte
 Dim Interburstdelay As Byte
 Dim Bitstream(maxbitstream) As Byte
 
@@ -285,7 +285,7 @@ Dim Hlong As Long
 Dim Gppos As Byte
 Dim Hexstring As String * 2
 Dim Hexbyte(2) As Byte At Hexstring Overlay
-
+Dim Rferr As Bit
 
 '*****************************************************************************
 '#### MAIN ####
@@ -462,7 +462,6 @@ Sub Getinput(pbbyte As Byte)
         End If
 #endif
         Docommand                                           ' analyse command and execute
-Badcommand:
         Printprompt
 #if Allow_interactive
       Case &H08                                             ' backspace ?
@@ -575,6 +574,7 @@ Sub Port_status
   Next I
 End Sub
 
+
 ' Show what we found on the 1-wire bus
 Sub 1wire_status
    If Cnt1wire = 0 Then
@@ -661,10 +661,9 @@ Sub I2cmgmt(pos As Byte)
   'Print "i2c cmd: " ; D
   'Print "i2c addr: " ; K
 
-  ' for PCF8574A chips we may need to adjust this
-  If K < &H40 Or K > &H4E Then                              ' Sanity check
-    Return
-  End If
+  ' PCF8574  - 0 1 0 0 A2 A1 A0 0 - 0x40 to 0x4E
+  ' PCF8574A - 0 0 1 1 1 A2 A1 A0 - 0x38 to 0x3F
+  ' PCF8574N - 0 0 1 0 0 A2 A1 A0 - 0x20 to 0x27
 
   ' Add a new ADDRESS to the list of known PPE chips
   If D = "M" Then
@@ -771,12 +770,13 @@ Sub Readbyte
   For K = 1 To 2
     ' End of buffer reached and we still need more?
     If Gppos > Gbpcinputpointer Then
+      Rferr = 1
 #if Allow_interactive
       If Interactive = 1 Then
          Print "ERR: not enough HEX characters"
       End If
 #endif
-      Goto Badcommand                                       ' Jump out.
+      Return
     End If
     Hexbyte(k) = Gspcinp(gppos)
     Incr Gppos
@@ -787,6 +787,9 @@ End Sub
 '2 bytes (Word 16bit)
 Sub Readword
   Call Readbyte
+  If Rferr = 1 Then
+    Return
+  End If
   Hword = Hbyte
   Shift Hword , Left , 8
   Call Readbyte
@@ -796,6 +799,9 @@ End Sub
 ' 4 bytes (Long 32bit)
 Sub Readlong
   Call Readword
+  If Rferr = 1 Then
+    Return
+  End If
   Hlong = Hword
   Shift Hlong , Left , 16
   Call Readword
@@ -804,12 +810,21 @@ End Sub
 
 
 Sub Setuprf
-  If Gbpcinputpointer = 1 Then
+  Call Readbyte
+  If Rferr = 1 Then
     Return
   End If
 
-  Call Readbyte
   Bitsperframe = Hbyte
+  If Bitsperframe > Maxencbits Then
+#if Allow_interactive
+    If Interactive = 1 Then
+      Print "Bad encoding of " ; Bitsperframe
+    End If
+#endif
+    Rferr = 1
+    Return
+  End If
 
   ' Number of pulse encodings based on bits per frames.
   Enc = 1
@@ -831,18 +846,34 @@ Sub Setuprf
   ' Populate pulse timing lookup tables
   For I = 1 To Enc
     Call Readword
+    If Rferr = 1 Then
+      Return
+    End If
     Pulsehi(i) = Hword
+
     Call Readword
+    If Rferr = 1 Then
+      Return
+    End If
     Pulselo(i) = Hword
   Next I
 
   Call Readbyte
-  Burtstosend = Hbyte
+  If Rferr = 1 Then
+      Return
+  End If
+  Burststosend = Hbyte
 
   Call Readbyte
+  If Rferr = 1 Then
+      Return
+  End If
   Interburstdelay = Hbyte
 
   Call Readbyte
+  If Rferr = 1 Then
+      Return
+  End If
   Frames = Hbyte
 
   ' Read in stream bytes
@@ -857,13 +888,17 @@ Sub Setuprf
 #if Allow_interactive
       If Interactive = 1 Then
          Print "ERR: stream too large"
+         Rferr = 1
       End If
 #endif
-    Goto Badcommand
+      Return
   End If
 
   For I = 1 To Streambytes
     Call Readbyte
+    If Rferr = 1 Then
+      Return
+    End If
     Bitstream(i) = Hbyte
   Next I
 
@@ -871,7 +906,7 @@ Sub Setuprf
 #if Allow_interactive
   If Interactive = 1 Then
     Print "Bits per Frame: " ; Bitsperframe
-    Print "Burts to send: " ; Burtstosend
+    Print "Burts to send: " ; Burststosend
     Print "Frames per byte: " ; Framesperbyte
     Print "Pulse Encodings: " ; Enc
     Print "Interburst delay: " ; Interburstdelay
@@ -916,24 +951,32 @@ Sub Xmitrf
 End Sub
 
 Sub Universalrf(pos As Byte)
+  Rferr = 0
   Gppos = Pos
   Setuprf
 
+  If Rferr = 1 Then
+#if Allow_interactive
+    If Interactive = 1 Then
+      Print "RF setup failed"
+    End If
+#endif
+    Return
+  End If
+
   Stop Timer1
   Disable Interrupts
-  While Burtstosend > 0
+  While Burststosend > 0
     Xmitrf
     Waitms Interburstdelay
-    Decr Burtstosend
+    Decr Burststosend
   Wend
   Enable Interrupts
   Start Timer1
 
-#if Allow_interactive
   If Interactive = 1 Then
     Print "RF sent"
   End If
-#endif
 End Sub
 
 '*****************************************************************************
@@ -1037,7 +1080,13 @@ Sub Disp_temp(cnt As Byte , Offset As Byte)
   ' If this value different from the stored value ?
   ' Or we are forcing a report
   If Dsvalue(cnt) <> Imeas Or Report.rep1wire = 1 Then
-    Print "1wire " ; Cnt ; " ";
+      Print "1wire " ;
+      ' Dump ROM ID
+      Bi = Offset + 8
+      For I = Offset To Bi
+        Print Hex(dsid(i));
+      Next
+    Print " ";
     If Dssign.cnt = 1 And Imeas <> 0 Then
       Print "-";
     End If

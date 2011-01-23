@@ -2,6 +2,7 @@
 #include "minIni.h"
 #include "login.h"
 #include "const.h"
+#include "utils.h"
 
 static struct {
 	 char temp_unit[2];
@@ -60,7 +61,7 @@ function comboSubmit() {
 <%
   k = 1;
   for(i=1; i<=ini.devicesrf; i++, k++) {
-	   io_printf(out,"<tr>%s%s</td>", alt_td(k), kv("rf",i));
+	   io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("rf",i));
      io_printf(out,"%s %s </td>", alt_td(k), query("rf",i));
   }
 %>
@@ -79,7 +80,7 @@ function comboSubmit() {
 <%
   k = 1;
   for(i=1; i<5; i++, k++) {
-	   io_printf(out,"<tr>%s%s</td>", alt_td(k), kv("relay",i));
+	   io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("relay",i));
 	   io_printf(out,"%s %s </td>", alt_td(k), query("relay",i));
   }
 %>
@@ -95,7 +96,7 @@ function comboSubmit() {
 <%
   k = 1;
   for(i=1; i<5; i++, k++) {
-	   io_printf(out,"<tr>%s%s</td>", alt_td(k), kv("input",i));
+	   io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("input",i));
      io_printf(out,"%s %s </td>", alt_td(k), query("input",i));
      io_printf(out,"%s</td></tr>", alt_td(k));
   }
@@ -115,7 +116,7 @@ function comboSubmit() {
 <%
   k = 1;
   for(i=1; i<=ini.devices1wire; i++, k++) {
-	   io_printf(out,"<tr>%s%s</td>", alt_td(k), kv("sensor",i));
+	   io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("sensor",i));
 	   char *c  = query("1wire",i);
 	   io_printf(out,"%s ",alt_td(k));
 	   if (*c == '?') {

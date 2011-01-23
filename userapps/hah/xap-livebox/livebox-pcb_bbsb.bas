@@ -8,6 +8,10 @@
 
 $regfile = "m8def.dat"
 
+' Firmware revision
+Const Fwmajor = 1
+Const Fwminor = 1
+
 ' Allow interactive debug mode - increases code size.
 Const Allow_interactive = 0
 
@@ -541,7 +545,11 @@ Sub Docommand
   End If
 
   Select Case Gspcinput
+     Case "version" : Print "rev " ; Fwmajor ; "." ; Fwminor
      Case "report" : Report = &HFF
+     Case "report input" : Report.repinput = 1
+     Case "report 1wire" : Report.rep1wire = 1
+     Case "report ppe" : Report.repppe = 1
      Case "reboot" : Reboot
      Case "1wirereset" : 1wire_setup
 #if Allow_interactive
@@ -616,11 +624,6 @@ Sub I2cmgmt(pos As Byte)
 
   'Print "i2c cmd: " ; D
   'Print "i2c addr: " ; K
-
-  ' for PCF8574A chips we may need to adjust this
-  If K < &H40 Or K > &H4E Then                              ' Sanity check
-    Return
-  End If
 
   ' Add a new ADDRESS to the list of known PPE chips
   If D = "M" Then

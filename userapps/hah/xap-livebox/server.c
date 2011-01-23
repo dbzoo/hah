@@ -81,6 +81,21 @@ static char *msg_action(char *arg) {
 	return "ok";
 }
 
+static char *buildListOfUnassignedROMS() {
+	static char buf[1024];
+	struct unassignedROMID *u;
+
+	if(unassignedROMIDList == NULL) return;
+
+	strcpy(buf,"Unassigned 1wire ROM ID's<table><tr><th>ROM ID</th><th>Temp</th></tr>");
+	int len = strlen(buf);
+	LL_FOREACH(unassignedROMIDList, u) {
+		len += snprintf(&buf[len], sizeof(buf)-len,"<tr><td>%s</td><td>%s</td></tr>", u->romid, u->temperature);
+	}
+	strlcat(buf,"</table>", sizeof(buf));
+	return buf;
+}
+
 /* Break into: <cmd> <args>
    Arguments will be procesed by the appropriate command handler.
 */
@@ -98,6 +113,8 @@ static char *msg_handler(char *a_cmd) {
 	} else if(strcmp(cmd,"1wirereset") == 0) {
 		resetOneWireEndpoints();
 		return "ok";
+	} else if(strcmp(cmd,"1wireroms") == 0) {
+		return buildListOfUnassignedROMS();
 	} 
 	else if(strcmp(cmd,"action") == 0) {
 		return msg_action(args);

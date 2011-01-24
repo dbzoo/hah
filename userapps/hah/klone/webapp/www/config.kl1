@@ -15,6 +15,12 @@ static struct {
 } ini;
 
 static void submit_form() {
+	submit_statickey(request,"1wire","devices");
+	submit_statickey(request,"1wire","timeout");
+	submit_statickey(request,"1wire","temp_unit");
+	submit_statickey(request,"rf","devices");
+	readIni();
+
 	submit_dynkeys(request,"input","input%d.label", 4);
 	submit_dynkeys(request,"relay","relay%d.label", 4);
 	submit_dynkeys(request,"rf","rf%d.label", ini.devicesrf);
@@ -24,11 +30,6 @@ static void submit_form() {
 	if(AVRmajor > 1) {
 	  submit_dynkeys(request,"1wire","sensor%d.romid", ini.devices1wire);
 	}
-	 
-	submit_statickey(request,"1wire","devices");
-	submit_statickey(request,"1wire","timeout");
-	submit_statickey(request,"1wire","temp_unit");
-	submit_statickey(request,"rf","devices");
 }
 
 static void readIni() {
@@ -40,13 +41,18 @@ static void readIni() {
 %>
 <%
 REQUIRE_AUTH(SCRIPT_NAME);
+getAVRfirmwareVersion(&AVRmajor, &AVRminor);
 readIni();
 const char *action = request_get_arg(request,"action");
-if(action && (strcmp(action,"Apply") == 0 || strcmp(action,"onewirereset") == 0)) {
-	 submit_form(out);
-	 readIni();
+if(action) {
+	if(strcmp(action,"apply") == 0) {
+		submit_form(out);
+	} else if(strcmp(action,"onewirereset") == 0) {
+		submit_form(out);
+		// Reset the 1wire endpoints and AVR bus.
+		send_cmd("1wirereset");
+	}
 }
-getAVRfirmwareVersion(&AVRmajor, &AVRminor);
 %>
 <html>
 <head>
@@ -57,7 +63,7 @@ getAVRfirmwareVersion(&AVRmajor, &AVRminor);
 <script type="text/javascript">
 function to_submit(F) {
 	F.save_button.value = "Saving";
-	F.action.value = "Apply";
+	F.action.value = "apply";
 	apply(F);
 }
 function wirereset(F) {
@@ -177,23 +183,13 @@ for(i=1; i<=ini.devices1wire; i++) {
   <div class="label">Timeout check</div>
     <input class="num" type="text" name="1wire.timeout" onblur="valid_range(this,0,99,'Timeout')" value="<% io_printf(out,"%d",ini.timeout_1wire); %>" maxlength="2" size="2"/> Minute(s)
   </div>
-
-  <input type="button" name="onewirereset" value="Reset 1-Wire Bus" onclick="wirereset(this.form)" />
 <%
-  if(action && strcmp(action,"onewirereset") == 0) {
-  	// Reset the 1wire endpoints and AVR bus.
-  	io_printf(out,"<b>%s</b>", send_cmd("1wirereset"));
-	if(AVRmajor > 1) {
-                // Wait for the bus to reset and the 1wire devices to report in
-		// this makes the HTML table of unassigned ROM's report correctly.
-		sleep(2); 
-	}
-  }
   if(AVRmajor > 1) {
     // Displays HTML table of unassigned ROMID built by the xap-livebox process
     io_printf(out, send_cmd("1wireroms"));
   }
 %>
+  <input type="button" name="onewirereset" value="Reset 1-Wire Bus" onclick="wirereset(this.form)" />
 </fieldset>
 
 

@@ -687,7 +687,7 @@ End Sub
 
 #if Extended_interactive
 Sub Help
-  Print "$Revision: 1.15 $  Available Commands:"
+  Print "$Revision$  Available Commands:"
   Print "<channel> = 1-8"
   Print "  HELP"
   Print "  REPORT"

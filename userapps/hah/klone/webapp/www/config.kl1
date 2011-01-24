@@ -132,7 +132,7 @@ for(i=1; i<=ini.devicesrf; i++) {
 </table>
   <div class="setting">
     <div class="label">RF Devices</div>
-	<input class="num" type="text" name="rf.devices" onblur="valid_range(this,0,12,'RF count')" value="<% io_printf(out,"%d",ini.devicesrf); %>" maxlength="2" size="2"/>
+	<input class="num" type="text" name="rf.devices" onblur="valid_range(this,0,<% io_printf(out,"%d",AVRmajor>1?32:12); %>,'RF count')" value="<% io_printf(out,"%d",ini.devicesrf); %>" maxlength="2" size="2"/>
   </div>
 
 </fieldset>
@@ -166,7 +166,7 @@ for(i=1; i<=ini.devices1wire; i++) {
 
   <div class="setting">
     <div class="label">Number of Sensors</div>
-	<input class="num" type="text" name="1wire.devices" onblur="valid_range(this,0,15,'Sensors')" value="<% io_printf(out,"%d",ini.devices1wire); %>" maxlength="2" size="2"/>
+	<input class="num" type="text" name="1wire.devices" onblur="valid_range(this,0,<% io_printf(out,"%d",AVRmajor>1?31:15); %>,'Sensors')" value="<% io_printf(out,"%d",ini.devices1wire); %>" maxlength="2" size="2"/>
   </div>
   <div class="setting">
     <div class="label">Temperature units</div>
@@ -178,16 +178,20 @@ for(i=1; i<=ini.devices1wire; i++) {
     <input class="num" type="text" name="1wire.timeout" onblur="valid_range(this,0,99,'Timeout')" value="<% io_printf(out,"%d",ini.timeout_1wire); %>" maxlength="2" size="2"/> Minute(s)
   </div>
 
-<% 
-    // Displays HTML table of unassigned ROMID built by the xap-livebox process
-    io_printf(out, send_cmd("1wireroms"));
-%>
-
   <input type="button" name="onewirereset" value="Reset 1-Wire Bus" onclick="wirereset(this.form)" />
 <%
   if(action && strcmp(action,"onewirereset") == 0) {
   	// Reset the 1wire endpoints and AVR bus.
   	io_printf(out,"<b>%s</b>", send_cmd("1wirereset"));
+	if(AVRmajor > 1) {
+                // Wait for the bus to reset and the 1wire devices to report in
+		// this makes the HTML table of unassigned ROM's report correctly.
+		sleep(2); 
+	}
+  }
+  if(AVRmajor > 1) {
+    // Displays HTML table of unassigned ROMID built by the xap-livebox process
+    io_printf(out, send_cmd("1wireroms"));
   }
 %>
 </fieldset>

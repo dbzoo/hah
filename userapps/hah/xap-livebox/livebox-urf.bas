@@ -328,7 +328,7 @@ Do
   End If
 
   If Iport <> Portvalue Then
-      Print "input " ; Portvalue ; "," ; Iport
+      Print "input " ; Portvalue ; " " ; Iport
       Iport = Portvalue
       Waitms 25                                             ' debounce
   End If

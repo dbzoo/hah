@@ -10,7 +10,7 @@ $regfile = "m328pdef.dat"
 
 ' Firmware revision
 Const Fwmajor = 2
-Const Fwminor = 1
+Const Fwminor = 2
 
 ' Allow interactive debug mode - increases code size.
 Const Allow_interactive = 1
@@ -88,8 +88,9 @@ Declare Sub I2c_monitor
 Declare Sub Readbyte
 Declare Sub Readword
 Declare Sub Readlong
-Declare Sub Setuprf
+Declare Sub Setupurf
 Declare Sub Xmitrf
+Declare Sub Universalrfv1(pos As Byte)
 Declare Sub Universalrf(pos As Byte)
 
 ' I want a timer that resolves to 1sec, so the first step is to divide down
@@ -270,7 +271,8 @@ Dim Pulselo(16) As Word
 Dim Frames As Byte
 Dim Bitsperframe As Byte
 Dim Burststosend As Byte
-Dim Interburstdelay As Byte
+Dim Interburstrepeat As Byte
+Dim Interburstdelay As Word
 Dim Bitstream(maxbitstream) As Byte
 
 ' RF working data
@@ -809,7 +811,7 @@ Sub Readlong
 End Sub
 
 
-Sub Setuprf
+Sub Setupurf
   Call Readbyte
   If Rferr = 1 Then
     Return
@@ -864,11 +866,18 @@ Sub Setuprf
   End If
   Burststosend = Hbyte
 
+
   Call Readbyte
   If Rferr = 1 Then
       Return
   End If
-  Interburstdelay = Hbyte
+  Interburstrepeat = Hbyte
+
+  Call Readword
+  If Rferr = 1 Then
+      Return
+  End If
+  Interburstdelay = Hword
 
   Call Readbyte
   If Rferr = 1 Then
@@ -909,7 +918,7 @@ Sub Setuprf
     Print "Burts to send: " ; Burststosend
     Print "Frames per byte: " ; Framesperbyte
     Print "Pulse Encodings: " ; Enc
-    Print "Interburst delay: " ; Interburstdelay
+    Print "Interburst repeat " ; Interburstrepeat ; " delay: " ; Interburstdelay ; "uS"
     Print "Frames: " ; Frames
     Print "Streambytes: " ; Streambytes
 
@@ -950,10 +959,8 @@ Sub Xmitrf
      Wend
 End Sub
 
-Sub Universalrf(pos As Byte)
-  Rferr = 0
-  Gppos = Pos
-  Setuprf
+Sub Universalrfv1(pos As Byte)
+  Setupurf
 
   If Rferr = 1 Then
 #if Allow_interactive
@@ -968,7 +975,9 @@ Sub Universalrf(pos As Byte)
   Disable Interrupts
   While Burststosend > 0
     Xmitrf
-    Waitms Interburstdelay
+    For I = 1 To Interburstrepeat
+      Waitus Interburstdelay
+    Next I
     Decr Burststosend
   Wend
   Enable Interrupts
@@ -977,6 +986,20 @@ Sub Universalrf(pos As Byte)
   If Interactive = 1 Then
     Print "RF sent"
   End If
+End Sub
+
+
+Sub Universalrf(pos As Byte)
+  Rferr = 0
+  Gppos = Pos
+
+  ' Version byte - for future use
+  Call Readbyte
+  If Rferr = 1 Then
+      Return
+  End If
+
+  Universalrfv1 Pos
 End Sub
 
 '*****************************************************************************

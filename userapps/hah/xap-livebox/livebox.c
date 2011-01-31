@@ -42,15 +42,20 @@ static void cmdLCD(bscEndpoint *e)
 
 // Universal RF endpoint
 static void rfXmit(void *userData) {
-	unsigned char bitsPerFrame = atoi(xapGetValue("rf","bitsperframe"));
 	char *pulseDef = xapGetValue("rf","pulsedef");
 	unsigned char burst = atoi(xapGetValue("rf","burstcount"));
-	unsigned char interburstDelay = atoi(xapGetValue("rf","interburstDelay"));
+	unsigned int interburstUs = atoi(xapGetValue("rf","interburstDelay"));
+
+	unsigned int interburstIter = (interburstUs / 0xFFFF) + 1;
+	unsigned int interburstDelay = interburstUs / interburstIter;
+
 	unsigned char frames = atoi(xapGetValue("rf","frames"));
 	char *hexStream = xapGetValue("rf","stream");
 		
 	char rf[256];
-	snprintf(rf,sizeof(rf),"urf %02x%s%02x%02x%02x%s",bitsPerFrame,pulseDef,burst,interburstDelay,frames,hexStream);
+	// Hardcode version to 01
+	snprintf(rf,sizeof(rf),"urf 01%s%02x%02x%04x%02x%s",
+		 pulseDef,burst,interburstIter,interburstDelay,frames,hexStream);
 	serialSend(rf);
 }
 
@@ -124,7 +129,6 @@ int main(int argc, char *argv[])
 		xAPFilter *f = NULL;
 		xapAddFilter(&f, "xap-header", "target", xapGetSource());
 		xapAddFilter(&f, "xap-header", "class", "rf.xmit");
-		xapAddFilter(&f, "rf", "bitsperframe", XAP_FILTER_ANY);
 		xapAddFilter(&f, "rf", "pulsedef", XAP_FILTER_ANY);
 		xapAddFilter(&f, "rf", "burstcount", XAP_FILTER_ANY);
 		xapAddFilter(&f, "rf", "interburstdelay", XAP_FILTER_ANY);

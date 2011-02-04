@@ -90,7 +90,6 @@ void free_tcurl(tcurl *c) {
 }
 
 int performGet(tcurl *c) {
-	int ret = -1;
 	debug("%s", c->url);
         clearCallbackBuffers(c);
 
@@ -101,16 +100,26 @@ int performGet(tcurl *c) {
 	if(req_url_signed) {
 		curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 1);
 		curl_easy_setopt( c->curlHandle, CURLOPT_URL, req_url_signed);
+		curl_easy_setopt( c->curlHandle, CURLOPT_FAILONERROR, 1);
 		if(getLoglevel() == LOG_DEBUG) {
 			curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
 		}
 
-		ret= CURLE_OK == curl_easy_perform(c->curlHandle);
+		CURLcode code = curl_easy_perform(c->curlHandle);
+
 		curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 0);
+		curl_easy_setopt( c->curlHandle, CURLOPT_FAILONERROR, 0);
 
 		free(req_url_signed);
+
+		if(code == CURLE_OK) {
+			return 0;
+		}
+		error("CURLcode %d: %s", code, curl_easy_strerror(code));
+	} else {
+		error("request URL was not signed");
 	}
-        return ret;
+        return -1;
 }
 
 static int performPost(tcurl *c, char *url, char *msg) {
@@ -234,7 +243,9 @@ int getLatestTweet(tcurl *c, char *content, int clen, long long *id)
 		snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1/statuses/user_timeline.xml?user_id=%s&trim_user=1&count=1", c->userid);
 	}
 
-	if(! performGet(c)) return -1;
+	if(performGet(c)) {
+		return -1;
+	}
         char *result = getLastWebResponse(c);
 	debug("Response from TWITTER '%s'", result);
 
@@ -244,12 +255,23 @@ int getLatestTweet(tcurl *c, char *content, int clen, long long *id)
 	}
 
 	char *bid = strstr(result,"<id>");
+	if(bid == NULL) {
+		error("Failed to find <id> tag");
+		return -1;
+	}
 	char *eid = strstr(result,"</id>");
+	if(eid == NULL) {
+		error("Failed to find </id> tag");
+		return -1;
+	}
 	char *btext = strstr(result,"<text>");
+	if(btext == NULL) {
+		error("Failed to find <text> tag");
+		return -1;
+	}
 	char *etext = strstr(result,"</text>");
-
-	if(! (bid && eid && btext && etext)) {
-		error("Failed to find XML tags");
+	if(etext == NULL) {
+		error("Failed to find </text> tag");
 		return -1;
 	}
 

@@ -1,7 +1,7 @@
 # $Id$
 
 XAP=livebox
-CFLAGS=-g -DIDENT -I$(INSTALL_DIR)/include
+CFLAGS=-DIDENT -I$(INSTALL_DIR)/include
 LDFLAGS=-L$(INSTALL_DIR)/lib -lxap2
 
 #DEV

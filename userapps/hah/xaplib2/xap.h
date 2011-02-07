@@ -19,8 +19,8 @@
 #define XAP_MSG_ELEMENTS 150
 #define XAP_HEARTBEAT_INTERVAL 60
 
-extern const char *XAP_FILTER_ANY;
-extern const char *XAP_FILTER_ABSENT;
+extern char *XAP_FILTER_ANY;
+extern char *XAP_FILTER_ABSENT;
 
 // Allow 100 sockets from default port.
 #define XAP_PORT_L 3639
@@ -121,6 +121,7 @@ char *fillShortXap(char *shortMsg);
 // timeout.c
 xAPTimeoutCallback *xapAddTimeoutAction(void (*func)(int, void *), int interval, void *data);
 xAPTimeoutCallback *xapFindTimeoutByFunc(void (*func)(int, void*));
+xAPTimeoutCallback *xapFindTimeoutByUserData(void *userData);
 void timeoutDispatch();
 void *xapDelTimeoutAction(xAPTimeoutCallback *);
 void *xapDelTimeoutActionByFunc(void (*func)(int, void *));
@@ -155,6 +156,7 @@ xAPFilter *xapAddFilter(xAPFilter **, char *section, char *key, char *value);
 int xapFilterAddrSubaddress(char *filterAddr, char *addr);
 void xapFreeFilterList(xAPFilter *);
 void *xapDelFilterAction(xAPFilterCallback *);
+int xapDelFilterActionForUserData(void *userData);
 
 // safe string copy
 size_t strlcpy(char *dst, const char *src, size_t size);

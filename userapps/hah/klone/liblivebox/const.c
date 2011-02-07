@@ -1,7 +1,11 @@
 /* $Id$
 */
+#include <string.h>
+#include <ctype.h>
 #include "const.h"
 const_t con;
+
+char *u_strndup(char *, int);
 
 // Called once when the webserver starts up
 const_init() {
@@ -13,6 +17,10 @@ const_init() {
 		  con.build = strdup("?");
 	 } else {
 		  con.build = u_strndup(file, size);
+		  int len = strlen(con.build)-1;
+		  int i;
+                  for(i=len; isspace(con.build[i]); i--)
+                     con.build[i] = '\0';
 		  u_free(file);
 	 }
 

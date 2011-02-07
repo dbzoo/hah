@@ -40,6 +40,33 @@ static void cmdLCD(bscEndpoint *e)
         serialSend(buf);
 }
 
+// Universal RF endpoint
+static void rfXmit(void *userData) {
+	char *pulseDef = xapGetValue("rf","pulsedef");
+	unsigned char burst = atoi(xapGetValue("rf","burstcount"));
+	unsigned int interburstUs = atoi(xapGetValue("rf","interburstDelay"));
+
+	unsigned int interburstIter = (interburstUs / 0xFFFF) + 1;
+	unsigned int interburstDelay = interburstUs / interburstIter;
+
+	unsigned char frames = atoi(xapGetValue("rf","frames"));
+	char *hexStream = xapGetValue("rf","stream");
+		
+	char rf[256];
+	// Hardcode version to 01
+	snprintf(rf,sizeof(rf),"urf 01%s%02x%02x%04x%02x%s",
+		 pulseDef,burst,interburstIter,interburstDelay,frames,hexStream);
+	serialSend(rf);
+}
+
+// Universal RF endpoint
+static void rfXmitPacked(void *userData) {
+	char rf[256];
+	strcpy(rf, "urf ");
+	strlcat(rf, xapGetValue("rf","data"), sizeof(rf));
+	serialSend(rf);
+}
+
 /// Display usage information and exit.
 static void usage(char *prog) {
 	 printf("%s: [options]\n",prog);
@@ -76,11 +103,11 @@ int main(int argc, char *argv[])
 
 	/* Endpoint UID mapping - Identifies a particular hardware device for life.
 	   As endpoints can be dynamically added we define ranges so this remains true.
-	  LCD / Inputs  (0-63)     - 1 LCD + 4 INPUT on current hardware.
-	  I2C           (64-95)    - PPE chips map at 64-71 natively on the i2c bus.
+	  LCD / Inputs  (0-31)     - 1 LCD + 4 INPUT on current hardware.
+	  I2C           (32-95)    - 64 endpoints is 8x PPE chips on the i2c bus (PIN mode)
 	  Relays        (96-127)   - 32 devices (firmware can only handle 4)
-	  1-Wire        (128-159)  - 32 devices (firmware can only handle 16)
-	  RF            (160+)     - 96 devices (firmware can only handle 12)
+	  1-Wire        (128-159)  - 32 devices (v1 firmware can only handle 16, v2 31)
+	  RF            (160+)     - 96 devices (v1 firmware can only handle 12, v2 unlimited/96 )
 	*/
 	lcd = bscAddEndpoint(&endpointList, "lcd",  NULL, BSC_OUTPUT, BSC_STREAM, &cmdLCD, NULL);
 	bscAddEndpoint(&endpointList, "input", "1", BSC_INPUT, BSC_BINARY, NULL, &infoEventBinary);
@@ -97,9 +124,29 @@ int main(int argc, char *argv[])
 	// Register the endpoints
         bscAddEndpointFilterList(endpointList, INFO_INTERVAL);
 
+	if(firmwareMajor() > 1) {
+		// Universal RF endpoint - As separate components.
+		xAPFilter *f = NULL;
+		xapAddFilter(&f, "xap-header", "target", xapGetSource());
+		xapAddFilter(&f, "xap-header", "class", "rf.xmit");
+		xapAddFilter(&f, "rf", "pulsedef", XAP_FILTER_ANY);
+		xapAddFilter(&f, "rf", "burstcount", XAP_FILTER_ANY);
+		xapAddFilter(&f, "rf", "interburstdelay", XAP_FILTER_ANY);
+		xapAddFilter(&f, "rf", "frames", XAP_FILTER_ANY);
+		xapAddFilter(&f, "rf", "stream", XAP_FILTER_ANY);
+		xapAddFilterAction(&rfXmit, f, NULL);
+		
+		// As a single packed data stream
+		f = NULL;
+		xapAddFilter(&f, "xap-header", "target", xapGetSource());
+		xapAddFilter(&f, "xap-header", "class", "rf.xmit");
+		xapAddFilter(&f, "rf", "data", XAP_FILTER_ANY);
+		xapAddFilterAction(&rfXmitPacked, f, NULL);
+	}
+
 	// If the serial port is setup register a listener
 	if(gSerialfd > 0)
-		xapAddSocketListener(gSerialfd, &serialInputHandler, endpointList);
+		xapAddSocketListener(gSerialfd, &serialInputHandler, NULL);
 
 	// Handle WEB server requests
 	xapAddSocketListener(svr_bind(WEB_PORT), &webHandler, endpointList);

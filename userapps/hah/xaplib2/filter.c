@@ -15,8 +15,8 @@
 
 //
 // Add in the order: Section key, Class key, Target key
-const char *XAP_FILTER_ANY = "XAP_FILTER_ANY";
-const char *XAP_FILTER_ABSENT = "XAP_FILTER_ABSENT";
+char *XAP_FILTER_ANY = "XAP_FILTER_ANY";
+char *XAP_FILTER_ABSENT = "XAP_FILTER_ABSENT";
 
 /** Add a new filter pattern to a chain of filters.
  * As filters are PREPENDED to the list the *most* significant filter, that
@@ -163,6 +163,23 @@ void *xapDelFilterAction(xAPFilterCallback *f) {
 	xapFreeFilterList(f->filter);
 	free(f);
 	return userData;
+}
+
+/** Delete a filter callback by its User Data
+ *
+ * @param userData matching address for deletions
+ * @return number of filters callbacks deleted
+ */
+int xapDelFilterActionForUserData(void *userData) {
+	xAPFilterCallback *f, *tmp;
+	int i = 0;
+	LL_FOREACH_SAFE(gXAP->filterList, f, tmp) {
+		if(f->user_data == userData) {
+			xapDelFilterAction(f);
+			i++;
+		}
+	}
+	return i;
 }
 
 /** Add a filter action

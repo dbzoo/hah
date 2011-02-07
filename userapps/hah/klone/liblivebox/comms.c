@@ -16,7 +16,7 @@
 #define IP "127.0.0.1"
 
 #define PORT "79"
-#define BUF_SIZE 500
+#define BUF_SIZE 1024
 char buf[BUF_SIZE];
 
 int sendall(int s, char *buf, int *len)
@@ -67,7 +67,7 @@ char *send_cmd(char *cmd) {
 	 }
 
 	 if (rp == NULL) {               /* No address succeeded */
-		  return "Could not connect";
+		  return "?Err?";
 	 }
 
 	 freeaddrinfo(result);           /* No longer needed */
@@ -90,4 +90,23 @@ char *query(char *type, int instance) {
 	 char buf[100];
 	 sprintf(buf,"query %s.%d", type, instance);
 	 return send_cmd(buf);
+}
+
+void getAVRfirmwareVersion(int *major, int *minor) {
+	char *AVRfirmware = send_cmd("version");
+	if(strcmp("?Err?", AVRfirmware) == 0) {
+		*major = 1;
+		*minor = 0;
+		return;
+	}
+
+	char *dot = strchr(AVRfirmware,'.');
+	if(dot == NULL) {
+		*major = atoi(AVRfirmware);
+		*minor = 0;
+	} else {
+		*dot = '\0';
+		*major = atoi(AVRfirmware);
+		*minor = atoi(dot+1);
+	}
 }

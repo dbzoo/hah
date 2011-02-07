@@ -210,8 +210,10 @@ typedef struct {
 	}
 
 	Timer *stop() {
-		xapDelTimeoutAction(self->cb);
-		self->cb = NULL;
+		if(self->cb) {
+			xapDelTimeoutAction(self->cb);
+			self->cb = NULL;
+		}
 		return self;
 	}
 

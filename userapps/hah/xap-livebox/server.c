@@ -14,11 +14,11 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include "ini.h"
 #include "server.h"
 #include "bsc.h"
 #include "log.h"
-
-extern bscEndpoint *endpointList;
+#include "serial.h"
 
 /* CMD: query <endpoint>
  * Ret: <state>
@@ -81,6 +81,21 @@ static char *msg_action(char *arg) {
 	return "ok";
 }
 
+static char *buildListOfUnassignedROMS() {
+	static char buf[1024];
+	struct unassignedROMID *u;
+
+	if(unassignedROMIDList == NULL) return;
+
+	strcpy(buf,"Unassigned 1wire ROM ID's<table><tr><th>ROM ID</th><th>Temp</th></tr>");
+	int len = strlen(buf);
+	LL_FOREACH(unassignedROMIDList, u) {
+		len += snprintf(&buf[len], sizeof(buf)-len,"<tr><td>%s</td><td>%s</td></tr>", u->romid, u->temperature);
+	}
+	strlcat(buf,"</table>", sizeof(buf));
+	return buf;
+}
+
 /* Break into: <cmd> <args>
    Arguments will be procesed by the appropriate command handler.
 */
@@ -88,14 +103,18 @@ static char *msg_handler(char *a_cmd) {
 	char *cmd = strtok(a_cmd," ");
 	char *args = strtok(NULL, "");
 
-	// Everything needs at least 1 argument
-	if(!(args && *args)) {
-		return "missing argument";
-	}
-
 	// Process command: each will return either "ok" or an error message.
 	if(strcmp(cmd,"query") == 0) {
 		return msg_query(args);
+	} else if(strcmp(cmd,"version") == 0) {
+		static char rev[4];
+		sprintf(rev,"%d.%d", firmwareMajor(), firmwareMinor());
+		return rev;
+	} else if(strcmp(cmd,"1wirereset") == 0) {
+		resetOneWireEndpoints();
+		return "ok";
+	} else if(strcmp(cmd,"1wireroms") == 0) {
+		return buildListOfUnassignedROMS();
 	} 
 	else if(strcmp(cmd,"action") == 0) {
 		return msg_action(args);

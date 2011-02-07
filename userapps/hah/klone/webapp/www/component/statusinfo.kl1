@@ -1,4 +1,5 @@
 <%!
+#include "comms.h"
 #include "const.h"
 #include <time.h>
 #include <sys/sysinfo.h>
@@ -10,9 +11,10 @@
 %>
 <%
 time_t now = time(0);
+char *avrBuild = send_cmd("version"); // Query AVR version
 %>
 <div id="statusInfo">
-<div class="info">Build: <%= con.build %></div>
+<div class="info">Build: <%= con.build %>/<%= avrBuild %></div>
 <div class="info"><%= ctime(&now) %></div>
 <div id="info">up
 <%

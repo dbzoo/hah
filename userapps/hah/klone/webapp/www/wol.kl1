@@ -258,11 +258,11 @@ function wake(F,i) {
 <%
 	   for(i=0; i<ini.count; i++) {
 %>
-	   <tr>
+       <tr>
          <td><input name="mac<% io_printf(out,"%d",i); %>" maxlength="18" size="18" value="<%= host[i].mac %>""/></td>
          <td><input name="hostname<% io_printf(out,"%d",i); %>" maxlength="30" size="30" value="<%= host[i].hostname %>"/></td>
-		 <td><input type="image" src="/images/bin_bt.gif" name="del" value="<% io_printf(out,"%d",i); %>" onclick="del(this.form)"/>
-<input type="button" value="Wake Up" onclick="wake(this.form,<% io_printf(out,"%d",i); %>)"/></td>
+         <td><input type="image" src="/images/bin_bt.gif" name="del" value="<% io_printf(out,"%d",i); %>" onclick="del(this.form)"/></td>
+         <td><input type="button" value="Wake Up" onclick="wake(this.form,<% io_printf(out,"%d",i); %>)"/></td>
        </tr>
 <%
 	   }

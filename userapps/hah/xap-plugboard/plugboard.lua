@@ -6,7 +6,7 @@ require "xap"
 
 local spec = [[
   Various flags and option types
-    -i,--interface  (default eth0)   Network interface
+    -i,--interface  (default br0)   Network interface
     -d,--debug      (default 0)      xAP debug range 0..7
     -h,--help
     <appletdir>     (default /etc/plugboard)

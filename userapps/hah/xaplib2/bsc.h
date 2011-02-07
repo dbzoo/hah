@@ -69,6 +69,7 @@ bscEndpoint *bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, unsig
                    );
 void bscAddEndpointFilter(bscEndpoint *head, int info_interval);
 void bscAddEndpointFilterList(bscEndpoint *head, int info_interval);
+void *bscDelEndpoint(bscEndpoint *b);
 void bscSetLevel(bscEndpoint *e, char *level);
 void bscSetText(bscEndpoint *e, char *level);
 void bscSetDisplayText(bscEndpoint *e, char *text);

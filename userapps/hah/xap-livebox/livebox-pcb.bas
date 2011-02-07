@@ -268,7 +268,7 @@ Dim B As Byte
 Dim Ii As Byte
 Dim Ij As Byte
 Dim Ik As Byte
-Dim Bi As Byte
+Dim Bi As Word
 Dim Di As Byte
 Dim Imeas As Word
 Dim Temp As Integer
@@ -618,7 +618,7 @@ Sub I2cmgmt(pos As Byte)
   'Print "i2c addr: " ; K
 
   ' for PCF8574A chips we may need to adjust this
-  If K < &H40 Or K > &H47 Then                              ' Sanity check
+  If K < &H40 Or K > &H4E Then                              ' Sanity check
     Return
   End If
 
@@ -687,7 +687,7 @@ End Sub
 
 #if Extended_interactive
 Sub Help
-  Print "$Revision: 1.15 $  Available Commands:"
+  Print "$Revision$  Available Commands:"
   Print "<channel> = 1-8"
   Print "  HELP"
   Print "  REPORT"

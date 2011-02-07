@@ -29,8 +29,8 @@ extern YYSTYPE yylval;
 "</cflt->"	{ return(YY_DEL_CLASS_FILTER_E); }
 "<cmd>"		{ return(YY_START_CMD); }
 "</cmd>"	{ return(YY_END_CMD); }
-"<xap>"		{ return(YY_START_XAP); }
-"</xap>"	{ return(YY_END_XAP); }
+"<"[xX][aA][pP]">"      { return(YY_START_XAP); }
+"</"[xX][aA][pP]">"	{ return(YY_END_XAP); }
 "log<code>"     { return(YY_LOGIN); }
 [^</\/]*	{/* ANY char using </ as a terminal */
                  yylval.s = yytext; return YY_IDENT;

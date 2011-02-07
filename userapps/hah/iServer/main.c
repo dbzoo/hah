@@ -64,6 +64,8 @@ char *interfaceName = "eth0";
 int opt_a; // authorisation mode
 int opt_b; // iServer port
 int opt_c = 20; // BSC Query pacing on client filter registration (ms)
+int opt_e = 0;  // Inject Rx frame sequence into packet (debugging)
+int opt_f = 0;  // Inject Tx frame sequence into packet (debugging)
 char *password;
 int lowerData = 0;
 
@@ -89,7 +91,7 @@ int sendAll(int s, char *buf, int len)
                 n = send(s, buf+total, bytesleft, MSG_NOSIGNAL);
                 if (n == -1) {
 			// Client disconnected during send
-			if(errno == EPIPE) {
+			if(errno == EPIPE || errno == ECONNRESET) {
 				return -2;
 			}
                         err_strerror("send");
@@ -114,10 +116,13 @@ int sendAll(int s, char *buf, int len)
  */
 int sendToClient(Client *c, char *buf, int len)
 {
+	int ret;
+	
         debug("%s msg %s", c->ip, buf);
         c->rxFrame++;
-	if(sendAll(c->fd, buf, len+1) == -2)  // include null terminator
+	if((ret = sendAll(c->fd, buf, len)) == -2)
 		c->connected = 0;
+	return ret;
 }
 
 /** Rx socket handler callback for all incoming UDP packets.
@@ -132,6 +137,34 @@ void incomingXapPacket(int fd, void *data)
 		lowerData = 0;
 		filterDispatch();
 	}
+}
+
+/** Inject the frame number into the xAP payload.
+ * Useful for debugging and making sure no packets are being lost.
+ */
+void injectFrameSequence(char *buf, int frame) 
+{
+	char seq[20];
+	int len = strlen(buf);
+	//Assumption: buf is of size XAP_DATA_LEN so we can shunt data around.
+	if(len > XAP_DATA_LEN - sizeof(seq)) {
+		warning("Not enough room for seq data");
+		return;
+	}
+	char *lParen = strchr(buf, '}');
+	if(lParen == NULL) return;
+	// rxFrame+1 is the Frame is will be when sent.
+	int slen = sprintf(seq,"iseq=%u\n", frame);
+	memmove(lParen+slen, lParen, len-(buf-lParen));
+	memcpy(lParen, seq, slen);
+}
+
+/** Outgoing packet for UDP broadcast from a client
+ */
+void broadcastPacket(Client *c, char *msg) {
+	c->txFrame++;
+	if (opt_f) injectFrameSequence(msg, c->txFrame);
+	xapSend(msg);
 }
 
 /** Incoming xAP packet that got past the client filters forward to the respective client.
@@ -149,6 +182,7 @@ void xAPtoClient(void *userData)
                 strcpy(msg,"<xap>");
                 xapLowerMessage();
                 parsedMsgToRaw(&msg[5], sizeof(msg)-5);
+		if(opt_e) injectFrameSequence(msg, c->rxFrame+1);
                 strcat(msg,"</xap>");
                 msglen = strlen(msg);
                 lowerData = 1;
@@ -192,7 +226,7 @@ void *sendBscQueryToFilters(void *userData)
                                          "{\n"
                                          "}\n",
                                          xapGetUID(), xapGetSource(), source);
-                                xapSend(buff);
+				broadcastPacket(c, buff);
                                 // So we don't saturate the bus or the client handling the reply.
                                 usleep(opt_c); // microseconds
                                 // Sleep is a cancelation point too but explicity check anyway.
@@ -413,8 +447,7 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
                                 strlcat(c->ident, yylval.s, XAP_DATA_LEN);
                                 break;
                         case YY_END_XAP:
-                                c->txFrame++;
-                                xapSend(c->ident);
+				broadcastPacket(c, c->ident);
                                 firstClientMessage(c);
                                 // drop through
                         default:
@@ -453,7 +486,8 @@ void delClient(Client *c)
         }
 
         LL_DELETE(clientList, c);
-        free(c->source);
+        // If the client disconnected before we see a message from it c->source will still be NULL.
+        if(c->source) free(c->source);
         free(c->ip);
         free(c);
 }
@@ -505,8 +539,10 @@ Client *addClient(int fd, struct sockaddr_in *remote)
 
         // Initiate communication with client.
         char *init = "<ACL></ACL>";
-        sendToClient(c, init, strlen(init));
-
+	if(sendToClient(c, init, strlen(init)) != 0) {
+		delClient(c);
+		return NULL;
+	}	
         return c;
 }
 
@@ -664,6 +700,8 @@ void setupXAPini()
         opt_a = ini_getl("iserver","authmode",0,inifile);
         opt_b = ini_getl("iserver","port",9996,inifile);
         opt_c = ini_getl("iserver","pacing",20,inifile);
+        opt_e = ini_getl("iserver","rxseq",0,inifile);
+        opt_f = ini_getl("iserver","txseq",0,inifile);
 
         if(opt_a) {
                 password = getINIPassword("iserver","passwd", (char *)inifile);
@@ -682,6 +720,8 @@ static void usage(char *prog)
         printf("  -a                     Enable authorisation mode (default off)\n");
         printf("  -b PORT                Listening port (default 9996)\n");
         printf("  -c pacing              BSC Query pacing (default 50ms)\n");
+        printf("  -e                     Inject Rx seq# into client xap-header messages\n");
+        printf("  -f                     Inject Tx seq# into UDP xap-header messages\n");
         printf("  -p PASSWD              Authorisation password\n");
         printf("  -h, --help\n");
         exit(1);
@@ -717,6 +757,10 @@ int main(int argc, char *argv[])
                         opt_b = atoi(argv[++i]);
                 } else if(strcmp("-c", argv[i]) == 0)  {
                         opt_c = atoi(argv[++i]);
+                } else if(strcmp("-e", argv[i]) == 0)  {
+                        opt_e = 1;
+                } else if(strcmp("-f", argv[i]) == 0)  {
+                        opt_f = 1;
                 }
         }
         if(opt_c < 10)

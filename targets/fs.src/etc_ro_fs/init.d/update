@@ -31,15 +31,15 @@ wget_wrap()
 ramdisk start
 cd /mnt/ramdisk/rd1
 
+wget_wrap build
 if [ "$1" != "force" ]; then
-  wget_wrap build
   if [ "`cat ./build`" = "`cat /etc_ro_fs/build`" ]; then
      abort "Update not necessary"
   fi
   shift
 fi
 
-echo Shuttdown XAP services
+echo Shutdown XAP services
 /etc/init.d/xap stop
 
 wget_wrap fcp

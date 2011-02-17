@@ -258,8 +258,7 @@ int getLatestTweet(tcurl *c, char *content, int clen, long long *id)
 	if (*id > 0) { // Get tweet after this POINT
 		snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1/statuses/user_timeline.xml?user_id=%s&since_id=%lld&trim_user=1&count=1", c->userid, *id);
 	} else { // Get the latest
-		//snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1/statuses/user_timeline.xml?user_id=%s&trim_user=1&count=1", c->userid);
-		snprintf(c->url, TWITCURL_URL_LEN,"http://192.168.1.9/twitter");
+		snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1/statuses/user_timeline.xml?user_id=%s&trim_user=1&count=1", c->userid);
 	}
 
 	if(performGet(c)) {

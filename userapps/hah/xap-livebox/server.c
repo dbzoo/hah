@@ -85,14 +85,16 @@ static char *buildListOfUnassignedROMS() {
 	static char buf[1024];
 	struct unassignedROMID *u;
 
-	if(unassignedROMIDList == NULL) return;
-
-	strcpy(buf,"Unassigned 1wire ROM ID's<table><tr><th>ROM ID</th><th>Temp</th></tr>");
-	int len = strlen(buf);
-	LL_FOREACH(unassignedROMIDList, u) {
-		len += snprintf(&buf[len], sizeof(buf)-len,"<tr><td>%s</td><td>%s</td></tr>", u->romid, u->temperature);
+	if(unassignedROMIDList == NULL) {
+		strcpy(buf, "All 1wire ROM ID's assigned");
+	} else {
+		strcpy(buf,"Unassigned 1wire ROM ID's<table><tr><th>ROM ID</th><th>Temp</th></tr>");
+		int len = strlen(buf);
+		LL_FOREACH(unassignedROMIDList, u) {
+			len += snprintf(&buf[len], sizeof(buf)-len,"<tr><td>%s</td><td>%s</td></tr>", u->romid, u->temperature);
+		}
+		strlcat(buf,"</table>", sizeof(buf));
 	}
-	strlcat(buf,"</table>", sizeof(buf));
 	return buf;
 }
 
@@ -164,8 +166,8 @@ static void svr_process( int fd ) {
 		 debug("Server sent <%s>", reply);
 		 int len = strlen(reply);
 		 len ++; // include NULL terminator too.
-		 // What happens if we can't send all the packets
-		 // due to a send() error !?
+			 // What happens if we can't send all the packets
+			 // due to a send() error !?
 		 sendall(fd, reply, &len);
 	}
 }

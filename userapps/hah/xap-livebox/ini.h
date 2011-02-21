@@ -23,6 +23,11 @@ struct unassignedROMID {
 	struct unassignedROMID *next;
 };
 
+struct ppeEndpoint {
+	unsigned char i2cAddr;
+	unsigned char section;
+};
+
 extern struct unassignedROMID *unassignedROMIDList;
 
 #endif

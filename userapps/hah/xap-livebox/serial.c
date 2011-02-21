@@ -183,33 +183,52 @@ static void serin_1wire(int argc, char *argv[])
 * O - Original value before state change
 * N - Value after state change
 */
+static bscEndpoint *findPPEendpoint(int addr, char *subaddr) {
+	bscEndpoint *e = NULL;
+	LL_FOREACH(endpointList, e) {
+		if(strcmp(e->name, "i2c") == 0 && ((struct ppeEndpoint *)(e->userData))->i2cAddr == addr) {
+			if(subaddr == NULL) return e;
+			if(strcmp(e->subaddr, subaddr) == 0) return e;
+		}
+	}
+	return NULL;
+}
+
 static void serin_ppe(int argc, char *argv[])
 {
         // We need to do a bit more work to find the endpoint.
         // As the user may have configure a single ENDPOINT or ONE per PIN
-        char buff[30];
-        char *addr = argv[1];  // PPE address
-        char *old = argv[2];
-        char *new = argv[3];
-        info("addr %s new %s old %s", addr, new, old);
+        info("addr %s old %s new %s", argv[1], argv[2], argv[3]);
+        int addr = atoi(argv[1]);  // PPE address
 
-        bscEndpoint *e = bscFindEndpoint(endpointList, "i2c", addr);
-        if(e) {
-                bscSetText(e, new);
+        bscEndpoint *e = findPPEendpoint(addr, NULL);
+	if(e == NULL) {
+		err("PPE endpoint not found");
+		return;
+	}
+
+        if(e->type == BSC_STREAM) { // BYTE mode
+                bscSetText(e, argv[3]);
                 (*e->infoEvent)(e, BSC_EVENT_CLASS);
-        } else {
+        } else { // BSC_BINARY .. PIN mode
+		// The PPE endpoint we have located is one of the i2c pins.
+		// Each has the same UserData so we use this to locate the RIGHT section/pin.
+		int section = ((struct ppeEndpoint *)(e->userData))->section;
+		char subaddr[10];
+                int oldi = atoi(argv[2]);
+                int newi = atoi(argv[3]);
                 int pin;
-                int newi = atoi(new);
-                int oldi = atoi(old);
+
                 for(pin=0; pin<8; pin++) {
                         // Figure out what changed in the PPE
                         if ((oldi ^ newi) & (1 << pin)) {
-                                // Compute an ENDPOINT name
-                                snprintf(buff,sizeof buff,"%s.%d", addr, pin);
-                                e = bscFindEndpoint(endpointList, "i2c", buff);
-                                bscSetState(e, newi & (1<<pin) ? BSC_STATE_ON : BSC_STATE_OFF);
-				(*e->infoEvent)(e, BSC_EVENT_CLASS);
 
+                                // Compute an ENDPOINT name
+                                snprintf(subaddr,sizeof subaddr,"%d.%d", section, pin);
+                                e = findPPEendpoint(addr, subaddr);
+
+				bscSetState(e, newi & (1<<pin) ? BSC_STATE_ON : BSC_STATE_OFF);
+				(*e->infoEvent)(e, BSC_EVENT_CLASS);
                         }
                 }
         }
@@ -272,6 +291,7 @@ void serialInputHandler(int fd, void *data)
         static char cmd[sizeof(serial_buff)];
         static int pos = 0;
 
+	info("enter");
         len = read(gSerialfd, serial_buff, sizeof(serial_buff));
         for(i=0; i < len; i++) {
                 cmd[pos] = serial_buff[i];
@@ -284,6 +304,7 @@ void serialInputHandler(int fd, void *data)
                         pos++;
                 }
         }
+	info("exit");
 }
 
 /// Send a message to the serial port.

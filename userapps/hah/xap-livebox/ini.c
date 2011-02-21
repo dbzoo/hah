@@ -149,11 +149,12 @@ static void timeoutReport1wire(int interval, void *data)
 static void cmdPPEpin(bscEndpoint *e)
 {
         char serialCmd[32];
-        // Subaddr is of the form: <addr>.<pin>
-        char *addr = strtok(e->subaddr,".");
-        char *pin = strtok(NULL,"");
+        // Subaddr is of the form: section.pin
+        char *pin = strrchr(e->subaddr,'.')+1;
+	int addr = ((struct ppeEndpoint *)e->userData)->i2cAddr;
+
         // We invert the STATE.  Logical ON is a LOW PPE state 0.
-        snprintf(serialCmd, sizeof(serialCmd),"i2c P%s%s%d", addr, pin, e->state == BSC_STATE_ON ? BSC_STATE_OFF : BSC_STATE_ON);
+        snprintf(serialCmd, sizeof(serialCmd),"i2c P%d%s%d", addr, pin, e->state == BSC_STATE_ON ? BSC_STATE_OFF : BSC_STATE_ON);
         serialSend(serialCmd);
 }
 
@@ -168,7 +169,8 @@ static void cmdPPEbyte(bscEndpoint *e)
 {
         char serialCmd[32];
         if(isxdigit(e->text[0]) && isxdigit(e->text[1]) && strlen(e->text) == 2) {
-                snprintf(serialCmd, sizeof(serialCmd),"i2c B%s%s", e->subaddr, e->text);
+		int addr = ((struct ppeEndpoint *)e->userData)->i2cAddr;
+                snprintf(serialCmd, sizeof(serialCmd),"i2c B%d%s", addr, e->text);
                 serialSend(serialCmd);
         } else {
                 warning("CMD must be 2 hex digits: supplied %s", e->text);
@@ -321,19 +323,23 @@ static void addPPEendpoints(char *section) {
 	}			
 	bscSetEndpointUID((section_number-1)*8+32); // UID range 32-95
 	
+	struct ppeEndpoint *ud = (struct ppeEndpoint *)malloc(sizeof(struct ppeEndpoint));
+	ud->section = section_number;
+	ud->i2cAddr = addr;
+
 	if(strcmp(mode,"byte") == 0) {
 		snprintf(buff,sizeof buff,"%d", section_number);
-		bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_STREAM, &cmdPPEbyte, NULL);
+		bscAddEndpoint(&endpointList, "i2c", buff, BSC_OUTPUT, BSC_STREAM, &cmdPPEbyte, NULL)->userData = ud;
 		setup_i2c_ppe(addr);
 	} else if(strcmp(mode,"pin") == 0) {
 		int pin;
-		
-		for(pin=0; pin<7; pin++) {
+		for(pin=0; pin<8; pin++) {
 			snprintf(buff,sizeof buff,"%d.%d", section_number, pin);
-			bscAddEndpoint(&endpointList, "12c", buff, BSC_OUTPUT, BSC_BINARY, &cmdPPEpin, NULL);
+			bscAddEndpoint(&endpointList, "i2c", buff, BSC_OUTPUT, BSC_BINARY, &cmdPPEpin, NULL)->userData = ud;
 		}
 		setup_i2c_ppe(addr);
 	} else {
+		free(ud);
 		err("%s: Invalid mode: %s", section, mode);
 		return;
 	}		

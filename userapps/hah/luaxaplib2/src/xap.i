@@ -275,7 +275,22 @@ typedef struct {
 } Select;
 
 %rename(init) xapInit;
+// UID is the FULL specification FFxxxx00
 void xapInit(char *source, char *uid, char *interfaceName="br0");
+
+// UID is a partial specification xxxx
+void initFromINI(char *source, char *uid, char *interfaceName="br0");
+%{
+	void initFromINI(char *source, char *uid, char *interfaceName) 
+	{
+		char *prefix = strdup(source);
+		char *instance = strrchr(prefix,'.');
+		*instance++ = '\0';
+		xapInitFromINI("xap", prefix, instance, uid, interfaceName, "/etc/xap-livebox.ini");
+		free(prefix);
+	}
+%}
+
 %rename(getSource) xapGetSource;
 char *xapGetSource();
 %rename(getUID) xapGetUID;

@@ -83,7 +83,7 @@ void checkForTweets(int interval, void *userData)
 
 	// Buffer overflow - should never happend with 140 char tweets.
 	if(len > sizeof(buff)) {
-		error("Buffer overflow sending %s", buff);
+		err("Buffer overflow sending %s", buff);
 		return;
 	}
 	xapSend(buff);
@@ -98,9 +98,10 @@ void tweetService(void *userData)
         // This should probably not be using BSC!  Leave it for now...
 
         char *text = xapGetValue("output.state.1","text");
-        sendTweet(twit, text);
-        // Get it back to update the ID so its not deleted!
-        getLatestTweet(twit, tweet, sizeof(tweet), &last_tweet);
+        if(sendTweet(twit, text) == 0) {
+		// Get it back to update the ID so its not deleted!
+		getLatestTweet(twit, tweet, sizeof(tweet), &last_tweet);
+	}
 }
 
 void setupXAPini()

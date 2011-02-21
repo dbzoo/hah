@@ -28,7 +28,7 @@ static void clearCallbackBuffers(tcurl *c) {
 	memset( c->callbackData, 0, c->cb_length);
 }
 
-inline char *getLastCurlError(tcurl *c) {
+inline char *getLastCurlErr(tcurl *c) {
         return c->errorBuffer;
 }
 
@@ -66,6 +66,9 @@ tcurl *new_tcurl() {
         if (NULL == c->curlHandle) {
 		crit("Fail to init CURL");
         } else {
+		curl_easy_setopt( c->curlHandle, CURLOPT_FAILONERROR, 1);
+		curl_easy_setopt( c->curlHandle, CURLOPT_FOLLOWLOCATION, 1);
+
 		/* Set buffer to get error */
 		curl_easy_setopt( c->curlHandle, CURLOPT_ERRORBUFFER, c->errorBuffer );
 		
@@ -90,6 +93,7 @@ void free_tcurl(tcurl *c) {
 }
 
 int performGet(tcurl *c) {
+	long responseCode = 0;
 	debug("%s", c->url);
         clearCallbackBuffers(c);
 
@@ -100,7 +104,6 @@ int performGet(tcurl *c) {
 	if(req_url_signed) {
 		curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 1);
 		curl_easy_setopt( c->curlHandle, CURLOPT_URL, req_url_signed);
-		curl_easy_setopt( c->curlHandle, CURLOPT_FAILONERROR, 1);
 		if(getLoglevel() == LOG_DEBUG) {
 			curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
 		}
@@ -108,21 +111,26 @@ int performGet(tcurl *c) {
 		CURLcode code = curl_easy_perform(c->curlHandle);
 
 		curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 0);
-		curl_easy_setopt( c->curlHandle, CURLOPT_FAILONERROR, 0);
-
 		free(req_url_signed);
-
-		if(code == CURLE_OK) {
+		
+		switch(code) {
+		case CURLE_OK: 
 			return 0;
+		case CURLE_HTTP_RETURNED_ERROR:
+			curl_easy_getinfo(c->curlHandle, CURLINFO_HTTP_CODE, &responseCode);
+			notice("### response=%ld", responseCode);
+			break;
+		default:
+			err("curlCode: %i  msg: %s", code, curl_easy_strerror(code));
 		}
-		error("CURLcode %d: %s", code, curl_easy_strerror(code));
 	} else {
-		error("request URL was not signed");
+		err("request URL was not signed");
 	}
         return -1;
 }
 
 static int performPost(tcurl *c, char *url, char *msg) {
+	long responseCode = 0;
         struct curl_slist *headerlist=NULL;
 	char *req_url = NULL;
 	char *req_hdr = NULL;
@@ -162,7 +170,7 @@ static int performPost(tcurl *c, char *url, char *msg) {
         headerlist = curl_slist_append(headerlist, http_hdr); // Add OAUTH header..
         curl_easy_setopt( c->curlHandle, CURLOPT_HTTPHEADER, headerlist);
 
-        int ret = CURLE_OK == curl_easy_perform(c->curlHandle);
+        CURLcode code = curl_easy_perform(c->curlHandle);
 
 	// CLEAN UP
         curl_easy_setopt( c->curlHandle, CURLOPT_POST, 0);
@@ -177,7 +185,17 @@ static int performPost(tcurl *c, char *url, char *msg) {
 	if (http_hdr) free(http_hdr);
 	if (postarg) free(postarg);
 
-        return ret;
+	switch(code) {
+	case CURLE_OK: 
+		return 0;
+	case CURLE_HTTP_RETURNED_ERROR:
+		curl_easy_getinfo(c->curlHandle, CURLINFO_HTTP_CODE, &responseCode);
+		notice("### response=%ld", responseCode);
+		break;
+	default:
+		err("curlCode: %i  msg: %s", code, curl_easy_strerror(code));
+	}
+        return -1;
 }
 
 static int performDelete(tcurl *c) {
@@ -256,22 +274,22 @@ int getLatestTweet(tcurl *c, char *content, int clen, long long *id)
 
 	char *bid = strstr(result,"<id>");
 	if(bid == NULL) {
-		error("Failed to find <id> tag");
+		err("Failed to find <id> tag");
 		return -1;
 	}
 	char *eid = strstr(result,"</id>");
 	if(eid == NULL) {
-		error("Failed to find </id> tag");
+		err("Failed to find </id> tag");
 		return -1;
 	}
 	char *btext = strstr(result,"<text>");
 	if(btext == NULL) {
-		error("Failed to find <text> tag");
+		err("Failed to find <text> tag");
 		return -1;
 	}
 	char *etext = strstr(result,"</text>");
 	if(etext == NULL) {
-		error("Failed to find </text> tag");
+		err("Failed to find </text> tag");
 		return -1;
 	}
 

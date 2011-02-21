@@ -53,7 +53,7 @@ end
 
 require_path(args.appletdir)
 
-xap.init("dbzoo.livebox.Plugboard","FF00D800",args.interface)
+xap.initFromINI("dbzoo.livebox.Plugboard","00D8",args.interface)
 tablex.foreach(dir.getfiles(args.appletdir,"*Applet.lua"), loadApplet)
 print("Running...")
 xap.process()

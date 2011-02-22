@@ -154,7 +154,7 @@ static void cmdPPEpin(bscEndpoint *e)
 	int addr = ((struct ppeEndpoint *)e->userData)->i2cAddr;
 
         // We invert the STATE.  Logical ON is a LOW PPE state 0.
-        snprintf(serialCmd, sizeof(serialCmd),"i2c P%d%s%d", addr, pin, e->state == BSC_STATE_ON ? BSC_STATE_OFF : BSC_STATE_ON);
+        snprintf(serialCmd, sizeof(serialCmd),"i2c P%02X%s%d", addr, pin, e->state == BSC_STATE_ON ? BSC_STATE_OFF : BSC_STATE_ON);
         serialSend(serialCmd);
 }
 
@@ -170,7 +170,7 @@ static void cmdPPEbyte(bscEndpoint *e)
         char serialCmd[32];
         if(isxdigit(e->text[0]) && isxdigit(e->text[1]) && strlen(e->text) == 2) {
 		int addr = ((struct ppeEndpoint *)e->userData)->i2cAddr;
-                snprintf(serialCmd, sizeof(serialCmd),"i2c B%d%s", addr, e->text);
+                snprintf(serialCmd, sizeof(serialCmd),"i2c B%02X%s", addr, e->text);
                 serialSend(serialCmd);
         } else {
                 warning("CMD must be 2 hex digits: supplied %s", e->text);

@@ -55,8 +55,8 @@ $baud = 9600
 '+--------------+  Bottom of sram 0x0060
 
 $hwstack = 64                                               ' 2 bytes per call/gosub + upto 32 bytes for interrupts
-$swstack = 32                                               ' 2 bytes per local variable + 2 bytes per parameter passed
-$framesize = 16                                             ' Default
+$swstack = 64                                               ' 2 bytes per local variable + 2 bytes per parameter passed
+$framesize = 64
 
 'STARTUP
 Declare Sub Bootup_wait()
@@ -367,7 +367,7 @@ Sub Bootup_wait
 
   Cursor Off
   Cls
-  Lcd "Booting..."
+  Lcd "Booting... "
   J = 0                                                     ' number of pluses rcvd
 
   ' Note: Don't use CHR(0) in a string bascom will think its terminated
@@ -660,8 +660,12 @@ Sub I2cmgmt(pos As Byte)
   Commando(3) = 0
   K = Hexval(command)                                       ' PPE Address
 
-  'Print "i2c cmd: " ; D
-  'Print "i2c addr: " ; K
+
+  If Interactive = 1 Then
+    Print "i2c cmd: " ; D
+    Print "i2c addr: " ; K
+  End If
+
 
   ' PCF8574  - 0 1 0 0 A2 A1 A0 0 - 0x40 to 0x4E
   ' PCF8574A - 0 0 1 1 1 A2 A1 A0 - 0x38 to 0x3F
@@ -684,7 +688,9 @@ Sub I2cmgmt(pos As Byte)
         Exit For
      End If
   Next Bp
- 'Print "i2c " ; Bp ; " prev " ; Ppe_val(bp)
+  If Interactive = 1 Then
+    Print "i2c " ; Bp ; " prev " ; Ppe_val(bp)
+  End If
 
   Select Case D
   ' PIN MODE
@@ -692,11 +698,15 @@ Sub I2cmgmt(pos As Byte)
        B = Gspcinp(pos)
        Incr Pos                                             ' Our PIN
        B = B - "0"                                          ' ASCII to Numeric
-       'Print "i2c pin:" ; B
+       If Interactive = 1 Then
+         Print "i2c pin:" ; B
+       End If
        If B > 7 Then
          Return
        End If
-       'Print "i2c state:" ; Chr(gspcinp(pos))
+       If Interactive = 1 Then
+          Print "i2c state:" ; Chr(gspcinp(pos))
+       End If
 
        If Gspcinp(pos) = "1" Then                           ' Our STATE
          Set Ppe_val(bp).b
@@ -713,7 +723,9 @@ Sub I2cmgmt(pos As Byte)
        Return
   End Select
 
-  'Print "i2c send:" ; K ; " " ; Ppe_val(bp)
+  If Interactive = 1 Then
+    Print "i2c send:" ; K ; " " ; Ppe_val(bp)
+  End If
   Stop Timer1
   I2cstart
   I2cwbyte K

@@ -666,10 +666,8 @@ Sub I2cmgmt(pos As Byte)
     Print "i2c addr: " ; K
   End If
 
-
-  ' PCF8574  - 0 1 0 0 A2 A1 A0 0 - 0x40 to 0x4E
-  ' PCF8574A - 0 0 1 1 1 A2 A1 A0 - 0x38 to 0x3F
-  ' PCF8574N - 0 0 1 0 0 A2 A1 A0 - 0x20 to 0x27
+  ' PCF8574/N - 0 1 0 0 A2 A1 A0 0 - 0x40 to 0x4E
+  ' PCF8574A  - 0 1 1 1 A2 A1 A0 0 - 0x70 to 0x7E
 
   ' Add a new ADDRESS to the list of known PPE chips
   If D = "M" Then

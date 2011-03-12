@@ -248,7 +248,7 @@ static void cdataBlockCB(void *ctx, const xmlChar *ch, int len)
                         } else {
                                 bscSetState(currentTag, BSC_STATE_ON);
                         }
-                        bscSendCmdEvent(currentTag);
+                        bscSendEvent(currentTag);
                 }
                 break;
         }

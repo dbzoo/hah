@@ -75,6 +75,8 @@ void bscSetText(bscEndpoint *e, char *level);
 void bscSetDisplayText(bscEndpoint *e, char *text);
 void bscSetState(bscEndpoint *e, int state);
 void bscSendCmdEvent(bscEndpoint *e);
+void bscSendEvent(bscEndpoint *e);
+void bscSendInfo(bscEndpoint *e);
 bscEndpoint *bscFindEndpoint(bscEndpoint *head, char *name, char *subaddr);
 int bscParseLevel(char *str);
 char *bscStateToString(bscEndpoint *e);

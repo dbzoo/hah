@@ -135,15 +135,13 @@ function comboSubmit() {
 <td valign="top"><fieldset>
 <legend>RF</legend>
 <table>
-<tr>
-<th>Item</th>
-<th>State</th>
+<tr><th>Item</th><th>State</th><th>&nbsp;</th></tr>
 <%
   k = 1;
   for(i=1; i<=ini.devicesrf; i++, k++) {
-	   io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("rf",i));
-     io_printf(out,"%s %s </td>", alt_td(k), query("rf",i));
-     io_printf(out,"%s<input type=checkbox name=\"rf.%d\"></td></tr>", alt_td(k), i);
+	   io_printf(out,"<tr><td>%s</td>", iniGetDynLabel("rf",i));
+     io_printf(out,"<td align=\"right\">%s</td>", query("rf",i));
+     io_printf(out,"<td><input type=checkbox name=\"rf.%d\"></td></tr>", i);
   }
 %>
 </table>
@@ -155,15 +153,13 @@ function comboSubmit() {
 <td valign="top"><fieldset>
 <legend>Relay</legend>
 <table>
-<tr>
-<th>Item</th>
-<th>State</th>
+<tr><th>Item</th><th>State</th><th>&nbsp;</th></tr>
 <%
   k = 1;
   for(i=1; i<5; i++, k++) {
-	   io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("relay",i));
-	   io_printf(out,"%s %s </td>", alt_td(k), query("relay",i));
-	   io_printf(out,"%s<input type=checkbox name=\"relay.%d\"></td></tr>", alt_td(k), i);
+	   io_printf(out,"<tr><td>%s</td>", iniGetDynLabel("relay",i));
+	   io_printf(out,"<td align=\"right\">%s</td>", query("relay",i));
+	   io_printf(out,"<td><input type=checkbox name=\"relay.%d\"></td></tr>", i);
   }
 %>
 </table>
@@ -172,15 +168,13 @@ function comboSubmit() {
 <td valign="top"><fieldset>
 <legend>Input</legend>
 <table>
-<tr>
-<th>Item</th>
-<th>State</th>
+<tr><th>Item</th><th>State</th></tr>
 <%
   k = 1;
   for(i=1; i<5; i++, k++) {
-	   io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("input",i));
-     io_printf(out,"%s %s </td>", alt_td(k), query("input",i));
-     io_printf(out,"%s</td></tr>", alt_td(k));
+	   io_printf(out,"<tr><td>%s</td>", iniGetDynLabel("input",i));
+	   io_printf(out,"<td align=\"right\">%s</td>", query("input",i));
+	   io_printf(out,"</tr>");
   }
 %>
 </table>
@@ -192,15 +186,13 @@ function comboSubmit() {
 <td valign="top"><fieldset>
 <legend>Temperature</legend>
 <table>
-<tr>
-<th>Item</th>
-<th>State</th>
+<tr><th>Item</th><th>State</th></tr>
 <%
   k = 1;
   for(i=1; i<=ini.devices1wire; i++, k++) {
-	   io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("sensor",i));
+	   io_printf(out,"<tr><td>%s</td>", iniGetDynLabel("sensor",i));
 	   char *c  = query("1wire",i);
-	   io_printf(out,"%s ",alt_td(k));
+	   io_printf(out,"<td align=\"right\">");
 	   if (*c == '?') {
 			io_printf(out,"%s", c);
 	   } else {
@@ -211,7 +203,7 @@ function comboSubmit() {
 				 io_printf(out,"%d&deg;F </td>", f);
 			}
 	   }	   
-	   io_printf(out,"%s</td></tr>", alt_td(k));
+	   io_printf(out,"</tr>");
   }
 %>
 </table>

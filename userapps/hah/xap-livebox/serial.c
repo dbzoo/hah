@@ -98,7 +98,7 @@ static void serin_input(int argc, char *argv[])
                         bscEndpoint *e = bscFindEndpoint(endpointList, "input", buff);
                         if(e) {
                                 bscSetState(e, new & (1<<bit) ? BSC_STATE_ON : BSC_STATE_OFF);
-	                        bscSendCmdEvent(e);
+				bscSendEvent(e);
                         }
                 }
         }
@@ -169,7 +169,7 @@ static void serin_1wire(int argc, char *argv[])
 
 	bscSetState(e, BSC_STATE_ON);  // got a serial event we know its alive.
 	bscSetText(e, temperature);
-	bscSendCmdEvent(e);
+	bscSendEvent(e);
 	// record the last time this 1wire device reported in.
 	((struct tempSensor *)e->userData)->lastSerialEvent = time(NULL);
 
@@ -179,14 +179,15 @@ static void serin_1wire(int argc, char *argv[])
 *
 * i2c-ppe A O N
 *
-* A - Address of PPE chip (in hex 2 digits only)
+* A - Address of PPE chip (in decimal)
 * O - Original value before state change
 * N - Value after state change
 */
 static bscEndpoint *findPPEendpoint(int addr, char *subaddr) {
 	bscEndpoint *e = NULL;
+        info("0x%02X %s", addr, subaddr);
 	LL_FOREACH(endpointList, e) {
-		if(strcmp(e->name, "i2c") == 0 && ((struct ppeEndpoint *)(e->userData))->i2cAddr == addr) {
+		if(strcmp(e->name, "ppe") == 0 && ((struct ppeEndpoint *)(e->userData))->i2cAddr == addr) {
 			if(subaddr == NULL) return e;
 			if(strcmp(e->subaddr, subaddr) == 0) return e;
 		}
@@ -209,7 +210,7 @@ static void serin_ppe(int argc, char *argv[])
 
         if(e->type == BSC_STREAM) { // BYTE mode
                 bscSetText(e, argv[3]);
-                (*e->infoEvent)(e, BSC_EVENT_CLASS);
+		bscSendEvent(e);
         } else { // BSC_BINARY .. PIN mode
 		// The PPE endpoint we have located is one of the i2c pins.
 		// Each has the same UserData so we use this to locate the RIGHT section/pin.
@@ -228,7 +229,7 @@ static void serin_ppe(int argc, char *argv[])
                                 e = findPPEendpoint(addr, subaddr);
 
 				bscSetState(e, newi & (1<<pin) ? BSC_STATE_ON : BSC_STATE_OFF);
-				(*e->infoEvent)(e, BSC_EVENT_CLASS);
+				bscSendEvent(e);
                         }
                 }
         }

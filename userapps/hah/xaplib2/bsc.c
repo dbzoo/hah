@@ -88,13 +88,22 @@ static void bscSendInfoEvent(bscEndpoint *e, char *clazz) {
 		bscInfoEvent(e, clazz);
 }
 
+void bscSendEvent(bscEndpoint *e) {
+	bscSendInfoEvent(e, BSC_EVENT_CLASS);
+	
+}
+
+void bscSendInfo(bscEndpoint *e) {
+	bscSendInfoEvent(e, BSC_INFO_CLASS);	
+}
+
 /** When an xAPBSC.cmd is recieved or if an external EVENT changes an endpoint
     this function must be called.  If will Perform endpoint specific logic
     and take care of notifications.
- */
+*/
 void bscSendCmdEvent(bscEndpoint *e) {
-	if(*e->cmd) (*e->cmd)(e);  // Perform Endpoint action.
-	bscSendInfoEvent(e, BSC_EVENT_CLASS); // Generate an xAPBSC.event
+       if(*e->cmd) (*e->cmd)(e);  // Perform Endpoint action.
+       bscSendEvent(e); // Generate an xAPBSC.event
 }
 
 /** Set the value of a BSC BINARY device type.
@@ -202,8 +211,10 @@ static void bscIncomingCmd(void *data)
                 // State/ID are mandatory items for ALL BSC commands
                 char *state = xapGetValue(section, "state");
                 char *id = xapGetValue(section, "id");
-                if(state == NULL || id == NULL)
-                        break;  // malformed section.
+                if(state == NULL || id == NULL) {
+                        warning("Malformed xAP section '%s' missing id/state", section);
+			break;  // malformed section.
+		}
 
                 // Match the ENDPOINT ID (UID sub-address) and process.
                 if(*id == '*' || strcmp(e->id, id) == 0) {
@@ -225,7 +236,7 @@ static void bscIncomingQuery(void *data)
 {
         bscEndpoint *e = (bscEndpoint *)data;
 	info("xapBSC.query detected for %s", e->source);	
-	bscSendInfoEvent(e, BSC_INFO_CLASS);
+	bscSendInfo(e);
 }
 
 /** Send XAP INFO message for this endpoint (TIMEOUT).
@@ -240,7 +251,7 @@ static void bscInfoTimeout(int interval, void *data)
         time_t now = time(NULL);
         if(e->last_report == 0 || e->last_report + interval <= now ) {
 	        info("Timeout for %s", e->source);
-		bscSendInfoEvent(e, BSC_INFO_CLASS);
+		bscSendInfo(e);
         }
 }
 

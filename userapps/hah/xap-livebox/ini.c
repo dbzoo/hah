@@ -305,14 +305,14 @@ static void addPPEendpoints(char *section) {
 	}
 	n = ini_gets(section, "address", "", s_addr, sizeof(s_addr), inifile);
 	if (n == 0) {
-		err("%s: Missing address=[0x20-0x4E]", section);
+		err("%s: Missing address=[0x40-0x7E]", section);
 		return;
 	}
 	// PCF8574  - 0 1 0 0 A2 A1 A0 0 - 0x40 to 0x4E
-	// PCF8574A - 0 0 1 1 1 A2 A1 A0 - 0x38 to 0x3F
-	// PCF8574N - 0 0 1 0 0 A2 A1 A0 - 0x20 to 0x27
+	// PCF8574A - 0 1 1 1 A2 A1 A0 0 - 0x70 to 0x7E
 	sscanf(s_addr,"%x", &addr);
-	if(addr < 0x20 || addr > 0x4e) { // not perfect but it'll do.
+	// Range check and only EVEN addresses should be used.
+	if(addr < 0x40 || addr > 0x7e || addr % 2 == 1) {
 		err("%s: Invalid address %s", section, s_addr);
 		return;
 	}
@@ -327,15 +327,15 @@ static void addPPEendpoints(char *section) {
 	ud->section = section_number;
 	ud->i2cAddr = addr;
 
-	if(strcmp(mode,"byte") == 0) {
+	if(strcasecmp(mode,"byte") == 0) {
 		snprintf(buff,sizeof buff,"%d", section_number);
-		bscAddEndpoint(&endpointList, "i2c", buff, BSC_OUTPUT, BSC_STREAM, &cmdPPEbyte, NULL)->userData = ud;
+		bscAddEndpoint(&endpointList, "ppe", buff, BSC_OUTPUT, BSC_STREAM, &cmdPPEbyte, NULL)->userData = ud;
 		setup_i2c_ppe(addr);
-	} else if(strcmp(mode,"pin") == 0) {
+	} else if(strcasecmp(mode,"pin") == 0) {
 		int pin;
 		for(pin=0; pin<8; pin++) {
 			snprintf(buff,sizeof buff,"%d.%d", section_number, pin);
-			bscAddEndpoint(&endpointList, "i2c", buff, BSC_OUTPUT, BSC_BINARY, &cmdPPEpin, NULL)->userData = ud;
+			bscAddEndpoint(&endpointList, "ppe", buff, BSC_OUTPUT, BSC_BINARY, &cmdPPEpin, NULL)->userData = ud;
 		}
 		setup_i2c_ppe(addr);
 	} else {

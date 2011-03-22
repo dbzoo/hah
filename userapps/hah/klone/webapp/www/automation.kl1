@@ -26,10 +26,10 @@ char *alt_td(int row) {
      return "<td class=\"alt\">";    
 }
 
-static void build_action(char *item, int count, char *action, int action_type) {
+static void build_action(char *item, int count, char *action, int action_type, int base) {
 	 int i;
 	 char name[10];	 
-	 for(i=1; i<=count; i++) {
+	 for(i=base; i<count+base; i++) {
 		  sprintf(name,"%s.%d",item, i);
 		  char *key = request_get_arg(request, name);
 		  if(key) {
@@ -78,8 +78,17 @@ static void process_form() {
   }
   else {
 	   strcpy(cmd,"action");
-	   build_action("relay",4,cmd, action_type);
-	   build_action("rf",ini.devicesrf,cmd, action_type);
+	   build_action("relay", 4, cmd, action_type, 1);
+	   build_action("rf", ini.devicesrf, cmd, action_type, 1);
+	   
+	   build_action("ppe.1", 8, cmd, action_type, 0);
+	   build_action("ppe.2", 8, cmd, action_type, 0);
+	   build_action("ppe.3", 8, cmd, action_type, 0);
+	   build_action("ppe.4", 8, cmd, action_type, 0);
+	   build_action("ppe.5", 8, cmd, action_type, 0);
+	   build_action("ppe.6", 8, cmd, action_type, 0);
+	   build_action("ppe.7", 8, cmd, action_type, 0);
+	   build_action("ppe.8", 8, cmd, action_type, 0);
   }
   send_cmd(cmd);
 }
@@ -212,7 +221,43 @@ function comboSubmit() {
 }
 %>
 
-</tr><td colspan=4>
+</tr>
+
+<tr>
+<%
+char section[30];
+char mode[30];
+int section_num;
+for (i = 0; ini_getsection(i, section, sizeof(section), con.inifile) > 0; i++) {
+	if(strncmp("ppe",section,3) != 0) continue;
+	if(ini_gets(section,"mode","",mode,sizeof(mode),con.inifile) == 0) continue;
+	if(strcasecmp("pin",mode) != 0) continue;
+	section_num = atoi(section+3);
+	if(section_num < 1 || section_num > 8) continue;
+%>
+
+<td valign="top"><fieldset>
+<legend><%= section %></legend>
+<table>
+<tr><th>Pin</th><th>State</th></tr>
+<%
+  for(k=0; k<8; k++) {
+	  char buf[20];
+	  snprintf(buf,sizeof(buf),"query ppe.%d.%d", section_num, k);
+	  io_printf(out,"<tr><td>%d</td>", k);
+	  io_printf(out,"<td align=\"right\">%s</td>", send_cmd(buf));
+	  io_printf(out,"<td><input type=checkbox name=\"ppe.%d.%d\"></td></tr>", section_num, k);
+  }
+%>
+</table>
+</fieldset></td>
+<%
+	  if(i && i % 4 == 0) { io_printf(out,"</tr><tr>"); }
+}
+%>
+</tr>
+
+<tr><td colspan=4>
 <fieldset>
 <legend>LCD</legend>
 <%

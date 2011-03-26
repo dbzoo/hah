@@ -322,7 +322,7 @@ void serialSend(char *buf)
 static void getFirmwareVersion()
 {
 	serialSend("version"); // Get AVR version
-	usleep(50 * 1000);     // wait for response - 50ms
+	usleep(200 * 1000);     // wait for response - 200ms
 	serialInputHandler(gSerialfd, NULL);	// non-blocking read
 }
 

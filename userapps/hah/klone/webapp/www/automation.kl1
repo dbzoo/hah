@@ -239,7 +239,7 @@ for (i = 0; ini_getsection(i, section, sizeof(section), con.inifile) > 0; i++) {
 <td valign="top"><fieldset>
 <legend><%= section %></legend>
 <table>
-<tr><th>Pin</th><th>State</th></tr>
+<tr><th>Pin</th><th>State</th><th>&nbsp;</th></tr>
 <%
   for(k=0; k<8; k++) {
 	  char buf[20];

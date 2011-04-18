@@ -25,7 +25,8 @@ char *xmlDatastream() {
 again:
      j = 0;
      for(i=0; i < dscnt; i++) {
-	  j += snprintf(&xml[j], xmllen-j,"<data id=\"%d\"><tag>%s</tag><value>%f</value></data>", 
+	     // Issue 26 - round to 2 decimal points of value data.
+	  j += snprintf(&xml[j], xmllen-j,"<data id=\"%d\"><tag>%s</tag><value>%.2f</value></data>", 
 			 ds[i].id, ds[i].tag, ds[i].value);
 	  if(j >= xmllen) { // out of buffer?
 	       xmllen += 512;

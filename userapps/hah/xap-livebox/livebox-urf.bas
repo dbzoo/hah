@@ -10,7 +10,7 @@ $regfile = "m328pdef.dat"
 
 ' Firmware revision
 Const Fwmajor = 2
-Const Fwminor = 2
+Const Fwminor = 3
 
 ' Allow interactive debug mode - increases code size.
 Const Allow_interactive = 1
@@ -1116,8 +1116,8 @@ Sub Disp_temp(cnt As Byte , Offset As Byte)
       Print "1wire " ;
       ' Dump ROM ID
       Bi = Offset + 8
-      For I = Offset To Bi
-        Print Hex(dsid(i));
+      For Ik = Offset To Bi
+        Print Hex(dsid(Ik));
       Next
     Print " ";
     If Dssign.cnt = 1 And Imeas <> 0 Then

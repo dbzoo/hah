@@ -42,8 +42,8 @@ function rfRelaycmd(t)
   sendBscCmd(string.format("dbzoo.livebox.Controller:%s.%s",addr1,addr2),"state="..state)
 end
 
-function aliasEngine()
-  local alias = xap.getValue("command","text")
+function aliasEngine(frame)
+  local alias = frame:getValue("command","text")
   for r,f in pairs(pat) do
       if type(r) == "string" then
          if r == alias then
@@ -59,7 +59,7 @@ function aliasEngine()
 end
 
 function init()
-  f = xap.Filter()
+  local f = xap.Filter()
   f:add("xap-header","class","alias")
   f:add("command","text",xap.FILTER_ANY)
   f:callback(aliasEngine)

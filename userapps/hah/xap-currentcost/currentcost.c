@@ -147,10 +147,14 @@ static void sensorInfoEvent(bscEndpoint *e, char *clazz)
 	return 0;
 }
 
-static void findOrAddSensor()
+static void findOrAddSensor(int channel)
 {
-        char sensor[3];
-        snprintf(sensor, sizeof(sensor), "%d", currentSensor);
+        char sensor[6];
+	if(channel == 1) {
+	  snprintf(sensor, sizeof(sensor), "%d", currentSensor);
+	} else {
+	  snprintf(sensor, sizeof(sensor), "%d.%d", currentSensor, channel);
+	}
 
         currentTag = bscFindEndpoint(endpointList, "sensor", sensor);
         if(currentTag == NULL) {
@@ -192,7 +196,13 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
                 }
         } else if(strcmp(name,"ch1") == 0) {
                 state = ST_DATA;
-                findOrAddSensor();
+                findOrAddSensor(1);
+        } else if(strcmp(name,"ch2") == 0) {
+                state = ST_DATA;
+                findOrAddSensor(2);
+        } else if(strcmp(name,"ch3") == 0) {
+                state = ST_DATA;
+                findOrAddSensor(3);
         }
 }
 

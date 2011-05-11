@@ -105,7 +105,6 @@ SUBDIRS_HAH = \
 	$(HAH_DIR)/xap-googlecal \
 	$(HAH_DIR)/xap-twitter \
 	$(HAH_DIR)/xap-plugboard \
-	$(HAH_DIR)/luaxaplib2 \
 	$(HAH_DIR)/xap-serial \
 	$(HAH_DIR)/klone \
 	$(HAH_DIR)/iServer
@@ -116,7 +115,7 @@ OPENSOURCE_APPS = brctl dropbear ftpd iptables busybox ntpclient ini mtd lua \
 	lrexlib luafilesystem luasocket penlight
 INVENTEL_APPS = inventelbin sendarp ledctrl
 HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-pachube xap-sms iServer \
-	xap-currentcost xap-googlecal xap-twitter xap-serial klone xap-plugboard luaxaplib2
+	xap-currentcost xap-googlecal xap-twitter xap-serial klone xap-plugboard 
 
 BUSYBOX_DIR = $(OPENSOURCE_DIR)/busybox
 
@@ -280,9 +279,6 @@ xap-twitter: xaplib2 libcurl
 xap-plugboard:
 	$(MAKE) -C $(HAH_DIR)/xap-plugboard
 
-luaxaplib2: xaplib2 lua
-	$(MAKE) -C $(HAH_DIR)/luaxaplib2 INSTALL_TOP=$(INSTALL_DIR) CFLAGS="-I$(OPENSOURCE_DIR)/lua/src -I$(HAH_DIR)/xaplib2" PREFIX="$(INSTALL_DIR)/usr"
-
 klone: libcurl
 	$(MAKE) -C $(HAH_DIR)/klone
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
@@ -401,6 +397,7 @@ tool:
 buildimage: $(KERNEL_DIR)/Image tool
 	rm -f $(INSTALL_DIR)/lib/*.a
 	find $(INSTALL_DIR)/lib -name '*so*' -type f | xargs $(STRIP)
+	find $(TARGET_FS) -name '.svn' -type d | xargs $(RM) -rf
 	su --command="cd $(TARGETS_DIR); ./buildFS"
 	cp $(KERNEL_DIR)/Image $(TARGET_FS)
 	mkdir -p $(IMAGES_DIR)

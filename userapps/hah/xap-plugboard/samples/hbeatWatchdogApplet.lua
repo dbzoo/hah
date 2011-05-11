@@ -30,16 +30,16 @@ source=%s
   end
 end
 
-function addOrUpdateHbeatEntry()
-  local source = xap.getValue("xap-hbeat","source")
-  local interval = xap.getValue("xap-hbeat","interval")
+function addOrUpdateHbeatEntry(frame)
+  local source = frame:getValue("xap-hbeat","source")
+  local interval = frame:getValue("xap-hbeat","interval")
   hbeats[source] = {ttl = interval + 2, isalive = true}
 end
 
 function init()
-  f = xap.Filter()
+  local f = xap.Filter()
   f:add("xap-hbeat","source", xap.FILTER_ANY)
   f:callback(addOrUpdateHbeatEntry)
-
+  
   xap.Timer(reaper, 10):start()
 end

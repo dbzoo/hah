@@ -3,13 +3,12 @@
    Bootstrapper to load the applets.
 --]]
 require "xap"
-
+require "pl.config"
+require "pl.stringx"
 local spec = [[
   Various flags and option types
-    -i,--interface  (default br0)   Network interface
-    -d,--debug      (default 0)      xAP debug range 0..7
     -h,--help
-    <appletdir>     (default /etc/plugboard)
+     <appletdir> (default /etc/plugboard)
 ]]
 local args = require("pl.lapp")(spec)
 require "pl"
@@ -47,13 +46,24 @@ if args.help then
       print(spec)
       exit()
 end
-if args.debug then
-      xap.setLoglevel(args.debug)
+
+scriptdir = args.appletdir
+ini = config.read("/etc/xap-livebox.ini")
+
+if ini['plugboard'] then
+   uid = ini.plugboard['uid']
+   if uid then uid = tostring(uid) end
+   instance = ini.plugboard['instance']
+   if instance then instance = instance.."." end
+   if ini.plugboard['scriptdir'] then scriptdir = ini.plugboard['scriptdir'] end
 end
 
-require_path(args.appletdir)
+if uid == nil then uid="D8" end
+if instance == nil then instance="" end
 
-xap.initFromINI("dbzoo.livebox.Plugboard","00D8",args.interface)
-tablex.foreach(dir.getfiles(args.appletdir,"*Applet.lua"), loadApplet)
+require_path(scriptdir)
+
+xap.init("dbzoo.livebox."..instance.."Plugboard","FF"..stringx.ljust(uid,4,'0').."00")
+tablex.foreach(dir.getfiles(scriptdir,"*Applet.lua"), loadApplet)
 print("Running...")
 xap.process()

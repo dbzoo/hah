@@ -37,10 +37,10 @@ info={
 }
 
 function init()
-  f = xap.Filter()
+  local f = xap.Filter()
   local myip=socket.dns.toip(socket.dns.gethostname())
   f:add("xap-header","target", "dbzoo.lua.reboot:"..myip)
   f:add("xap-header","class","reboot")
-  f:add("host", NULL, xap.FILTER_ANY)
+  f:add("host", nil, xap.FILTER_ANY)
   f:callback(function() os.execute("/sbin/reboot") end)
 end

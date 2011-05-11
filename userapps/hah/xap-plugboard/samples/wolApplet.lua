@@ -41,9 +41,9 @@ function wakeOnLan(hwaddr)
 end
 
 function init()
-  f = xap.Filter()
+  local f = xap.Filter()
   f:add("xap-header","target", "dbzoo.lua.wol")
   f:add("xap-header","class","device.wol")
   f:add("wake","mac",xap.FILTER_ANY)
-  f:callback(function() wakeOnLan(xap.getValue("wake","mac")) end)
+  f:callback(function(frame) wakeOnLan(frame:getValue("wake","mac")) end)
 end

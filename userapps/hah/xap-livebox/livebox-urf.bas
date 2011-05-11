@@ -10,7 +10,7 @@ $regfile = "m328pdef.dat"
 
 ' Firmware revision
 Const Fwmajor = 2
-Const Fwminor = 3
+Const Fwminor = 4
 
 ' Allow interactive debug mode - increases code size.
 Const Allow_interactive = 1
@@ -55,7 +55,7 @@ $baud = 9600
 '+--------------+  Bottom of sram 0x0060
 
 $hwstack = 64                                               ' 2 bytes per call/gosub + upto 32 bytes for interrupts
-$swstack = 64                                               ' 2 bytes per local variable + 2 bytes per parameter passed
+$swstack = 32                                               ' 2 bytes per local variable + 2 bytes per parameter passed
 $framesize = 64
 
 'STARTUP
@@ -63,15 +63,15 @@ Declare Sub Bootup_wait()
 'COMMAND PROCESSOR
 Declare Sub Printprompt()
 Declare Sub Docommand()
-Declare Sub Getinput(byval Pbbyte As Byte)
+Declare Sub Getinput()
 'OTHER COMMANDS
 Declare Sub Help()
 Declare Sub Reboot
-Declare Sub Lcddisplay(pos As Byte)
+Declare Sub Lcddisplay()
 Declare Sub Port_status
 'RELAY
-Declare Sub Poweron(byval Chnl As Byte)
-Declare Sub Poweroff(byval Chnl As Byte)
+Declare Sub Poweron()
+Declare Sub Poweroff()
 Declare Sub Reset_relays()
 Declare Sub Relay_status()
 '1-WIRE
@@ -82,7 +82,7 @@ Declare Sub Meas_to_cel(id As Byte , Offset As Byte)
 Declare Sub 1wire_monitor
 Declare Sub Disp_temp(cnt As Byte , Offset As Byte)
 'I2C
-Declare Sub I2cmgmt(pos As Byte)
+Declare Sub I2cmgmt()
 Declare Sub I2c_monitor
 'RF sub-system
 Declare Sub Readbyte
@@ -90,8 +90,8 @@ Declare Sub Readword
 Declare Sub Readlong
 Declare Sub Setupurf
 Declare Sub Xmitrf
-Declare Sub Universalrfv1(pos As Byte)
-Declare Sub Universalrf(pos As Byte)
+Declare Sub Universalrfv1()
+Declare Sub Universalrf()
 
 ' I want a timer that resolves to 1sec, so the first step is to divide down
 ' the input clock .  Input clock to divide by 256, so now each clock pulse is
@@ -204,9 +204,9 @@ Dim Gspcinp(cpcinput_len) As Byte At Gspcinput Overlay
 Dim Gbpcinputpointer As Byte                                ' string-pointer during user-input
 
 ' 1-wire devices
-Const Max1wire = 31
-' Up to 31 each having an 8 byte ROMID
-Dim Dsid(248) As Byte                                       ' Dallas ID 64bit inc. CRC
+Const Max1wire = 24
+' Up to 24 each having an 8 byte ROMID
+Dim Dsid(192) As Byte                                       ' Dallas ID 64bit inc. CRC
 Dim Dsvalue(max1wire) As Word                               ' Value of each sensor
 Dim Dssign As Long
 Dim Cnt1wire As Byte                                        ' Number of 1-wire devices found
@@ -284,7 +284,6 @@ Dim Streambytes As Byte
 Dim Hbyte As Byte
 Dim Hword As Word
 Dim Hlong As Long
-Dim Gppos As Byte
 Dim Hexstring As String * 2
 Dim Hexbyte(2) As Byte At Hexstring Overlay
 Dim Rferr As Bit
@@ -318,7 +317,7 @@ Printprompt
 Do
   Gbinp = Inkey()                                           ' get user input
   If Gbinp <> 0 Then                                        ' something typed in?
-    Getinput Gbinp                                          ' give input to interpreter
+    Getinput                                                ' give input to interpreter
   End If
 
   Portvalue = Pind And &B00111100
@@ -448,15 +447,15 @@ Sub Printprompt
 End Sub
 
 
-Sub Getinput(pbbyte As Byte)
-   If Pbbyte = &H0D Then                                    ' Map CR to LF
-        Pbbyte = &H0A
-   Elseif Pbbyte = 127 Then                                 ' Map DEL to BS
-        Pbbyte = &H08
+Sub Getinput()
+   If Gbinp = &H0D Then                                     ' Map CR to LF
+        Gbinp = &H0A
+   Elseif Gbinp = 127 Then                                  ' Map DEL to BS
+        Gbinp = &H08
    End If
 
    ' stores bytes from user and wait for LF (&H0A)
-   Select Case Pbbyte
+   Select Case Gbinp
       Case &H0A
 #if Allow_interactive
         If Interactive = 1 Then
@@ -477,12 +476,12 @@ Sub Getinput(pbbyte As Byte)
 #endif
       Case Else                                             ' store user-input
          If Gbpcinputpointer < Cpcinput_len Then
-            Gspcinp(gbpcinputpointer) = Pbbyte
+            Gspcinp(gbpcinputpointer) = Gbinp
             Incr Gbpcinputpointer
             Gspcinp(gbpcinputpointer) = 0
 #if Allow_interactive
             If Interactive = 1 Then
-              Print Chr(pbbyte);                            ' echo back to user
+              Print Chr(gbinp);                             ' echo back to user
             End If
 #endif
          End If
@@ -525,11 +524,11 @@ Sub Docommand
            Pos = Pos + 2                                    ' Argument
            ' test first word
            Select Case Command
-                Case "on" : Poweron Pos
-                Case "off" : Poweroff Pos
-                Case "lcd" : Lcddisplay Pos
-                Case "i2c" : I2cmgmt Pos
-                Case "urf" : Universalrf Pos
+                Case "on" : Poweron
+                Case "off" : Poweroff
+                Case "lcd" : Lcddisplay
+                Case "i2c" : I2cmgmt
+                Case "urf" : Universalrf
             End Select
       End Select
 End Sub
@@ -643,7 +642,7 @@ Sub I2c_monitor
   Next
 End Sub
 
-Sub I2cmgmt(pos As Byte)
+Sub I2cmgmt()
   ' The gspcinp string begins with the COMMAND type
   D = Gspcinp(pos)
   If D = "R" Then
@@ -736,7 +735,7 @@ End Sub
 '##### INTERNAL RELAY SUB SYSTEM #####
 
 ' Channel ID 1,2,3,4 map to internal relays
-Sub Poweron(pos As Byte)
+Sub Poweron()
   J = Val(gspcinp(pos))
   If J >= 1 And J <= 4 Then
       Set Portb.rport(j)
@@ -749,7 +748,7 @@ Sub Poweron(pos As Byte)
    End If
 End Sub
 
-Sub Poweroff(pos As Byte)
+Sub Poweroff()
   J = Val(gspcinp(pos))
   If J >= 1 And J <= 4 Then
       Reset Portb.rport(j)
@@ -766,7 +765,7 @@ End Sub
 '*****************************************************************************
 '##### LCB SUB SYSTEM #####
 
-Sub Lcddisplay(pos As Byte)
+Sub Lcddisplay()
   Cls                                                       'clear the LCD display
   Lcd Mid(gspcinput , Pos , 8)
   Lowerline                                                 'select the lower line
@@ -781,7 +780,7 @@ End Sub
 Sub Readbyte
   For K = 1 To 2
     ' End of buffer reached and we still need more?
-    If Gppos > Gbpcinputpointer Then
+    If Pos > Gbpcinputpointer Then
       Rferr = 1
 #if Allow_interactive
       If Interactive = 1 Then
@@ -790,8 +789,8 @@ Sub Readbyte
 #endif
       Return
     End If
-    Hexbyte(k) = Gspcinp(gppos)
-    Incr Gppos
+    Hexbyte(k) = Gspcinp(pos)
+    Incr Pos
   Next K
   Hbyte = Hexval(hexstring)
 End Sub
@@ -969,7 +968,7 @@ Sub Xmitrf
      Wend
 End Sub
 
-Sub Universalrfv1(pos As Byte)
+Sub Universalrfv1()
   Setupurf
 
   If Rferr = 1 Then
@@ -999,9 +998,8 @@ Sub Universalrfv1(pos As Byte)
 End Sub
 
 
-Sub Universalrf(pos As Byte)
+Sub Universalrf()
   Rferr = 0
-  Gppos = Pos
 
   ' Version byte - for future use
   Call Readbyte
@@ -1009,7 +1007,7 @@ Sub Universalrf(pos As Byte)
       Return
   End If
 
-  Universalrfv1 Pos
+  Universalrfv1
 End Sub
 
 '*****************************************************************************
@@ -1117,7 +1115,7 @@ Sub Disp_temp(cnt As Byte , Offset As Byte)
       ' Dump ROM ID
       Bi = Offset + 8
       For Ik = Offset To Bi
-        Print Hex(dsid(Ik));
+        Print Hex(dsid(ik));
       Next
     Print " ";
     If Dssign.cnt = 1 And Imeas <> 0 Then

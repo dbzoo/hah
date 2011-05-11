@@ -12,7 +12,7 @@ info={
    version="1.0", description="Relay 1 Auto off"
 }
 
-function relayOff(self)
+function relayOff(timer)
   print("Relay 1 auto off")
   xap.sendShort([[xap-header
 {
@@ -24,7 +24,7 @@ output.state.1
 id=*
 state=off
 }]])
-  self:delete()
+  timer:delete()
 end
 
 function relayOn()
@@ -33,7 +33,7 @@ function relayOn()
 end
 
 function init()
-  f = xap.Filter()
+  local f = xap.Filter()
   f:add("xap-header","source","dbzoo.livebox.Controller:relay.1")
   f:add("xap-header","class","xAPBSC.event")
   f:add("output.state","state","on")

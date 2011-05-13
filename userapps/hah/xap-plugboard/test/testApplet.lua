@@ -34,6 +34,25 @@ text=hello world
   test.asserteq(f:isValue("output.state","text","hello world"), true)
 end
 
+function test15_EmptyFrame()
+   local msg=[[
+xap-header
+{
+v=13
+hop=1
+uid=FF.9192:00
+class=xAPBSC.query
+source=dbzoo.lua.test
+}
+query
+{
+}]]
+
+  f = xap.Frame(msg)
+  test.asserteq(f:getValue("query","x"), nil)
+  test.asserteq(f:getValue("query",nil), xap.FILTER_ANY)
+end
+
 function test20_StartEndMessageSpaces()
    local msg="xap-header\
 	{\

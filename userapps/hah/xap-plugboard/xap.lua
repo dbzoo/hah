@@ -7,6 +7,9 @@
    All derivative work must retain this message and
    acknowledge the work of the original author.
 --]]
+local _G = _G
+local DEBUG = rawget(_G,'_DEBUG')
+
 module("xap", package.seeall)
 
 require("socket")
@@ -21,28 +24,27 @@ MSG_UNKNOWN = "unknown"
 FILTER_ANY = "xap_filter_any"
 FILTER_ABSENT = "xap_filter_absent"
 
-local function getRxPort(verbose)
-   verbose = verbose or false
+local function getRxPort()
    rxport=3639
    local udp = socket.udp()
    udp:setoption('broadcast',true)
    if (udp:setsockname('*',3639) == nil) then
-      if verbose then
+      if DEBUG then
 	 print("Broadcast port 3639 in use")
 	 print("Assuming hub is active")
       end
       for i=3640,4639,1 do
 	 udp = socket.udp() --On bind failure the descriptor is closed (bug?)
 	 if (udp:setsockname('127.0.0.1',i) ~= nil) then
-	    if verbose then print("Discovered port "..i) end
+	    if DEBUG then print("Discovered port "..i) end
 	    rxport=i
 	    break
 	 else
-	    if verbose then print ("Port "..i.." in use") end
+	    if DEBUG then print ("Port "..i.." in use") end
 	 end
       end
    else
-      if verbose then print("Acquired broadcast port 3639") end
+      if DEBUG then print("Acquired broadcast port 3639") end
    end
    return udp
 end
@@ -99,6 +101,7 @@ local handlePacket = function(udp, data)
 		     end
 
 function init(source, uid)
+   verbose = true
    tx = getTxPort()
    defaultKeys = {source=source, uid=uid, v=12, hop=1}
 
@@ -323,8 +326,9 @@ function Filter:add(section, key, value)
    table.insert(self.filterChain, FilterKey(section,key,value:lower()))
 end
 
-function Filter:callback(func)
+function Filter:callback(func, userdata)
    self.callback = func
+   self.userdata = userdata
 end
 
 function Filter:ismatch(frame)
@@ -378,6 +382,6 @@ end
 function Filter:dispatch(frame)
    if self.callback and self:ismatch(frame) then
       gframe = frame
-      self.callback(frame)
+      self.callback(frame, self.userdata)
    end
 end

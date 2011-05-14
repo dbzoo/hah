@@ -10,7 +10,7 @@ info={
    version="1.0", description="LCD ticker"
    }
 
-scrollPos = 0
+scrollPos = 1
 msg = "No data available"
 sep = " : "
 
@@ -18,7 +18,7 @@ resultTbl={}
 
 filterMap={
    [xap.Filter{["xap-header"]= { 
-		  source="dbzoo.arduino.temp",
+		  source="dbzoo.livebox.controller:1wire.1",
 		  class="xAPBSC.event"
 	       }
 	 }] = function(f) 
@@ -54,7 +54,7 @@ filterMap={
 	      end
 }
 
-function showMap()
+function scrollResults()
    if scrollPos >= #msg + #sep then
       scrollPos = 1
    end
@@ -80,8 +80,9 @@ xap-header
 class=xAPBSC.cmd
 target=dbzoo.livebox.Controller:lcd
 }
-output.state
+output.state.1
 {
+id=*
 state=on
 text=%s
 }]], msg)
@@ -94,6 +95,5 @@ function init()
 		    resultTbl[filterMapKey] = filterMap[filterMapKey](frame)
 		 end, k)
    end
-   showMap()
-   xap.Timer(showMap, 10):start()
+   xap.Timer(scrollResults, 10):start()
 end

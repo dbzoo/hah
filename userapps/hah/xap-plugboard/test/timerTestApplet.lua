@@ -45,6 +45,16 @@ function test30_IdleTimer()
    xap.Timer(function() assert(false,"timer started!!") end ,1)
 end
 
+local st
+function test40_EdgeTimer()
+   st = os.time()
+   xap.Timer(function()
+		print("....test40_EdgeTimer callback "..os.time())
+		assert(st, os.time()-5)
+		st = os.time()
+	     end ,5):start()
+end
+
 function pairsByKeys (t, f)
    local a = {}
    for n in pairs(t) do table.insert(a, n) end

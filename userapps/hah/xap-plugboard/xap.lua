@@ -147,6 +147,7 @@ end
 
 function Timer:start()
    self.isalive = true
+   self:reset()
    return self
 end
 
@@ -156,12 +157,12 @@ function Timer:stop()
 end
 
 function Timer:reset()
-   self.ttl = 0
+   self.ttl = os.time() + self.interval
    return self
 end
 
 function Timer:dispatch()
-   self.ttl = os.time() + self.interval
+   self:reset()
    self.callback(self)
 end
 

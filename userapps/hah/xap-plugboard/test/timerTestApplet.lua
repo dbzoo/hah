@@ -48,9 +48,9 @@ end
 local st
 function test40_EdgeTimer()
    st = os.time()
-   xap.Timer(function()
+   xap.Timer(function(t)
 		print("....test40_EdgeTimer callback "..os.time())
-		assert(st, os.time()-5)
+		assert(st, os.time()-t.interval)
 		st = os.time()
 	     end ,5):start()
 end

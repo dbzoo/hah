@@ -225,9 +225,9 @@ function comboSubmit() {
 
 <tr>
 <%
-char section[30];
-char mode[30];
-int section_num;
+static char section[30];
+static char mode[30];
+static int section_num;
 for (i = 0; ini_getsection(i, section, sizeof(section), con.inifile) > 0; i++) {
 	if(strncmp("ppe",section,3) != 0) continue;
 	if(ini_gets(section,"mode","",mode,sizeof(mode),con.inifile) == 0) continue;

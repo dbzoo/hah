@@ -16,7 +16,7 @@ require("socket")
 local class = require("pl.class").class
 local List = require("pl.list").List
 local gframe
-local defaultKeys
+defaultKeys={}
 
 MSG_ORDINARY = "xap-header"
 MSG_HBEAT = "xap-hbeat"
@@ -163,7 +163,7 @@ end
 
 function Timer:dispatch()
    self:reset()
-   self.callback(self)
+   self.callback(self, self.userdata)
 end
 
 function Timer:delete()

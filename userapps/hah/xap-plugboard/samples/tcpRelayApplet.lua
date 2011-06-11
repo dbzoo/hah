@@ -48,7 +48,7 @@ function init()
       c = socket.connect(host,port)
       if c then
 	 print("OK")
-	 xap.Select(fromSocket, c:getfd())
+	 xap.Select(fromSocket, c)
 	 
 	 f = xap.Filter()
 	 f:add("xap-header","target",xap.getSource())

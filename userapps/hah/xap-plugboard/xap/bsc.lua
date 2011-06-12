@@ -12,10 +12,12 @@ local DEBUG = rawget(_G,'_DEBUG')
 
 module("bsc", package.seeall)
 
+pretty = require("pl.pretty")
 ljust = require "pl.stringx".ljust
 require "xap"
 
 local class = require("pl.class").class
+local List = require("pl.list").List
 
 uid = 1
 
@@ -110,7 +112,7 @@ end
 
 function setState(e, state)
    if state == STATE_TOGGLE then
-      state = e.state == STATE_ON and STATE_OFF or STATE_ON
+      e.state = e.state == STATE_ON and STATE_OFF or STATE_ON
    else
       e.state = state
    end

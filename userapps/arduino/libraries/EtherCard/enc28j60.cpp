@@ -16,7 +16,7 @@ static byte Enc28j60Bank;
 static int16_t gNextPacketPtr;
 
 //AT: Use pin 10 for nuelectronics.com compatible ethershield.
-//AT: Use pin 8 for jeenode ethercard
+//AT: Use pin 8 for jeenode ethercard and Nanode
 #define ENC28J60_CONTROL_CS 10
 
 void ENC28J60::spiInit() {

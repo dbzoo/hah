@@ -39,15 +39,15 @@ unsigned char state = ST_NONE;
 bscEndpoint *endpointList = NULL;
 bscEndpoint *currentTag = NULL;
 
-static void infoEventChannel(bscEndpoint *, char *);
-static void infoEventTemp(bscEndpoint *, char *);
+static int infoEventChannel(bscEndpoint *, char *);
+static int infoEventTemp(bscEndpoint *, char *);
 
 // Lookup table that converts an XML tag into a bscEndpoint.
 // Once a tag is matched the next CDATA section will be its value.
 struct _ccTag
 {
         char *xmltag;
-        void (*infoEvent)(bscEndpoint *, char *);
+        int (*infoEvent)(bscEndpoint *, char *);
         char *name;
         char *subaddr;
         int uid;
@@ -62,7 +62,7 @@ ccTag[] = {
           };
 
 /// BSC callback - Only emit info/event for Channels that adjust outside of the hysteresis amount.
-static void infoEventChannel(bscEndpoint *e, char *clazz)
+static int infoEventChannel(bscEndpoint *e, char *clazz)
 {
         info("%s Sensor 0 %s.%s = %s", clazz, e->name, e->subaddr, e->text);
         int old = 0;
@@ -75,12 +75,13 @@ static void infoEventChannel(bscEndpoint *e, char *clazz)
                 if(e->displayText == NULL)
                         e->displayText = (char *)malloc(15);
                 snprintf(e->displayText, 15, "%d Watts", new);
-                bscInfoEvent(e, clazz);
+                return 1;
         }
+	return 0;
 }
 
 /// BSC callback - Emit info/event for Temperature endpoints.
-static void infoEventTemp(bscEndpoint *e, char *clazz)
+static int infoEventTemp(bscEndpoint *e, char *clazz)
 {
         info("%s %s = %s", clazz, e->name, e->text);
         if(strcmp(clazz, BSC_INFO_CLASS) == 0 || e->userData == NULL || strcmp(e->text, (char *)e->userData)) {
@@ -89,8 +90,9 @@ static void infoEventTemp(bscEndpoint *e, char *clazz)
                 char unit = strcmp(e->name,"temp") == 0 ? 'C' : 'F'; // tmpr/tmprF
                 snprintf(e->displayText, 15, "Temp %s%c", e->text, unit);
 
-                bscInfoEvent(e, clazz);
+                return 1;
         }
+	return 0;
 }
 
 /** Load a dynamic key for the [currentcost] section from the INI file.
@@ -140,15 +142,19 @@ static void sensorInfoEvent(bscEndpoint *e, char *clazz)
                                 snprintf(e->displayText, 30, "%s %s", e->text, unit);
                         }
                 }
-
-                bscInfoEvent(e, clazz);
+                return 1;
         }
+	return 0;
 }
 
-static void findOrAddSensor()
+static void findOrAddSensor(int channel)
 {
-        char sensor[3];
-        snprintf(sensor, sizeof(sensor), "%d", currentSensor);
+        char sensor[6];
+	if(channel == 1) {
+	  snprintf(sensor, sizeof(sensor), "%d", currentSensor);
+	} else {
+	  snprintf(sensor, sizeof(sensor), "%d.%d", currentSensor, channel);
+	}
 
         currentTag = bscFindEndpoint(endpointList, "sensor", sensor);
         if(currentTag == NULL) {
@@ -190,7 +196,13 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
                 }
         } else if(strcmp(name,"ch1") == 0) {
                 state = ST_DATA;
-                findOrAddSensor();
+                findOrAddSensor(1);
+        } else if(strcmp(name,"ch2") == 0) {
+                state = ST_DATA;
+                findOrAddSensor(2);
+        } else if(strcmp(name,"ch3") == 0) {
+                state = ST_DATA;
+                findOrAddSensor(3);
         }
 }
 
@@ -246,7 +258,7 @@ static void cdataBlockCB(void *ctx, const xmlChar *ch, int len)
                         } else {
                                 bscSetState(currentTag, BSC_STATE_ON);
                         }
-                        bscSendCmdEvent(currentTag);
+                        bscSendEvent(currentTag);
                 }
                 break;
         }

@@ -118,7 +118,7 @@ int performGet(tcurl *c) {
 			return 0;
 		case CURLE_HTTP_RETURNED_ERROR:
 			curl_easy_getinfo(c->curlHandle, CURLINFO_HTTP_CODE, &responseCode);
-			err("### response=%ld", responseCode);
+			notice("### response=%ld", responseCode);
 			break;
 		default:
 			err("curlCode: %i  msg: %s", code, curl_easy_strerror(code));
@@ -190,7 +190,7 @@ static int performPost(tcurl *c, char *url, char *msg) {
 		return 0;
 	case CURLE_HTTP_RETURNED_ERROR:
 		curl_easy_getinfo(c->curlHandle, CURLINFO_HTTP_CODE, &responseCode);
-		err("### response=%ld", responseCode);
+		notice("### response=%ld", responseCode);
 		break;
 	default:
 		err("curlCode: %i  msg: %s", code, curl_easy_strerror(code));

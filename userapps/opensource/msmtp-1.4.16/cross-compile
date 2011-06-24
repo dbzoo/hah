@@ -1,4 +1,0 @@
-LDFLAGS="-static" CFLAGS="-mips32 -Os" CC=mips-uclibc-gcc ./configure --host mips --prefix=/usr
-make clean
-make
-mips-uclibc-strip src/msmtp

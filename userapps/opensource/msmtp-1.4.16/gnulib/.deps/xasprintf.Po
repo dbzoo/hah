@@ -1,8 +1,0 @@
-xasprintf.o xasprintf.o: xasprintf.c ../config.h xvasprintf.h \
-  /opt/toolchains/uclibc/lib/gcc-lib/mips-linux/3.2.2/include/stdarg.h
-
-../config.h:
-
-xvasprintf.h:
-
-/opt/toolchains/uclibc/lib/gcc-lib/mips-linux/3.2.2/include/stdarg.h:

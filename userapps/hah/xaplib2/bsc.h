@@ -47,7 +47,9 @@ typedef struct _bscEndpoint {
 	};	
 
 	void (*cmd)(struct _bscEndpoint *self);
-	void (*infoEvent)(struct _bscEndpoint *self, char *clazz);
+
+	// Return 1 to emit an info/event, return 0 to deny
+	int (*infoEvent)(struct _bscEndpoint *self, char *clazz);
 	
 	// Computed fields
 	char *displayText;
@@ -63,16 +65,18 @@ typedef struct _bscEndpoint {
 
 bscEndpoint *bscAddEndpoint(bscEndpoint **head, char *name, char *subaddr, unsigned int dir, unsigned int typ,
                     void (*cmd)(struct _bscEndpoint *self),
-                    void (*infoEvent)(struct _bscEndpoint *self, char *clazz)
+                    int (*infoEvent)(struct _bscEndpoint *self, char *clazz)
                    );
 void bscAddEndpointFilter(bscEndpoint *head, int info_interval);
 void bscAddEndpointFilterList(bscEndpoint *head, int info_interval);
 void *bscDelEndpoint(bscEndpoint *b);
-void bscInfoEvent(bscEndpoint *e, char *clazz);
 void bscSetLevel(bscEndpoint *e, char *level);
 void bscSetText(bscEndpoint *e, char *level);
+void bscSetDisplayText(bscEndpoint *e, char *text);
 void bscSetState(bscEndpoint *e, int state);
 void bscSendCmdEvent(bscEndpoint *e);
+void bscSendEvent(bscEndpoint *e);
+void bscSendInfo(bscEndpoint *e);
 bscEndpoint *bscFindEndpoint(bscEndpoint *head, char *name, char *subaddr);
 int bscParseLevel(char *str);
 char *bscStateToString(bscEndpoint *e);
@@ -80,5 +84,6 @@ char *bscIOToString(bscEndpoint *e);
 int bscDecodeState(char *msg);
 void bscSetEndpointUID(int nid);
 int bscGetEndpointUID();
+void bscFreeEndpointFilterList(bscEndpoint *head);
 
 #endif

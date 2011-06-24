@@ -189,28 +189,34 @@ addEvent(window,"load",function() {
 // OAUTH REQUEST
     const char *auth = request_get_arg(request,"auth_button");
     if(auth && *auth == '1') {   // Authorisation button pressed?
+      char *url = NULL;
       submit_form(); // Save any outstanding FORM changes first.
 
       tcurl *c = new_tcurl(out);
-
-      char callback_url[128];
-      snprintf(callback_url, sizeof(callback_url),"http://%s:%d%s",
-	       inet_ntoa(request_get_addr(request)->sa.sin.sin_addr),
-	       htons(request_get_addr(request)->sa.sin.sin_port),
-	       request_get_uri(request));
-
-      char *url = oauthGetAuthorizeUrl(c, callback_url);
-      if(url) {
-	// Store the temporary access key/secret in the session.
-	// We need this for the callback from twitter.
-	session_set(session, "key", c->oauthAccessKey);
-	session_set(session, "secret", c->oauthAccessSecret);
+      if(c) {
+	char callback_url[128];
+	snprintf(callback_url, sizeof(callback_url),"http://%s:%d%s",
+		 inet_ntoa(request_get_addr(request)->sa.sin.sin_addr),
+		 htons(request_get_addr(request)->sa.sin.sin_port),
+		 request_get_uri(request));
+	
+	url = oauthGetAuthorizeUrl(c, callback_url);
+	if(url) {
+	  // Store the temporary access key/secret in the session.
+	  // We need this for the callback from twitter.
+	  session_set(session, "key", c->oauthAccessKey);
+	  session_set(session, "secret", c->oauthAccessSecret);
+	} else {
+	  %>
+	  <p><b>Acquiring a request token failed</b></p>
+	    <%
+	    }
+	free_tcurl(c);
       } else {
 	%>
-	<p><b>Acquiring a request token failed</b></p>
-<%
+	<p><b>Failed to create a TCURL instance</b></p>
+	  <%
       }
-      free_tcurl(c);
 
       // Redirect to TWITTER for HAH authorisation.
       if(url) {

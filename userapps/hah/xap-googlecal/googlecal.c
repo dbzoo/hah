@@ -73,7 +73,7 @@ const char *inifile = "/etc/xap-livebox.ini";
 // Commandline / INI settings
 static int freq; // calendar sync frequency
 static char username[64];
-static char *password;
+static char *password=NULL;
 static char *interfaceName = "eth0";
 
 // Internal
@@ -267,7 +267,7 @@ void googleEventCheck(int interval, void *userData)
                         // The "description" field from the calendar event
                         // contains the xAP fragment we want to send
                         // As this is a short xAP message fix it up.
-	                xapmsg = fillShortXap(description, xapGetUID(), xapGetSource());
+	                xapmsg = fillShortXap(description);
                 } else {
                         // pattern match the title against the aliases to find the xAP msg.
                         xapmsg = (char *)malloc(XAP_DATA_LEN);
@@ -438,6 +438,7 @@ int main(int argc, char *argv[])
                 if(strcmp("-u", argv[i]) == 0 || strcmp("--username",argv[i]) == 0) {
                         strlcpy(username, argv[++i], sizeof(username));
                 } else if(strcmp("-p", argv[i]) == 0 || strcmp("--password",argv[i]) == 0) {
+	                if(password) free(password);
                         password = strdup( argv[++i] );
                 } else if(strcmp("-f", argv[i]) == 0 || strcmp("--freq",argv[i]) == 0) {
 	                validatePollingFrequency(atoi(argv[++i]));

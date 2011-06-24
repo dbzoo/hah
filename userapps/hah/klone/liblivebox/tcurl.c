@@ -53,29 +53,28 @@ exit:
 
 
 tcurl *new_tcurl(io_t *io) {
-        tcurl *c = (tcurl *)malloc(sizeof(tcurl));
-
-        clearCallbackBuffers(c);
-        // Set resonable sizes for our buffers; these will realloc if necessary.
-        c->callbackData = (char *)malloc(256);
-        c->cb_length = 256;
-        c->curlHandle = curl_easy_init();
-        c->oauthAccessKey = NULL;
-        c->oauthAccessSecret = NULL;
-	c->out = io;
-
-        if (NULL == c->curlHandle) {
-		io_printf(io, "<p>Fail to init CURL</p>");
-        } else {
-		/* Set buffer to get error */
-		curl_easy_setopt( c->curlHandle, CURLOPT_ERRORBUFFER, c->errorBuffer );
+	tcurl *c = (tcurl *)calloc(1, sizeof(tcurl));
+	if(c) {
+		// Set resonable sizes for our buffers; these will realloc if necessary.
+		c->callbackData = (char *)calloc(1, 256);
+		c->cb_length = 256;
+		c->curlHandle = curl_easy_init();
+		c->oauthAccessKey = NULL;
+		c->oauthAccessSecret = NULL;
+		c->out = io;
 		
-		/* Set callback function to get response */
-		curl_easy_setopt( c->curlHandle, CURLOPT_WRITEFUNCTION, write_cb );
-		curl_easy_setopt( c->curlHandle, CURLOPT_WRITEDATA, (void * )c);
-        }
-
-        return c;
+		if (NULL == c->curlHandle) {
+			io_printf(io, "<p>Fail to init CURL</p>");
+		} else {
+			/* Set buffer to get error */
+			curl_easy_setopt( c->curlHandle, CURLOPT_ERRORBUFFER, c->errorBuffer );
+			
+			/* Set callback function to get response */
+			curl_easy_setopt( c->curlHandle, CURLOPT_WRITEFUNCTION, write_cb );
+			curl_easy_setopt( c->curlHandle, CURLOPT_WRITEDATA, (void * )c);
+		}
+	}
+	return c;
 }
 
 static inline int isCurlInit(tcurl *c) {

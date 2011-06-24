@@ -43,7 +43,7 @@ void xapSend(const char *mess)
 * class=
 * }
 */
-char *fillShortXap(char *shortMsg, char *uid, char *source) {
+char *fillShortXap(char *shortMsg) {
 	 // Use a local data frame as UID/SOURCE param may be ptr's into the Global Frame.
 	xAPFrame f;
 		
@@ -52,10 +52,6 @@ char *fillShortXap(char *shortMsg, char *uid, char *source) {
 
 	char *target = xapGetValueF(&f, "xap-header", "target");
 	char *class = xapGetValueF(&f, "xap-header", "class");
-	if(target == NULL) {
-		err("Missing mandatory target element");
-		return NULL;
-	}
 	if(class == NULL) {
 		err("Missing mandatory class element");
 		return NULL;
@@ -65,17 +61,20 @@ char *fillShortXap(char *shortMsg, char *uid, char *source) {
 	parsedMsgToRawWithoutSectionF(&f, xapBody, sizeof(xapBody), "xap-header");
 	
 	char newMsg[XAP_DATA_LEN];
-	snprintf(newMsg, XAP_DATA_LEN, "xap-header\n"
+	int len = snprintf(newMsg, XAP_DATA_LEN, "xap-header\n"
 	               "{\n"
 	               "v=12\n"
 	               "hop=1\n"
 	               "uid=%s\n"
 	               "class=%s\n"
-	               "source=%s\n"
-	               "target=%s\n"
+		       "source=%s\n", xapGetUID(), class, xapGetSource());
+	if(target) {
+		len += snprintf(&newMsg[len], XAP_DATA_LEN-len,"target=%s\n", target);
+	}
+	len += snprintf(&newMsg[len], XAP_DATA_LEN-len,
 	               "}\n"
 	               "%s",
-	               uid, class, source, target, xapBody);
+	               xapBody);
 	
 	return strdup(newMsg);
 }

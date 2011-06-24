@@ -9,7 +9,8 @@ extern bscEndpoint *endpointList;
 extern const char *inifile;
 
 void addIniEndpoints();
-void infoEventBinary(bscEndpoint *e, char *clazz);
+int infoEventBinary(bscEndpoint *e, char *clazz);
+void resetOneWireEndpoints();
 void resetOneWireEndpoints();
 
 struct tempSensor {

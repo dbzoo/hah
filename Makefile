@@ -76,9 +76,11 @@ SUBDIRS_OPENSOURCE = \
         $(OPENSOURCE_DIR)/ftpd \
         $(OPENSOURCE_DIR)/ini \
         $(OPENSOURCE_DIR)/mtd \
-        $(OPENSOURCE_DIR)/msmtp \
-        $(OPENSOURCE_DIR)/wol \
-	$(OPENSOURCE_DIR)/lua
+	$(OPENSOURCE_DIR)/lua \
+	$(OPENSOURCE_DIR)/lrexlib \
+	$(OPENSOURCE_DIR)/luafilesystem \
+	$(OPENSOURCE_DIR)/luasocket \
+	$(OPENSOURCE_DIR)/penlight
 
 export BROADCOM_DIR=$(USERAPPS_DIR)/broadcom
 
@@ -93,7 +95,6 @@ SUBDIRS_INVENTEL = \
 
 HAH_DIR=$(USERAPPS_DIR)/hah
 SUBDIRS_HAH = \
-	$(HAH_DIR)/xaplib \
 	$(HAH_DIR)/xaplib2 \
 	$(HAH_DIR)/xap-hub \
 	$(HAH_DIR)/xap-livebox \
@@ -104,19 +105,17 @@ SUBDIRS_HAH = \
 	$(HAH_DIR)/xap-googlecal \
 	$(HAH_DIR)/xap-twitter \
 	$(HAH_DIR)/xap-plugboard \
-	$(HAH_DIR)/xap-bridge \
 	$(HAH_DIR)/xap-serial \
-	$(HAH_DIR)/luarex \
 	$(HAH_DIR)/klone \
 	$(HAH_DIR)/iServer
 
 SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIRS_HAH)
 
-OPENSOURCE_APPS = brctl dropbear ftpd msmtp iptables busybox ntpclient ini mtd lua wol
+OPENSOURCE_APPS = brctl dropbear ftpd iptables busybox ntpclient ini mtd lua \
+	lrexlib luafilesystem luasocket penlight
 INVENTEL_APPS = inventelbin sendarp ledctrl
-HAH_APPS = xaplib xaplib2 xap-hub xap-livebox xap-snoop xap-pachube xap-sms xap-bridge \
-	xap-currentcost xap-googlecal xap-twitter xap-plugboard xap-serial luarex klone \
-	iServer
+HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-pachube xap-sms iServer \
+	xap-currentcost xap-googlecal xap-twitter xap-serial klone xap-plugboard 
 
 BUSYBOX_DIR = $(OPENSOURCE_DIR)/busybox
 
@@ -164,19 +163,11 @@ prebuild:
 hah:	$(HAH_APPS)
 
 
-xaplib:
-	$(MAKE) -C $(HAH_DIR)/xaplib
-	install -m 755 -d $(INSTALL_DIR)/lib
-	install -m 644 $(HAH_DIR)/xaplib/libxap.so $(INSTALL_DIR)/lib
-	$(STRIP) $(INSTALL_DIR)/lib/libxap.so
-	install -m 755 -d $(INSTALL_DIR)/include
-	install -m 644 $(HAH_DIR)/xaplib/*.h $(INSTALL_DIR)/include
-
 xaplib2:
 	$(MAKE) -C $(HAH_DIR)/xaplib2
 	install -m 755 -d $(INSTALL_DIR)/lib
 	install -m 644 $(HAH_DIR)/xaplib2/libxap2.so $(INSTALL_DIR)/lib
-	$(STRIP) $(INSTALL_DIR)/lib/libxap.so
+	$(STRIP) $(INSTALL_DIR)/lib/libxap2.so
 	install -m 755 -d $(INSTALL_DIR)/include
 	install -m 644 $(HAH_DIR)/xaplib2/*.h $(INSTALL_DIR)/include
 
@@ -221,12 +212,6 @@ xap-currentcost: xaplib2 libxml2
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/xap-currentcost/xap-currentcost $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-currentcost
-
-xap-bridge: xaplib
-	$(MAKE) -C $(HAH_DIR)/xap-bridge
-	install -m 755 -d $(INSTALL_DIR)/usr/bin
-	install -m 755 $(HAH_DIR)/xap-bridge/xap-bridge $(INSTALL_DIR)/usr/bin
-	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-bridge
 
 libopenssl:
 	@if [ ! -d $(OPENSOURCE_DIR)/openssl-0.9.8l ]; then \
@@ -291,10 +276,8 @@ xap-twitter: xaplib2 libcurl
 	install -m 755 $(HAH_DIR)/xap-twitter/xap-twitter $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-twitter
 
-xap-plugboard: xaplib libluarex lua
+xap-plugboard:
 	$(MAKE) -C $(HAH_DIR)/xap-plugboard
-	install -m 755 $(HAH_DIR)/xap-plugboard/xap-plugboard $(INSTALL_DIR)/usr/bin
-	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-plugboard
 
 klone: libcurl
 	$(MAKE) -C $(HAH_DIR)/klone
@@ -302,27 +285,34 @@ klone: libcurl
 	install -m 755 $(HAH_DIR)/klone/kloned $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/kloned
 
+penlight:
+	install -m 755 -d $(INSTALL_DIR)/usr/share/lua/5.1/pl
+	install -m 644 $(OPENSOURCE_DIR)/penlight/lua/init.lua $(INSTALL_DIR)/usr/share/lua/5.1/pl
+	install -m 644 $(OPENSOURCE_DIR)/penlight/lua/pl/* $(INSTALL_DIR)/usr/share/lua/5.1/pl
+
+lua:
+	$(MAKE) -C $(OPENSOURCE_DIR)/lua linux CC=$(CC)
+	install -m 755 $(OPENSOURCE_DIR)/lua/src/lua $(INSTALL_DIR)/usr/bin
+
 iServer: xaplib2
 	$(MAKE) -C $(HAH_DIR)/iServer
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/iServer/iServer $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/iServer
 
-libluarex: lua
-	$(MAKE) -C $(HAH_DIR)/libluarex
-	install -m 755 $(HAH_DIR)/libluarex/libluarex.a $(INSTALL_DIR)/lib
+luasocket: lua
+	$(MAKE) -C $(OPENSOURCE_DIR)/luasocket install LD="$(CC) -shared" PLATFORM=linux INSTALL_TOP="$(INSTALL_DIR)/usr" CFLAGS="-I$(OPENSOURCE_DIR)/lua/src"
+	$(STRIP) $(INSTALL_DIR)/usr/lib/lua/5.1/socket/core.so
+	$(STRIP) $(INSTALL_DIR)/usr/lib/lua/5.1/mime/core.so
 
-luarex: lua libluarex
-	$(MAKE) -C $(HAH_DIR)/lua
-	install -m 755 $(HAH_DIR)/lua/lua $(INSTALL_DIR)/usr/bin
-	$(STRIP) $(INSTALL_DIR)/usr/bin/lua
+luafilesystem: lua
+	$(MAKE) -C $(OPENSOURCE_DIR)/luafilesystem install PLATFORM=linux PREFIX="$(INSTALL_DIR)/usr" CFLAGS="-I$(OPENSOURCE_DIR)/lua/src"
+	$(STRIP) $(INSTALL_DIR)/usr/lib/lua/5.1/lfs.so
 
-lua:
-	$(MAKE) -C $(OPENSOURCE_DIR)/lua posix CC=$(CC)
-	install -m 755 -d $(INSTALL_DIR)/lib
-	install -m 755 -d $(INSTALL_DIR)/include
-	cp $(OPENSOURCE_DIR)/lua/src/*.h $(INSTALL_DIR)/include
-	cp $(OPENSOURCE_DIR)/lua/src/*.so $(INSTALL_DIR)/lib
+lrexlib: lua
+	mkdir -p $(INSTALL_DIR)/usr/lib/lua/5.1
+	$(MAKE) -C $(OPENSOURCE_DIR)/lrexlib build_posix AR="$(AR) rcu" PREFIX="$(INSTALL_DIR)/usr" CFLAGS="-I$(OPENSOURCE_DIR)/lua/src"
+	$(STRIP) $(INSTALL_DIR)/usr/lib/lua/5.1/rex_posix.so
 
 brctl:
 	$(MAKE) -C $(OPENSOURCE_DIR)/bridge-utils dynamic
@@ -345,14 +335,6 @@ libc:
 
 ddns:
 	$(MAKE) -C $(OPENSOURCE_DIR)/ddns dynamic
-
-msmtp:
-	@if [ ! -f $(OPENSOURCE_DIR)/msmtp/Makefile ]; then \
-	   (cd $(OPENSOURCE_DIR)/msmtp; ./configure --host=mips --prefix=$(INSTALL_DIR)); \
-	fi
-	$(MAKE) -C $(OPENSOURCE_DIR)/msmtp 
-	$(MAKE) -C $(OPENSOURCE_DIR)/msmtp install-exec
-	$(STRIP) $(INSTALL_DIR)/bin/msmtp
 
 ftpd:
 	@if [ ! -f $(OPENSOURCE_DIR)/ftpd/Makefile ]; then \
@@ -403,9 +385,6 @@ mtd:
 ini:
 	$(MAKE) -C $(OPENSOURCE_DIR)/ini install
 
-wol:
-	$(MAKE) -C $(OPENSOURCE_DIR)/wol install
-
 sendarp:
 	$(MAKE) -C $(INVENTEL_DIR)/sendarp install
 
@@ -418,6 +397,7 @@ tool:
 buildimage: $(KERNEL_DIR)/Image tool
 	rm -f $(INSTALL_DIR)/lib/*.a
 	find $(INSTALL_DIR)/lib -name '*so*' -type f | xargs $(STRIP)
+	find $(TARGET_FS) -name '.svn' -type d | xargs $(RM) -rf
 	su --command="cd $(TARGETS_DIR); ./buildFS"
 	cp $(KERNEL_DIR)/Image $(TARGET_FS)
 	mkdir -p $(IMAGES_DIR)

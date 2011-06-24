@@ -74,7 +74,13 @@ void broadcastUpdate(void *userData)
 	struct webFilter *wf = (struct webFilter *)userData;
 	die_if(wf == NULL, "callback object NULL!");
         char *value = xapGetValue(wf->section, wf->key);
-        updateDatastream(wf->id, wf->tag, atof(value));
+	float f;
+	if(strcasecmp("on",value) == 0) { // Issue 27
+		f = 1;
+	} else {
+		f = atof(value);
+	}
+        updateDatastream(wf->id, wf->tag, f);
 }
 
 /** process an xAP pachube update message.

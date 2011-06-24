@@ -35,15 +35,14 @@ void cmdLCD(bscEndpoint *e)
 }
 
 /// Augment default xapBSC.info & xapBSC.event handler.
-void infoEvent1wire (bscEndpoint *e, char *clazz)
+int infoEvent1wire (bscEndpoint *e, char *clazz)
 {
         // Lazy memory allocation of displayText
         if(e->displayText == NULL)
                 e->displayText = (char *)malloc(20);
         // Configure the displayText optional argument.
         snprintf(e->displayText, 20, "Temperature %s C", e->text);
-
-        bscInfoEvent(e, clazz); // do the default.
+        return 1;
 }
 
 /// A timeout callback

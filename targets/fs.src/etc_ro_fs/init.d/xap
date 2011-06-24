@@ -5,7 +5,7 @@
 
 . /etc/ini.conf
 
-subsystem="hub pachube livebox iserver web sms serial currentcost twitter googlecal plugboard bridge "
+subsystem="hub pachube livebox iserver web sms serial currentcost twitter googlecal plugboard"
 
 start_web() {
     rm -f /tmp/klone_sess*
@@ -90,20 +90,14 @@ stop_googlecal() {
 
 start_plugboard() {
     if [ `iniget $INI plugboard enable 0` -eq 1 ] ;  then 
-	/usr/bin/xap-plugboard -i $MYDEV &
+	/usr/bin/xap-plugboard &
+	pid=$!
+	echo $pid >/var/run/xap-plugboard.pid
     fi
-}
-stop_plugboard() {
-    killall xap-plugboard
 }
 
-start_bridge() {
-    if [ `iniget $INI bridge enable 0` -eq 1 ] ;  then 
-	/usr/bin/xap-bridge -i $MYDEV &
-    fi
-}
-stop_bridge() {
-    killall xap-bridge
+stop_plugboard() {
+    kill `cat /var/run/xap-plugboard.pid`
 }
 
 start_iserver() {

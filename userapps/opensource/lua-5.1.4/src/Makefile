@@ -8,11 +8,11 @@
 PLAT= none
 
 #CC=gcc
-#CFLAGS= -O2 -Wall $(MYCFLAGS)
+CFLAGS= -O2 $(MYCFLAGS)
 #AR= ar rcu
 #RANLIB= ranlib
 RM= rm -f
-LIBS= -L. -llua -lm $(MYLIBS)
+LIBS= -lm $(MYLIBS)
 
 MYCFLAGS=
 MYLDFLAGS=
@@ -22,7 +22,7 @@ MYLIBS=
 
 PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
 
-LUA_A=	liblua.so
+LUA_A=	liblua.a
 CORE_O=	lapi.o lcode.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o \
 	lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o  \
 	lundump.o lvm.o lzio.o
@@ -48,17 +48,14 @@ o:	$(ALL_O)
 a:	$(ALL_A)
 
 $(LUA_A): $(CORE_O) $(LIB_O)
-#	$(AR) $@ $?
-#	$(RANLIB) $@
-	$(CC) -shared -o $@ $?
+	$(AR) rcu $@ $?
+	$(RANLIB) $@
 
 $(LUA_T): $(LUA_O) $(LUA_A)
-#	$(CC) -o $@ $(MYLDFLAGS) $(LUA_O) $(LUA_A) $(LIBS)
-	$(CC) -o $@ $(MYLDFLAGS) $(LUA_O) $(LIBS)
+	$(CC) -o $@ $(MYLDFLAGS) $(LUA_O) $(LUA_A) $(LIBS)
 
 $(LUAC_T): $(LUAC_O) $(LUA_A)
-#	$(CC) -o $@ $(MYLDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS)
-	$(CC) -o $@ $(MYLDFLAGS) $(LUAC_O) $(LIBS)
+	$(CC) -o $@ $(MYLDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS)
 
 clean:
 	$(RM) $(ALL_T) $(ALL_O)

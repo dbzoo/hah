@@ -31,7 +31,7 @@ struct unassignedROMID *unassignedROMIDList = NULL;
 * @param prefix [INI] file key processing prefix.
 * @param value String to include in the display texts
 */
-static void infoEventLabeled(bscEndpoint *e, char *clazz, char *prefix, char *value)
+static int infoEventLabeled(bscEndpoint *e, char *clazz, char *prefix, char *value)
 {
         if(e->displayText == NULL)
                 e->displayText = (char *)malloc(64);
@@ -45,7 +45,7 @@ static void infoEventLabeled(bscEndpoint *e, char *clazz, char *prefix, char *va
                 *e->displayText = '\0';
         }
         // do the default.
-        bscInfoEvent(e, clazz);
+        return 1;
 }
 /** Augment default xapBSC.info & xapBSC.event handler.
 * Adds displaytext for Binary endpoints.
@@ -53,12 +53,12 @@ static void infoEventLabeled(bscEndpoint *e, char *clazz, char *prefix, char *va
 * @param e Endpoint to generate the xap message for
 * @param clazz either the string "xapBSC.info" or "xapBSC.event"
 */
-void infoEventBinary(bscEndpoint *e, char *clazz)
+int infoEventBinary(bscEndpoint *e, char *clazz)
 {
         // Locate an INI label of the form, where X is the endpoint name.
         // [X]
         // X1.label=
-        infoEventLabeled(e, clazz, e->name, bscStateToString(e));
+        return infoEventLabeled(e, clazz, e->name, bscStateToString(e));
 }
 
 /** Augment default xapBSC.info & xapBSC.event handler.
@@ -66,7 +66,7 @@ void infoEventBinary(bscEndpoint *e, char *clazz)
 * @param e Endpoint to generate the xap message for
 * @param clazz either the string "xapBSC.info" or "xapBSC.event"
 */
-static void infoEvent1wire (bscEndpoint *e, char *clazz)
+static int infoEvent1wire (bscEndpoint *e, char *clazz)
 {
         // [1wire]
         // sensor1.label=
@@ -154,7 +154,7 @@ static void cmdPPEpin(bscEndpoint *e)
 	int addr = ((struct ppeEndpoint *)e->userData)->i2cAddr;
 
         // We invert the STATE.  Logical ON is a LOW PPE state 0.
-        snprintf(serialCmd, sizeof(serialCmd),"i2c P%d%s%d", addr, pin, e->state == BSC_STATE_ON ? BSC_STATE_OFF : BSC_STATE_ON);
+        snprintf(serialCmd, sizeof(serialCmd),"i2c P%02X%s%d", addr, pin, e->state == BSC_STATE_ON ? BSC_STATE_OFF : BSC_STATE_ON);
         serialSend(serialCmd);
 }
 
@@ -170,7 +170,7 @@ static void cmdPPEbyte(bscEndpoint *e)
         char serialCmd[32];
         if(isxdigit(e->text[0]) && isxdigit(e->text[1]) && strlen(e->text) == 2) {
 		int addr = ((struct ppeEndpoint *)e->userData)->i2cAddr;
-                snprintf(serialCmd, sizeof(serialCmd),"i2c B%d%s", addr, e->text);
+                snprintf(serialCmd, sizeof(serialCmd),"i2c B%02X%s", addr, e->text);
                 serialSend(serialCmd);
         } else {
                 warning("CMD must be 2 hex digits: supplied %s", e->text);
@@ -305,14 +305,14 @@ static void addPPEendpoints(char *section) {
 	}
 	n = ini_gets(section, "address", "", s_addr, sizeof(s_addr), inifile);
 	if (n == 0) {
-		err("%s: Missing address=[0x20-0x4E]", section);
+		err("%s: Missing address=[0x40-0x7E]", section);
 		return;
 	}
 	// PCF8574  - 0 1 0 0 A2 A1 A0 0 - 0x40 to 0x4E
-	// PCF8574A - 0 0 1 1 1 A2 A1 A0 - 0x38 to 0x3F
-	// PCF8574N - 0 0 1 0 0 A2 A1 A0 - 0x20 to 0x27
+	// PCF8574A - 0 1 1 1 A2 A1 A0 0 - 0x70 to 0x7E
 	sscanf(s_addr,"%x", &addr);
-	if(addr < 0x20 || addr > 0x4e) { // not perfect but it'll do.
+	// Range check and only EVEN addresses should be used.
+	if(addr < 0x40 || addr > 0x7e || addr % 2 == 1) {
 		err("%s: Invalid address %s", section, s_addr);
 		return;
 	}
@@ -327,15 +327,15 @@ static void addPPEendpoints(char *section) {
 	ud->section = section_number;
 	ud->i2cAddr = addr;
 
-	if(strcmp(mode,"byte") == 0) {
+	if(strcasecmp(mode,"byte") == 0) {
 		snprintf(buff,sizeof buff,"%d", section_number);
-		bscAddEndpoint(&endpointList, "i2c", buff, BSC_OUTPUT, BSC_STREAM, &cmdPPEbyte, NULL)->userData = ud;
+		bscAddEndpoint(&endpointList, "ppe", buff, BSC_OUTPUT, BSC_STREAM, &cmdPPEbyte, NULL)->userData = ud;
 		setup_i2c_ppe(addr);
-	} else if(strcmp(mode,"pin") == 0) {
+	} else if(strcasecmp(mode,"pin") == 0) {
 		int pin;
 		for(pin=0; pin<8; pin++) {
 			snprintf(buff,sizeof buff,"%d.%d", section_number, pin);
-			bscAddEndpoint(&endpointList, "i2c", buff, BSC_OUTPUT, BSC_BINARY, &cmdPPEpin, NULL)->userData = ud;
+			bscAddEndpoint(&endpointList, "ppe", buff, BSC_OUTPUT, BSC_BINARY, &cmdPPEpin, NULL)->userData = ud;
 		}
 		setup_i2c_ppe(addr);
 	} else {

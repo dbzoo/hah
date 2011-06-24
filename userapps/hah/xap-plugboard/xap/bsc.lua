@@ -7,19 +7,15 @@
    All derivative work must retain this message and
    acknowledge the work of the original author.
 --]]
-local _G = _G
-local DEBUG = rawget(_G,'_DEBUG')
+local utils = require('pl.utils')
+local class = require("pl.class").class
+local ljust = require("pl.stringx").ljust
 
 module("bsc", package.seeall)
 
-pretty = require("pl.pretty")
-ljust = require "pl.stringx".ljust
 require "xap"
 
-local class = require("pl.class").class
-local List = require("pl.list").List
-
-uid = 1
+local id = 0
 
 INPUT="input"
 OUTPUT="output"
@@ -42,15 +38,15 @@ QUERY_CLASS="xAPBSC.query"
 class.Endpoint()
 
 function Endpoint:_init(endpoint)
-   assert(type(endpoint) == "table","Did not supply a table argument")
-   assert(endpoint.name,"name is mandatory")
+   utils.assert_arg(1,endpoint,'table')
+   assert(endpoint.source,"source is mandatory")
    assert(endpoint.direction, "direction is mandatory")
    assert(endpoint.type,"type is mandatory")
 
    if endpoint.direction == INPUT then
       endpoint.state = STATE_UNKNOWN
    else -- endpoint.direction == OUTPUT
-      endpoint.state = endpoint.type == BINARY and STATE_OFF or STATE_ON
+      endpoint.state = utils.choose(endpoint.type == BINARY,STATE_OFF, STATE_ON)
    end
 
    endpoint.timeout = endpoint.timeout or 120
@@ -59,16 +55,16 @@ function Endpoint:_init(endpoint)
    if endpoint.type ~= BINARY then
       endpoint.text = "?"
    end
-   
-   if endpoint.uid == nil then
-      uid = uid + 1
-      endpoint.uid = uid
-   else
-      uid = endpoint.uid -- reset the internal counter to the last set UID
-   end
 
-   endpoint.source = xap.defaultKeys.source .. ":" .. endpoint.name
-   endpoint.uid = xap.defaultKeys.uid:sub(1,-3) .. ljust(tostring(endpoint.uid),2,'0')
+   if endpoint.uid == nil then
+      if endpoint.id == nil then
+	 id = id + 1
+	 endpoint.id = id
+      else
+	 id = endpoint.id -- reset the internal counter to the last set UID
+      end
+      endpoint.uid = xap.defaultKeys.uid:sub(1,-3) .. ljust(tostring(endpoint.id),2,'0')
+   end
    
    -- create xap.Filters for this endpoint
    if endpoint.direction == OUTPUT then
@@ -82,25 +78,40 @@ function Endpoint:_init(endpoint)
    f:add("xap-header","class", QUERY_CLASS)
    f:add("xap-header","target", endpoint.source)
    f:callback(function(frame, e)
-		    sendInfoEvent(e, INFO_CLASS)
+		 e:sendInfo()
 	      end, 
 	      endpoint)
 
    xap.Timer(function(t, e)
-		sendInfoEvent(e, INFO_CLASS)
+		e:sendInfo()
 	     end, 
 	     endpoint.timeout, 
 	     endpoint):start()
 
    -- Send initial INFO event to show we exist
    sendInfoEvent(endpoint, INFO_CLASS)
-   return self
+
+   return endpoint
+end
+
+function Endpoint:sendEvent()
+   sendInfoEvent(self, EVENT_CLASS)
+end
+
+function Endpoint:sendInfo()
+   sendInfoEvent(self, INFO_CLASS)
+end
+
+function Endpoint:setText(text)
+   self.state = STATE_ON
+   self.text = text
 end
 
 stateMap={["on"]=STATE_ON,["off"]=STATE_OFF,
 	  ["true"]=STATE_ON,["false"]=STATE_OFF,
 	  ["yes"]=STATE_ON,["no"]=STATE_OFF,
 	  ["1"]=STATE_ON,["0"]=STATE_OFF,
+	  [1]=STATE_ON,[0]=STATE_OFF,
 	  ["toggle"]=STATE_TOGGLE}
 
 function decodeState(state)
@@ -110,11 +121,11 @@ function decodeState(state)
    return STATE_UNKNOWN
 end
 
-function setState(e, state)
+function Endpoint:setState(state)
    if state == STATE_TOGGLE then
-      e.state = e.state == STATE_ON and STATE_OFF or STATE_ON
+      self.state = utils.choose(self.state == STATE_ON,STATE_OFF, STATE_ON)
    else
-      e.state = state
+      self.state = state
    end
 end
 
@@ -164,7 +175,7 @@ function incomingCmd(frame, e)
       end
       
       if id == "*" or id == e.uid:sub(-2) then
-	 setState(e, decodeState(state))
+	 e:setState(decodeState(state))
 	 
 	 if e.type == LEVEL then
 	    e.text = frame:getValue(sectionKey, "level")
@@ -173,7 +184,7 @@ function incomingCmd(frame, e)
 	 end
 	 
 	 if e.cmdCB then e.cmdCB(e) end
-	 sendInfoEvent(e, EVENT_CLASS)
+	 e:sendEvent()
       end
    end
 end

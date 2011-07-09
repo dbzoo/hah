@@ -90,7 +90,7 @@ stop_googlecal() {
 
 start_plugboard() {
     if [ `iniget $INI plugboard enable 0` -eq 1 ] ;  then 
-	/usr/bin/xap-plugboard &
+	/usr/bin/xap-plugboard >/var/log/xap-plugboard.log &
 	pid=$!
 	echo $pid >/var/run/xap-plugboard.pid
     fi

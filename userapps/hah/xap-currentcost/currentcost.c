@@ -112,7 +112,7 @@ static long loadSensorINI(char *key, int sensor, char *location, int size)
 }
 
 /// BSC callback - For Sensors
-static void sensorInfoEvent(bscEndpoint *e, char *clazz)
+static int sensorInfoEvent(bscEndpoint *e, char *clazz)
 {
         char unit[10];
         long n;
@@ -329,29 +329,37 @@ void serialInputHandler(int fd, void *data)
 /// Setup the serial port.
 int setupSerialPort()
 {
-        struct termios newtio;
-        int fd = open(serialPort, O_RDONLY | O_NDELAY);
-        if (fd < 0) {
-                die_strerror("Failed to open serial port %s", serialPort);
-        }
-        cfmakeraw(&newtio);
-        switch(model) {
-        case CC128:
-                newtio.c_cflag = B57600 | CS8 | CLOCAL | CREAD ;
-                break;
-        case ORIGINAL:
-                newtio.c_cflag = B2400 | CS8 | CLOCAL | CREAD ;
-                break;
-        default:
+  int fd;
+  if(strncmp(serialPort,"/dev/",5) == 0) {
+          struct termios newtio;
+	  fd = open(serialPort, O_RDONLY | O_NDELAY);
+	  if (fd < 0) {
+	    die_strerror("Failed to open serial port %s", serialPort);
+	  }
+	  cfmakeraw(&newtio);
+	  switch(model) {
+	  case CC128:
+	    newtio.c_cflag = B57600 | CS8 | CLOCAL | CREAD ;
+	    break;
+	  case ORIGINAL:
+	    newtio.c_cflag = B2400 | CS8 | CLOCAL | CREAD ;
+	    break;
+	  default:
                 newtio.c_cflag = B9600 | CS8 | CLOCAL | CREAD ;
-        }
-        newtio.c_iflag = IGNPAR;
-        newtio.c_lflag = ~ICANON;
-        newtio.c_cc[VTIME] = 0; // ignore timer
-        newtio.c_cc[VMIN] = 0; // no blocking read
-        tcflush(fd, TCIFLUSH);
-        tcsetattr(fd, TCSANOW, &newtio);
-        return fd;
+	  }
+	  newtio.c_iflag = IGNPAR;
+	  newtio.c_lflag = ~ICANON;
+	  newtio.c_cc[VTIME] = 0; // ignore timer
+	  newtio.c_cc[VMIN] = 0; // no blocking read
+	  tcflush(fd, TCIFLUSH);
+	  tcsetattr(fd, TCSANOW, &newtio);
+  } else {
+	  fd = open(serialPort, O_RDONLY);
+	  if (fd < 0) {
+	    die_strerror("Failed to open file %s", serialPort);
+	  }
+  }
+  return fd;
 }
 
 /// Display usage information and exit.
@@ -369,11 +377,13 @@ static void usage(char *prog)
 /// Process the INI file for xAP control data and setup XAP.
 void setupXap()
 {
+        char defaultPort[20];
+        strcpy(defaultPort, serialPort);
+  
         xapInitFromINI("currentcost","dbzoo.livebox","CurrentCost","00DC",interfaceName,inifile);
 
         hysteresis = ini_getl("currentcost", "hysteresis", 10, inifile);
-
-        ini_gets("currentcost","usbserial","/dev/ttyUSB0", serialPort, sizeof(serialPort), inifile);
+        ini_gets("currentcost","usbserial",defaultPort, serialPort, sizeof(serialPort), inifile);
 
         char model_s[20];
         model = CLASSIC;

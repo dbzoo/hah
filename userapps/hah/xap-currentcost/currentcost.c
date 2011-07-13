@@ -303,7 +303,7 @@ void serialInputHandler(int fd, void *data)
         int i;
         int len;
 
-        info("serialInputHandler(fd:%d)", fd);
+        debug("serialInputHandler(fd:%d)", fd);
         while((len = read(fd, serial_buff, sizeof(serial_buff))) > 0) {
                 for(i=0; i < len; i++) {
                         if(serial_buff[i] == '\r' || serial_buff[i] == '\n')
@@ -434,8 +434,11 @@ int main(int argc, char *argv[])
                 }
         }
 
+  if(strncmp(serialPort,"/dev/",5) == 0) {
         xapAddSocketListener(setupSerialPort(), &serialInputHandler, endpointList);
         xapProcess();
-
-        return 0;  // not reached
+  } else {
+    serialInputHandler(setupSerialPort(), NULL);
+  }
+  return 0;
 }

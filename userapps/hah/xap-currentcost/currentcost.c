@@ -128,8 +128,9 @@ static int sensorInfoEvent(bscEndpoint *e, char *clazz)
         hysteresis = atoi(i_hysteresis);
 
         // Alway report INFO events so we can repond to xAPBSC.query + Timeouts.
-        // xapBSC.event are only emitted based on the hystersis
-        if(strcmp(clazz, BSC_INFO_CLASS) == 0 || new > old + hysteresis || new < old - hysteresis) {
+        // xapBSC.event are only emitted based on the hystersis or if they have never been reported.
+        if(strcmp(clazz, BSC_INFO_CLASS) == 0 || new > old + hysteresis || new < old - hysteresis ||
+          	e->last_report == 0) {
                 n = loadSensorINI("unit", atoi(e->subaddr), unit, sizeof(unit));
                 if(n > 0) {
                         if(e->displayText == NULL) { // Lazy malloc

@@ -255,12 +255,12 @@ libxml2:
 	cp -r $(OPENSOURCE_DIR)/libxml2/include/libxml $(INSTALL_DIR)/include/libxml2
 
 libgcal: libxml2 libcurl
-	@if [ ! -d $(OPENSOURCE_DIR)/libgcal-0.9.3 ]; then \
-	   (cd $(OPENSOURCE_DIR); tar jxf libgcal-0.9.3.tar.bz2; ln -s libgcal-0.9.3 libgcal) \
+	@if [ ! -d $(OPENSOURCE_DIR)/libgcal-0.9.6 ]; then \
+	   (cd $(OPENSOURCE_DIR); tar jxf libgcal-0.9.6.tar.bz2; ln -s libgcal-0.9.6 libgcal) \
 	fi
 # GCC3 doesn't like -Wno-pointer-sign so remove it.
 	@if [ ! -f $(OPENSOURCE_DIR)/libgcal/Makefile ]; then \
-	  (cd $(OPENSOURCE_DIR)/libgcal-0.9.3; LIBCURL_LIBS=-lcurl LIBXML_LIBS=-L$(INSTALL_DIR)/lib LIBXML_CFLAGS="-I$(INSTALL_DIR)/include -I$(INSTALL_DIR)/include/libxml2" ./configure --host=mips-linux --disable-check --disable-static --prefix=$(INSTALL_DIR); mv Makefile Makefile.orig; sed 's/-Wno-pointer-sign//' Makefile.orig > Makefile ) \
+	  (cd $(OPENSOURCE_DIR)/libgcal-0.9.6; LIBCURL_LIBS=-lcurl LIBXML_LIBS=-L$(INSTALL_DIR)/lib LIBXML_CFLAGS="-I$(INSTALL_DIR)/include -I$(INSTALL_DIR)/include/libxml2" ./configure --host=mips-linux --disable-check --disable-static --prefix=$(INSTALL_DIR); mv Makefile Makefile.orig; sed 's/-Wno-pointer-sign//' Makefile.orig > Makefile ) \
 	fi
 	$(MAKE) -C $(OPENSOURCE_DIR)/libgcal install-strip
 

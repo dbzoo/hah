@@ -57,8 +57,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <gcalendar.h>
-#include <internal_gcal.h>
+#include <libgcal/gcalendar.h>
+#include <libgcal/internal_gcal.h>
 #include "xap.h"
 #include "svn_date.h"
 
@@ -195,7 +195,7 @@ void googlePeriodEventCheck(int interval, void *userData)
                  start_timestamp, stop_timestamp);
         debug("Google query params: %s", query);
 
-        result = gcal_query(gcal, query);
+        result = gcal_query(gcal, query, "GData-Version: 2");
         if (result) {
                 debug("Google returns no events");
                 events.entries = NULL;
@@ -396,7 +396,7 @@ void setupXAPini()
                 die("user has not been setup");
         }
 
-	password = getINIPassword("googlecal","passwd", inifile);
+	password = getINIPassword("googlecal","passwd", (char *)inifile);
         if(strlen(password) == 0) {
                 die("passwd has not been setup");
         }

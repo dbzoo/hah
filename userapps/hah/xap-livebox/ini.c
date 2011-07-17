@@ -219,10 +219,13 @@ static int addOneWireIniEndpoints(int mode)
 		if(firmwareMajor() > 1) { // Need a ROMID
 			snprintf(buff,sizeof(buff),"sensor%d.romid", i);
 			info("Looking for %s", buff);
-			if(ini_gets("1wire", buff, "", romid, sizeof(romid), inifile) != 18) {
+			ini_gets("1wire", buff, "", romid, sizeof(romid), inifile);
+			romid[16] = '\0'; // Workaround AVR <2.4 firmware bug
+			if(strlen(romid) < 16) {
 				warning("sensor%d.romid : Missing or invalid ROMID", i);
 				continue;
 			}
+			
 		}
 
 		info("Creating endpoint");

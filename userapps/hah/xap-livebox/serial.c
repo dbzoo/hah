@@ -135,6 +135,9 @@ static void serin_1wire(int argc, char *argv[])
 	bscEndpoint *e;
 	if(firmwareMajor() > 1) {
 		char *romid = argv[1]; // 1wire ROMID L
+		if(strlen(romid) > 16) { // Workaround AVR <2.4 firmware bug
+		  romid[16] = '\0';
+		}
 		e = findROMID("1wire", romid);		
 		if(e == NULL) { 
 			notice("ROMID %s %s not assigned", romid, temperature);

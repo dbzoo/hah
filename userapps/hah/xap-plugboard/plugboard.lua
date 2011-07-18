@@ -62,8 +62,9 @@ if uid == nil then uid="D8" end
 if instance == nil then instance="" end
 
 require_path(scriptdir)
-
 xap.init("dbzoo.livebox."..instance.."Plugboard","FF"..stringx.ljust(uid,4,'0').."00")
-tablex.foreach(dir.getfiles(scriptdir,"*Applet.lua"), loadApplet)
+local files = dir.getfiles(scriptdir,"*Applet.lua")
+tables.sort(files)
+tablex.foreach(files, loadApplet)
 print("Running...")
 xap.process()

@@ -145,9 +145,15 @@ function Timer:_init(func, interval, userdata)
    return self
 end
 
-function Timer:start()
+-- If the callback should be fired on timer startup T=0
+-- then pass true, otherwise leave blank or pass false
+function Timer:start(initial)
    self.isalive = true
-   self:reset()
+   if initial == true then
+      self.ttl = 0
+   else
+     self:reset()
+   end
    return self
 end
 

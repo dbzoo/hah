@@ -64,7 +64,7 @@ if instance == nil then instance="" end
 require_path(scriptdir)
 xap.init("dbzoo.livebox."..instance.."Plugboard","FF"..stringx.ljust(uid,4,'0').."00")
 local files = dir.getfiles(scriptdir,"*Applet.lua")
-tables.sort(files)
+table.sort(files)
 tablex.foreach(files, loadApplet)
 print("Running...")
 xap.process()

@@ -36,7 +36,7 @@
 #include <avr/sleep.h>
 #include <util/atomic.h>
 
-#define SERIAL  0   // set to 1 to also report readings on the serial port
+#define SERIAL  1   // set to 1 to also report readings on the serial port
 #define DEBUG   0   // set to 1 to display each loop() run and PIR trigger
 
 // SHT11 & ONE_WIRE are mutually exclusive.
@@ -45,10 +45,10 @@
 
 #define ONE_WIRE_PIN  4   // PD4 - defined in a OneWire sensor is connected to port 1.
 //#define SHT11_PORT  1   // defined if SHT11 is connected to a port
-#define LDR_PORT    4   // defined if LDR is connected to a port's AIO pin
+//#define LDR_PORT    4   // defined if LDR is connected to a port's AIO pin
 //#define PIR_PORT    4   // defined if PIR is connected to a port's DIO pin
 
-#define MEASURE_PERIOD  600 // how often to measure, in tenths of seconds
+#define MEASURE_PERIOD  300 // how often to measure, in tenths of seconds
 #define RETRY_PERIOD    10  // how soon to retry if ACK didn't come in
 #define RETRY_LIMIT     5   // maximum number of times to retry
 #define ACK_TIME        10  // number of milliseconds to wait for an ack

@@ -1,3 +1,12 @@
+/* $Id
+  Copyright (c) Brett England, 2011
+  Universal RF driver
+
+   No commercial use.
+   No redistribution at profit.
+   All derivative work must retain this message and
+   acknowledge the work of the original author.
+*/
 #include "WProgram.h"
 #include <setjmp.h>
 #define MAXENCBITS 4

@@ -1,0 +1,7 @@
+SoftI2cMaster	KEYWORD1
+init	KEYWORD2
+read	KEYWORD2
+write	KEYWORD2
+start	KEYWORD2
+restart	KEYWORD2
+stop	KEYWORD2

@@ -1,11 +1,33 @@
+/* $Id
+  Copyright (c) Brett England, 2011
+  HAH AVR firmware
+
+  No commercial use.
+  No redistribution at profit.
+  All derivative work must retain this message and
+  acknowledge the work of the original author.
+*/
 #include <LiquidCrystal.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <TimedAction.h> 
 #include <UniversalRF.h>
+#include <SoftI2cMaster.h>
 #include <avr/wdt.h>
 
 //#define PRODUCTION
+
+#define SCL_PIN 6 // PD.6
+#define SDA_PIN 7 // PD.7
+
+SoftI2cMaster i2c;
+#define MAXPPE 8   // Maximum number of devices
+byte ppeCount = 0; // Current number of PPE devices
+struct {
+  byte addr;
+  byte val;
+} 
+ppe[MAXPPE];
 
 boolean debug = false;
 TimedAction reportChanges = TimedAction(1000, pollDevices);
@@ -13,9 +35,11 @@ UniversalRF RF = UniversalRF(13); // Transmitter on PB.5
 //http://www.arduino.cc/en/Hacking/PinMapping168
 
 const int firmwareMajor = 3;
-const int firmwareMinor = 1;
-const byte rport[] = { 8,9,10,11}; // to PIN - PB.0-3
-const byte inputs[] = { 2,3,4,5}; // to PIN - PD.2-5
+const int firmwareMinor = 2;
+const byte rport[] = { 
+  8,9,10,11}; // to PIN - PB.0-3
+const byte inputs[] = { 
+  2,3,4,5}; // to PIN - PD.2-5
 
 /****** LCD *******/
 /* Hitachi HD44780 driver
@@ -39,12 +63,16 @@ char inBuffer[inBufferLen+1];
 union {
   byte all;
   struct {
-    unsigned input:1; 
-    unsigned onewire:1; 
-    unsigned ppe:1; 
+unsigned input:
+    1; 
+unsigned onewire:
+    1; 
+unsigned ppe:
+    1; 
   } 
   bit;
-} report;
+} 
+report;
 
 /****** 1-WIRE SYSTEM ***********/
 boolean oneWireReady = false;
@@ -61,7 +89,8 @@ int oneWireCount; // Number of devices on the bus.
 
 void doReboot() {
   wdt_enable(WDTO_15MS);
-  for(;;) {}
+  for(;;) {
+  }
 }
 
 
@@ -143,6 +172,113 @@ void doLCD(char *msg) {
   lcd.print(msg);
 }
 
+byte hexDigit(byte c)
+{
+    if (c >= '0' && c <= '9') {
+	  return c - '0';
+    } else if (c >= 'a' && c <= 'f') {
+	  return c - 'a' + 10;
+    } else if (c >= 'A' && c <= 'F') {
+	  return c - 'A' + 10;
+    } else {
+       if(debug) {
+         Serial.print("Invalid HEX character :");
+         Serial.println(c, BYTE);
+       }
+       return -1;   // getting here is bad: it means the character was invalid
+    }
+}
+
+void doI2C(char *arg) {
+  char cmd = *arg++;  
+
+  // "I2C R" is a Reset
+  if (cmd == 'R') { 
+    ppeCount = 0;
+    return;
+  }
+
+  // All other commands supply an Address as two ASCII hex digits.
+  byte addr = (hexDigit(*arg) << 4) | hexDigit(*(arg+1));
+  arg += 2;
+
+  if(debug) {
+    Serial.print("i2c cmd: ");
+    Serial.println(cmd);
+    Serial.print("i2c addr: ");
+    Serial.println(addr, HEX);
+  }
+
+  // "I2C Maa" - Add a new I2C device at an address aa
+  if (cmd == 'M') { 
+    if (ppeCount < MAXPPE) {
+      ppe[ppeCount].addr = addr;
+      ppe[ppeCount].val = 0;
+      ppeCount++;
+      if(debug) Serial.println("PPE Registered");
+    }
+    return;
+  }
+
+  // Operating on a existing PPE chip
+  // See if its registered
+  byte ppeIdx = 255;
+  for(byte i=0; i<ppeCount; i++) {
+      if(ppe[i].addr == addr) {
+        ppeIdx = i;
+        break;
+      }
+  }  
+  if (ppeIdx == 255) {
+     if(debug) Serial.println("Unregistered PPE address");
+     return;    
+  }
+
+  switch(cmd) {
+  //P 	Pin mode selector
+  //XX 	Hexadecimal address of the PPE chip
+  //Y 	Pin in the Range 0-7
+  //Z 	State: 1 or 0, on/off
+  case 'P': 
+    { // PXXYZ
+      byte pin = *arg - '0';
+      if (pin > 7) {
+        if(debug) Serial.println("Invalid PIN: range must be 0-7");
+        return;
+      }
+      arg++;
+      // Set the BIT (pin) according to its STATE
+      if(*arg == '1') {
+        ppe[ppeIdx].val |= (1<<pin); 
+      } 
+      else {
+        ppe[ppeIdx].val &= ~(1<<pin);
+      }      
+    }
+    break;
+  //B 	Byte mode selector
+  //XX 	Hexadecimal address of the PPE chip
+  //YY 	Hexadecimal value to write to the chip    
+  case 'B': // BXXYY
+    ppe[ppeIdx].val = (hexDigit(*arg) << 4) | hexDigit(*(arg+1));
+    break;
+  default:
+    if(debug) Serial.println("Unknown I2C cmd");
+    return;
+  }
+
+  if(debug) {
+    Serial.print("I2C send addr ");
+    Serial.print(addr, HEX);
+    Serial.print(" val ");
+    Serial.println(ppe[ppeIdx].val, HEX);
+  }
+
+  i2c.start(addr | I2C_WRITE);
+  i2c.write(ppe[ppeIdx].val);
+  i2c.stop();
+}
+
 void doCommand() {
   if(strcasecmp(inBuffer,"report") == 0) {
     report.all = 0xFF;
@@ -201,7 +337,10 @@ void doCommand() {
     } 
     else if(strcasecmp(inBuffer,"lcd") == 0) {
       doLCD(arg);
-    } 
+    }
+    else if (strcasecmp(inBuffer,"i2c") == 0) {
+      doI2C(arg);
+    }
     else {
       Serial.println("Command not found");
     }
@@ -275,6 +414,23 @@ void reportOneWire() {
 }
 
 void reportI2C() {
+  byte result;
+  for(byte i=0; i<ppeCount; i++) {
+    i2c.start(ppe[i].addr | I2C_READ); // Read Addr = WRITE Addr + 1
+    result = i2c.read(true); // and send NAK to terminate read
+    i2c.stop(); 
+
+    if(result != ppe[i].val || report.bit.ppe ) {
+      Serial.print("i2c-ppe ");
+      Serial.print(ppe[i].addr);
+      Serial.print(" ");
+      Serial.print(ppe[i].val);
+      Serial.print(" ");
+      Serial.println(result);
+      ppe[i].val = result;
+    }
+  }
+  report.bit.ppe = 0;
 }
 
 void reportInputs() {
@@ -373,7 +529,7 @@ void setupOneWire() {
 void bootWait() {
   uint8_t plus = 0;
   int inByte;
-  
+
   doLCD("Booting...");
   do {  
     if(Serial.available()) {
@@ -418,7 +574,7 @@ void setup() {
   lcd.begin(8,2); // Columns x Rows
 
   // I2C
-  // TODO....
+  i2c.init(SCL_PIN, SDA_PIN);
 
 #ifdef PRODUCTION
   bootWait();
@@ -430,3 +586,5 @@ void loop() {
   reportChanges.check();
   reportInputs();  
 }
+
+

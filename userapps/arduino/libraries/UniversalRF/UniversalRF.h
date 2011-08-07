@@ -1,4 +1,4 @@
-/* $Id
+/* $Id$
   Copyright (c) Brett England, 2011
   Universal RF driver
 

@@ -158,6 +158,7 @@ void doHelp() {
   Serialprint("  ON <relay>\n");
   Serialprint("  OFF <relay>\n");
   Serialprint("  LCD <message>\n");
+  Serialprint("  I2C SCAN\n");
   Serialprint("  I2C R\n");
   Serialprint("      Maa   - addr\n");
   Serialprint("      Baavv - addr/value\n");

@@ -1,12 +1,12 @@
 /* $Id$
-  Copyright (c) Brett England, 2011
-  HAH AVR firmware
-
-  No commercial use.
-  No redistribution at profit.
-  All derivative work must retain this message and
-  acknowledge the work of the original author.
-*/
+ Copyright (c) Brett England, 2011
+ HAH AVR firmware
+ 
+ No commercial use.
+ No redistribution at profit.
+ All derivative work must retain this message and
+ acknowledge the work of the original author.
+ */
 #include <LiquidCrystal.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -14,6 +14,7 @@
 #include <UniversalRF.h>
 #include <SoftI2cMaster.h>
 #include <avr/wdt.h>
+#include <avr/pgmspace.h>
 
 //#define PRODUCTION
 
@@ -33,6 +34,8 @@ boolean debug = false;
 TimedAction reportChanges = TimedAction(1000, pollDevices);
 UniversalRF RF = UniversalRF(13); // Transmitter on PB.5
 //http://www.arduino.cc/en/Hacking/PinMapping168
+
+static byte i; // Used for all loops
 
 const int firmwareMajor = 3;
 const int firmwareMinor = 2;
@@ -56,7 +59,7 @@ const byte inputs[] = {
 LiquidCrystal lcd(A0,A1,A2,A3,A4,A5); //RS,E,DB4,DB5,DB6,DB7
 
 /*****  COMMAND PROCESSOR *****/
-const int inBufferLen = 200;
+const int inBufferLen = 255;
 uint8_t inPtr;
 char inBuffer[inBufferLen+1];
 
@@ -85,6 +88,33 @@ int oneWireCount; // Number of devices on the bus.
 
 /****** End variable configuration ***********/
 
+int freeRam () {
+  extern int __heap_start, *__brkval;
+  int v;
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
+}
+
+void StreamPrint_progmem(Print &out,PGM_P format,...)
+{
+  // program memory version of printf - copy of format string and result share a buffer
+  // so as to avoid too much memory use
+  char formatString[128], *ptr;
+  strncpy_P( formatString, format, sizeof(formatString) ); // copy in from program mem
+  // null terminate - leave last char since we might need it in worst case for result's \0
+  formatString[ sizeof(formatString)-2 ]='\0';
+  ptr=&formatString[ strlen(formatString)+1 ]; // our result buffer...
+  va_list args;
+  va_start (args,format);
+  vsnprintf(ptr, sizeof(formatString)-1-strlen(formatString), formatString, args );
+  va_end (args);
+  formatString[ sizeof(formatString)-1 ]='\0';
+  out.print(ptr);
+}
+
+#define Serialprint(format, ...) StreamPrint_progmem(Serial,PSTR(format),##__VA_ARGS__)
+#define Streamprint(stream,format, ...) StreamPrint_progmem(stream,PSTR(format),##__VA_ARGS__)
+#define debugprint(format, ...) if (debug) StreamPrint_progmem(Serial,PSTR(format),##__VA_ARGS__)
+
 //void (*doReboot)() = 0;
 
 void doReboot() {
@@ -93,13 +123,10 @@ void doReboot() {
   }
 }
 
-
 void relayOn(char *data) {
   byte relay = atoi(data);
   if(relay < 1 || relay > 4) {
-    if(debug) {
-      Serial.println("Invalid range must be 1-4");
-    }
+    debugprint("Invalid range must be 1-4\n");
     return;
   }
   digitalWrite(rport[relay-1], HIGH);    
@@ -108,39 +135,34 @@ void relayOn(char *data) {
 void relayOff(char *data) {
   byte relay = atoi(data);
   if(relay < 1 || relay > 4) {
-    if(debug) {
-      Serial.println("Invalid range must be 1-4");
-    }
+    debugprint("Invalid range must be 1-4\n");
     return;
   }
   digitalWrite(rport[relay-1], LOW);    
 }
 
 void doVersion() {
-  Serial.print("rev ");
-  Serial.print(firmwareMajor);
-  Serial.print(".");
-  Serial.println(firmwareMinor);
+  Serialprint("rev %d.%d\n", firmwareMajor, firmwareMinor);
 }
 
 void doHelp() {
-  Serial.println("$Revision: 191 $  Available Commands:");
-  Serial.println("<relay> = 1-4");
-  Serial.println("  DEBUG");
-  Serial.println("  VERSION");
-  Serial.println("  HELP");
-  Serial.println("  REPORT [1WIRE|PPE|INPUT]");
-  Serial.println("  1WIRERESET");
-  Serial.println("  STATUS [1WIRE|RELAY|INPUT]");
-  Serial.println("  REBOOT");
-  Serial.println("  ON <relay>");
-  Serial.println("  OFF <relay>");
-  Serial.println("  LCD <message>");
-  Serial.println("  I2C R");
-  Serial.println("      Maa   - addr");
-  Serial.println("      Baavv - addr/value");
-  Serial.println("      Paapv - addr/port/value");
-  Serial.println("  URF hex");
+  Serialprint("$Revision: 191 $  Available Commands:\n");
+  Serialprint("<relay> = 1-4\n");
+  Serialprint("  DEBUG\n");
+  Serialprint("  VERSION\n");
+  Serialprint("  HELP\n");
+  Serialprint("  REPORT [1WIRE|PPE|INPUT]\n");
+  Serialprint("  1WIRERESET\n");
+  Serialprint("  STATUS [1WIRE|RELAY|INPUT]\n");
+  Serialprint("  REBOOT\n");
+  Serialprint("  ON <relay>\n");
+  Serialprint("  OFF <relay>\n");
+  Serialprint("  LCD <message>\n");
+  Serialprint("  I2C R\n");
+  Serialprint("      Maa   - addr\n");
+  Serialprint("      Baavv - addr/value\n");
+  Serialprint("      Paapv - addr/port/value\n");
+  Serialprint("  URF hex\n");
 }
 
 void doDebug() {
@@ -149,20 +171,14 @@ void doDebug() {
 }
 
 void doRelayStatus() {
-  for(int i=0; i<sizeof(rport); i++) {
-    Serial.print("Relay ");    
-    Serial.print(i+1, DEC);    
-    Serial.print(": ");  
-    Serial.println(digitalRead(rport[i]), DEC);
+  for(i=0; i<sizeof(rport); i++) {
+    Serialprint("Relay %d: %d\n", i+1, rport[i]);    
   }
 }
 
-void doInputStatus() {
-  for(int i=0; i<sizeof(inputs); i++) {
-    Serial.print("Input ");    
-    Serial.print(i+1, DEC);    
-    Serial.print(": ");  
-    Serial.println(digitalRead(inputs[i]), DEC);
+void doInputStatus() { 
+  for(i=0; i<sizeof(inputs); i++) {
+    Serialprint("Input %d: %d\n", i+1, digitalRead(inputs[i]));
   }
 }
 
@@ -174,27 +190,28 @@ void doLCD(char *msg) {
 
 byte hexDigit(byte c)
 {
-    if (c >= '0' && c <= '9') {
-	  return c - '0';
-    } else if (c >= 'a' && c <= 'f') {
-	  return c - 'a' + 10;
-    } else if (c >= 'A' && c <= 'F') {
-	  return c - 'A' + 10;
-    } else {
-       if(debug) {
-         Serial.print("Invalid HEX character :");
-         Serial.println(c, BYTE);
-       }
-       return -1;   // getting here is bad: it means the character was invalid
-    }
+  if (c >= '0' && c <= '9') {
+    return c - '0';
+  } 
+  else if (c >= 'a' && c <= 'f') {
+    return c - 'a' + 10;
+  } 
+  else if (c >= 'A' && c <= 'F') {
+    return c - 'A' + 10;
+  } 
+  else {
+    debugprint("Invalid HEX character : %c", c);
+    return -1;   // getting here is bad: it means the character was invalid
+  }
 }
 
 void doI2C(char *arg) {
   char cmd = *arg++;  
 
   // "I2C R" is a Reset
-  if (cmd == 'R') { 
+  if (cmd == 'R' || cmd == 'r') { 
     ppeCount = 0;
+    debugprint("unregistered all PPE devices\n");
     return;
   }
 
@@ -202,20 +219,15 @@ void doI2C(char *arg) {
   byte addr = (hexDigit(*arg) << 4) | hexDigit(*(arg+1));
   arg += 2;
 
-  if(debug) {
-    Serial.print("i2c cmd: ");
-    Serial.println(cmd);
-    Serial.print("i2c addr: ");
-    Serial.println(addr, HEX);
-  }
+  debugprint("i2c cmd: %s\n i2c addr: 0x%x\n", cmd, addr);
 
   // "I2C Maa" - Add a new I2C device at an address aa
-  if (cmd == 'M') { 
+  if (cmd == 'M' || cmd == 'm') { 
     if (ppeCount < MAXPPE) {
       ppe[ppeCount].addr = addr;
       ppe[ppeCount].val = 0;
       ppeCount++;
-      if(debug) Serial.println("PPE Registered");
+      debugprint("PPE Registered\n");
     }
     return;
   }
@@ -223,27 +235,28 @@ void doI2C(char *arg) {
   // Operating on a existing PPE chip
   // See if its registered
   byte ppeIdx = 255;
-  for(byte i=0; i<ppeCount; i++) {
-      if(ppe[i].addr == addr) {
-        ppeIdx = i;
-        break;
-      }
+  for(i=0; i<ppeCount; i++) {
+    if(ppe[i].addr == addr) {
+      ppeIdx = i;
+      break;
+    }
   }  
   if (ppeIdx == 255) {
-     if(debug) Serial.println("Unregistered PPE address");
-     return;    
+    debugprint("Unregistered PPE address\n");
+    return;    
   }
 
   switch(cmd) {
-  //P 	Pin mode selector
-  //XX 	Hexadecimal address of the PPE chip
-  //Y 	Pin in the Range 0-7
-  //Z 	State: 1 or 0, on/off
-  case 'P': 
+    //P 	Pin mode selector
+    //XX 	Hexadecimal address of the PPE chip
+    //Y 	Pin in the Range 0-7
+    //Z 	State: 1 or 0, on/off
+  case 'P':
+  case 'p': 
     { // PXXYZ
       byte pin = *arg - '0';
       if (pin > 7) {
-        if(debug) Serial.println("Invalid PIN: range must be 0-7");
+        debugprint("Invalid PIN: range must be 0-7\n");
         return;
       }
       arg++;
@@ -256,29 +269,57 @@ void doI2C(char *arg) {
       }      
     }
     break;
-  //B 	Byte mode selector
-  //XX 	Hexadecimal address of the PPE chip
-  //YY 	Hexadecimal value to write to the chip    
+    //B 	Byte mode selector
+    //XX 	Hexadecimal address of the PPE chip
+    //YY 	Hexadecimal value to write to the chip    
   case 'B': // BXXYY
+  case 'b':
     ppe[ppeIdx].val = (hexDigit(*arg) << 4) | hexDigit(*(arg+1));
     break;
   default:
-    if(debug) Serial.println("Unknown I2C cmd");
+    debugprint("Unknown I2C cmd\n");
     return;
   }
 
-  if(debug) {
-    Serial.print("I2C send addr ");
-    Serial.print(addr, HEX);
-    Serial.print(" val ");
-    Serial.println(ppe[ppeIdx].val, HEX);
-  }
+  debugprint("i2c send addr 0x%x val 0x%x\n", addr, ppe[ppeIdx].val);
 
-  i2c.start(addr | I2C_WRITE);
-  i2c.write(ppe[ppeIdx].val);
-  i2c.stop();
+  if(i2c.start(addr | I2C_WRITE)) {
+    i2c.write(ppe[ppeIdx].val);
+    i2c.stop();
+  } 
+  else debugprint("Write failure\n");
 }
 
+// Scan the I2C bus and see what addresses respond
+// Debugging Helper
+
+void i2cScan() {
+ uint8_t add = 0;
+ 
+ // try read
+ do {
+ if (i2c.start(add | I2C_READ)) {
+   Serialprint("Addr read: 0x%x\n", add | I2C_READ);
+   i2c.read(true);
+ }
+ i2c.stop();
+ add += 2;
+ } 
+ while (add);
+ 
+ // try write
+ add = 0;
+ do {
+ if (i2c.start(add | I2C_WRITE)) {
+   Serialprint("Addr write: 0x%x\n", add | I2C_WRITE);
+ }
+ i2c.stop();
+ add += 2;
+ } 
+ while (add);
+ Serialprint("Done");  
+}
+ 
 void doCommand() {
   if(strcasecmp(inBuffer,"report") == 0) {
     report.all = 0xFF;
@@ -307,6 +348,9 @@ void doCommand() {
   else if(strcasecmp(inBuffer,"debug") == 0) {
     doDebug();
   } 
+   else if(strcasecmp(inBuffer,"i2c scan") == 0) {
+   i2cScan();
+   } 
   else if(debug && strcasecmp(inBuffer,"status relay") == 0) {
     doRelayStatus();
   } 
@@ -323,7 +367,7 @@ void doCommand() {
       arg++;
     } 
     else {
-      if(debug) Serial.println("Missing argument");
+      debugprint("Missing argument\n");
       return;
     }
     if(strcasecmp(inBuffer,"urf") == 0) {
@@ -342,7 +386,7 @@ void doCommand() {
       doI2C(arg);
     }
     else {
-      Serial.println("Command not found");
+      debugprint("Command not found");
     }
   }   
 }
@@ -350,9 +394,7 @@ void doCommand() {
 void resetSerialBuffer() {
   inPtr = 0;
   inBuffer[0] = '\0';
-  if(debug) {
-    Serial.print(">");
-  }
+  if(debug) Serial.print(">");
 }
 
 void readSerial() {
@@ -368,9 +410,7 @@ void readSerial() {
 
   switch(inByte) {
   case '\n':
-    if(debug) {
-      Serial.println();
-    }
+    debugprint("\n");
     if(inPtr > 0) {
       doCommand();
     }
@@ -399,15 +439,15 @@ void readSerial() {
 
 // Loop through each device, print out temperature data
 void reportOneWire() {
-  for(int i=0;i<oneWireCount; i++)
+  for(i=0;i<oneWireCount; i++)
   {
     // Search the wire for address
     if(sensors.getAddress(tempDeviceAddress, i))
     {
       // Output the device ID
-      Serial.print("1wire ");
+      Serialprint("1wire ");
       printAddress(tempDeviceAddress);
-      Serial.print(" ");
+      Serialprint(" ");
       Serial.println(sensors.getTempC(tempDeviceAddress));
     } 
   }
@@ -415,18 +455,13 @@ void reportOneWire() {
 
 void reportI2C() {
   byte result;
-  for(byte i=0; i<ppeCount; i++) {
+  for(i=0; i<ppeCount; i++) {
     i2c.start(ppe[i].addr | I2C_READ); // Read Addr = WRITE Addr + 1
     result = i2c.read(true); // and send NAK to terminate read
     i2c.stop(); 
 
     if(result != ppe[i].val || report.bit.ppe ) {
-      Serial.print("i2c-ppe ");
-      Serial.print(ppe[i].addr);
-      Serial.print(" ");
-      Serial.print(ppe[i].val);
-      Serial.print(" ");
-      Serial.println(result);
+      Serialprint("i2c-ppe %d %d %d\n", ppe[i].addr, ppe[i].val, result);
       ppe[i].val = result;
     }
   }
@@ -438,10 +473,7 @@ void reportInputs() {
   byte portd = PIND & B00111100; // Mask off other pins.  
   if(prev_value != portd || report.bit.input) {
     report.bit.input = 0;
-    Serial.print("input ");
-    Serial.print(portd, DEC);
-    Serial.print(" ");
-    Serial.println(prev_value, DEC);
+    Serialprint("input %d %d\n", portd, prev_value);
     prev_value = portd;    
     delay(25); // (ms) debounce
   }
@@ -465,7 +497,7 @@ void pollDevices() {
 // print 1wire ROM address
 void printAddress(DeviceAddress deviceAddress)
 {
-  for (uint8_t i = 0; i < 8; i++)
+  for (i=0; i<8; i++)
   {
     if (deviceAddress[i] < 16) Serial.print("0");
     Serial.print(deviceAddress[i], HEX);
@@ -475,70 +507,55 @@ void printAddress(DeviceAddress deviceAddress)
 void setupOneWire() {
   sensors.begin();  
   oneWireCount = sensors.getDeviceCount();
-  if(debug) {
-    Serial.print("Found ");
-    Serial.print(oneWireCount, DEC);
-    Serial.println(" 1wire sensors");
-  }
-  for(byte i=0; i<oneWireCount; i++) {
+  debugprint("Found %d 1wire sensors\n", oneWireCount);
+  for(i=0; i<oneWireCount; i++) {
     if(sensors.getAddress(tempDeviceAddress, i))
     {
       if(debug) {
-        Serial.print("ID: ");
-        Serial.print(i, DEC);
-        Serial.print(" ROM: ");
+        Serialprint("ID: %d ROM: ", i);
         printAddress(tempDeviceAddress);
-        Serial.print(" Model: ");
+        Serialprint(" Model: ");
         switch(tempDeviceAddress[0]) {
         case DS18S20MODEL: 
-          Serial.println("DS18S20"); 
+          Serialprint("DS18S20"); 
           break;
         case DS18B20MODEL: 
-          Serial.println("DS18B20"); 
+          Serialprint("DS18B20"); 
           break;
         case DS1822MODEL: 
-          Serial.println("DS1822"); 
+          Serialprint("DS1822"); 
           break;
         default:
-          Serial.println("Unknown"); 
+          Serialprint("Unknown"); 
           break;          
         }
-
-        Serial.print("Setting resolution to ");
-        Serial.print(TEMPERATURE_PRECISION, DEC);
-        Serial.print(" bit");
+        Serialprint("Setting resolution to %d bits\n", TEMPERATURE_PRECISION);
       }
 
       sensors.setResolution(tempDeviceAddress, TEMPERATURE_PRECISION);
 
-      if(debug) {		
-        Serial.print(", actual resolution ");
-        Serial.print(sensors.getResolution(tempDeviceAddress), DEC); 
-        Serial.println(" bit");
+      if(debug) {
+        Serialprint(", actual resolution %d bits", sensors.getResolution(tempDeviceAddress));
       }
     }
-    else if(debug) {
-      Serial.print("ID: ");
-      Serial.print(i, DEC);
-      Serial.println(" ghost device. Could not detect address. Check power and cabling");
-    }    
+    else debugprint("ID: %d ghost device. Could not detect address. Check power and cabling");
   }
 }
 
 // Wait for +++ before entering command processor
 void bootWait() {
-  uint8_t plus = 0;
+  i = 0;
   int inByte;
 
   doLCD("Booting...");
   do {  
     if(Serial.available()) {
       inByte = Serial.read();
-      if(inByte == '+') plus++; 
-      else plus = 0;   
+      if(inByte == '+') i++; 
+      else i = 0;   
     }
   } 
-  while(plus < 3);
+  while(i < 3);
 }
 
 void setup() {
@@ -547,20 +564,20 @@ void setup() {
 #else
   Serial.begin(9600);
   doDebug(); // always enabled - remove for production and testing.
-  Serial.println("HAH firmware");
+  Serialprint(" memory available: %d bytes\n",freeRam());
   doVersion();
 #endif  
   resetSerialBuffer();
   setupOneWire();
 
   // Reset relays
-  for(int i=0; i<sizeof(rport); i++) {
+  for(i=0; i<sizeof(rport); i++) {
     pinMode(rport[i], OUTPUT);
     digitalWrite(rport[i], LOW);    
   }
 
   // Enable INPUTS and pull-ups
-  for(int i=0; i<sizeof(inputs); i++) {
+  for(i=0; i<sizeof(inputs); i++) {
     pinMode(inputs[i], INPUT);
     digitalWrite(inputs[i], HIGH);    
   }
@@ -586,5 +603,4 @@ void loop() {
   reportChanges.check();
   reportInputs();  
 }
-
 

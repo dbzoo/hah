@@ -56,7 +56,7 @@ const byte inputs[] = {
 LiquidCrystal lcd(A0,A1,A2,A3,A4,A5); //RS,E,DB4,DB5,DB6,DB7
 
 /*****  COMMAND PROCESSOR *****/
-const int inBufferLen = 255;
+const int inBufferLen = 200;
 uint8_t inPtr;
 char inBuffer[inBufferLen+1];
 
@@ -451,7 +451,7 @@ void reportInputs() {
 // 12bits precision takes 750ms
 // Every Second we report on the I2C bus status.
 void pollDevices() {
-  reportI2C();
+  //reportI2C();
   if(oneWireReady) {
     reportOneWire();
     oneWireReady = false;
@@ -480,7 +480,7 @@ void setupOneWire() {
     Serial.print(oneWireCount, DEC);
     Serial.println(" 1wire sensors");
   }
-  for(int i=0; i<oneWireCount; i++) {
+  for(byte i=0; i<oneWireCount; i++) {
     if(sensors.getAddress(tempDeviceAddress, i))
     {
       if(debug) {

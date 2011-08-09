@@ -146,7 +146,7 @@ void doVersion() {
 }
 
 void doHelp() {
-  Serialprint("$Revision: 191 $  Available Commands:\n");
+  Serialprint("$Revision$  Available Commands:\n");
   Serialprint("<relay> = 1-4\n");
   Serialprint("  DEBUG\n");
   Serialprint("  VERSION\n");

@@ -220,7 +220,7 @@ void doI2C(char *arg) {
   byte addr = (hexDigit(*arg) << 4) | hexDigit(*(arg+1));
   arg += 2;
 
-  debugprint("i2c cmd: %s\n i2c addr: 0x%x\n", cmd, addr);
+  debugprint("i2c cmd: %c\n i2c addr: 0x%x\n", cmd, addr);
 
   // "I2C Maa" - Add a new I2C device at an address aa
   if (cmd == 'M' || cmd == 'm') { 

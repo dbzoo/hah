@@ -296,29 +296,22 @@ void doI2C(char *arg) {
 
 void doI2Cscan() {
   uint8_t add = 0;
-
-  // try read
-  do {
+  do {    
+    if (i2c.start(add | I2C_WRITE)) {
+      Serialprint("Addr write: 0x%x\n", add | I2C_WRITE);
+    }
+    i2c.stop();
+    
     if (i2c.start(add | I2C_READ)) {
       Serialprint("Addr read: 0x%x\n", add | I2C_READ);
       i2c.read(true);
     }
     i2c.stop();
+    
     add += 2;
   } 
   while (add);
-
-  // try write
-  add = 0;
-  do {
-    if (i2c.start(add | I2C_WRITE)) {
-      Serialprint("Addr write: 0x%x\n", add | I2C_WRITE);
-    }
-    i2c.stop();
-    add += 2;
-  } 
-  while (add);
-  Serialprint("Done");  
+  Serialprint("Done\n");  
 }
 
 void doCommand() {

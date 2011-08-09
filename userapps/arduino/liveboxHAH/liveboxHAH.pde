@@ -201,7 +201,7 @@ byte hexDigit(byte c)
     return c - 'A' + 10;
   } 
   else {
-    debugprint("Invalid HEX character : %c", c);
+    debugprint("Invalid HEX character : %c\n", c);
     return -1;   // getting here is bad: it means the character was invalid
   }
 }
@@ -294,33 +294,33 @@ void doI2C(char *arg) {
 // Scan the I2C bus and see what addresses respond
 // Debugging Helper
 
-void i2cScan() {
- uint8_t add = 0;
- 
- // try read
- do {
- if (i2c.start(add | I2C_READ)) {
-   Serialprint("Addr read: 0x%x\n", add | I2C_READ);
-   i2c.read(true);
- }
- i2c.stop();
- add += 2;
- } 
- while (add);
- 
- // try write
- add = 0;
- do {
- if (i2c.start(add | I2C_WRITE)) {
-   Serialprint("Addr write: 0x%x\n", add | I2C_WRITE);
- }
- i2c.stop();
- add += 2;
- } 
- while (add);
- Serialprint("Done");  
+void doI2Cscan() {
+  uint8_t add = 0;
+
+  // try read
+  do {
+    if (i2c.start(add | I2C_READ)) {
+      Serialprint("Addr read: 0x%x\n", add | I2C_READ);
+      i2c.read(true);
+    }
+    i2c.stop();
+    add += 2;
+  } 
+  while (add);
+
+  // try write
+  add = 0;
+  do {
+    if (i2c.start(add | I2C_WRITE)) {
+      Serialprint("Addr write: 0x%x\n", add | I2C_WRITE);
+    }
+    i2c.stop();
+    add += 2;
+  } 
+  while (add);
+  Serialprint("Done");  
 }
- 
+
 void doCommand() {
   if(strcasecmp(inBuffer,"report") == 0) {
     report.all = 0xFF;
@@ -349,9 +349,9 @@ void doCommand() {
   else if(strcasecmp(inBuffer,"debug") == 0) {
     doDebug();
   } 
-   else if(strcasecmp(inBuffer,"i2c scan") == 0) {
-   i2cScan();
-   } 
+  else if(strcasecmp(inBuffer,"i2c scan") == 0) {
+    doI2Cscan();
+  } 
   else if(debug && strcasecmp(inBuffer,"status relay") == 0) {
     doRelayStatus();
   } 
@@ -446,9 +446,9 @@ void reportOneWire() {
     if(sensors.getAddress(tempDeviceAddress, i))
     {
       // Output the device ID
-      Serialprint("1wire ");
-      printAddress(tempDeviceAddress);
-      Serialprint(" ");
+      Serial.print("1wire ");
+      printAddress(tempDeviceAddress);      
+      Serial.print(" ");
       Serial.println(sensors.getTempC(tempDeviceAddress));
     } 
   }
@@ -484,7 +484,7 @@ void reportInputs() {
 // 12bits precision takes 750ms
 // Every Second we report on the I2C bus status.
 void pollDevices() {
-  //reportI2C();
+  reportI2C();
   if(oneWireReady) {
     reportOneWire();
     oneWireReady = false;
@@ -518,16 +518,16 @@ void setupOneWire() {
         Serialprint(" Model: ");
         switch(tempDeviceAddress[0]) {
         case DS18S20MODEL: 
-          Serialprint("DS18S20"); 
+          Serialprint("DS18S20\n"); 
           break;
         case DS18B20MODEL: 
-          Serialprint("DS18B20"); 
+          Serialprint("DS18B20\n"); 
           break;
         case DS1822MODEL: 
-          Serialprint("DS1822"); 
+          Serialprint("DS1822\n"); 
           break;
         default:
-          Serialprint("Unknown"); 
+          Serialprint("Unknown\n"); 
           break;          
         }
         Serialprint("Setting resolution to %d bits\n", TEMPERATURE_PRECISION);
@@ -536,10 +536,10 @@ void setupOneWire() {
       sensors.setResolution(tempDeviceAddress, TEMPERATURE_PRECISION);
 
       if(debug) {
-        Serialprint(", actual resolution %d bits", sensors.getResolution(tempDeviceAddress));
+        Serialprint(", actual resolution %d bits\n", sensors.getResolution(tempDeviceAddress));
       }
     }
-    else debugprint("ID: %d ghost device. Could not detect address. Check power and cabling");
+    else debugprint("ID: %d ghost device. Could not detect address. Check power and cabling\n");
   }
 }
 
@@ -565,7 +565,7 @@ void setup() {
 #else
   Serial.begin(9600);
   doDebug(); // always enabled - remove for production and testing.
-  Serialprint(" memory available: %d bytes\n",freeRam());
+  Serialprint("Memory available: %d bytes\n",freeRam());
   doVersion();
 #endif  
   resetSerialBuffer();
@@ -604,4 +604,5 @@ void loop() {
   reportChanges.check();
   reportInputs();  
 }
+
 

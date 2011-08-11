@@ -118,12 +118,12 @@ void StreamPrint_progmem(Print &out,PGM_P format,...)
 void (*doReboot)() = 0; // JMP 0
 /*
 // Reboot via a WatchDog timeout
-void doReboot() {
-  wdt_enable(WDTO_15MS);
-  for(;;) {
-  }
-}
-*/
+ void doReboot() {
+ wdt_enable(WDTO_15MS);
+ for(;;) {
+ }
+ }
+ */
 
 void relayOn(char *data) {
   byte relay = atoi(data);
@@ -303,13 +303,13 @@ void doI2Cscan() {
       Serialprint("Addr write: 0x%x\r\n", add | I2C_WRITE);
     }
     i2c.stop();
-    
+
     if (i2c.start(add | I2C_READ)) {
       Serialprint("Addr read: 0x%x\r\n", add | I2C_READ);
       i2c.read(true);
     }
     i2c.stop();
-    
+
     add += 2;
   } 
   while (add);
@@ -382,7 +382,7 @@ void doCommand() {
       doI2C(arg);
     }
     else {
-      debugprint("Command not found");
+      debugprint("Command not found\r\n");
     }
   }   
 }
@@ -394,43 +394,41 @@ void resetSerialBuffer() {
 }
 
 void readSerial() {
-  if(Serial.available() == 0) return;
-
-  int inByte = Serial.read();
-  if(inByte == '\r') { // CR to LF
-    inByte = '\n';
-  } 
-  else if(inByte == 127) { // DEL to BS
-    inByte = '\b';
-  }
-
-  switch(inByte) {
-  case '\n':
-    if(debug) Serial.println();
-    if(inPtr > 0) {
-      doCommand();
+    int inByte = Serial.read();
+    if(inByte == '\r') { // CR to LF
+      inByte = '\n';
+    } 
+    else if(inByte == 127) { // DEL to BS
+      inByte = '\b';
     }
-    resetSerialBuffer();
-    break;
-  case '\b':
-    if(debug && inPtr > 0) {
-      Serial.print(8, BYTE);
-      Serial.print(' ');
-      Serial.print(8, BYTE);
-      inPtr--;
-      inBuffer[inPtr] = '\0';
-    }
-    break;
-  default:
-    if(inPtr < inBufferLen) {
-      inBuffer[inPtr] = inByte;
-      inPtr++;
-      inBuffer[inPtr] = '\0';
-      if(debug) {
-        Serial.print(inByte, BYTE);
+
+    switch(inByte) {
+    case '\n':
+      if(debug) Serial.println();
+      if(inPtr > 0) {
+        doCommand();
+      }
+      resetSerialBuffer();
+      break;
+    case '\b':
+      if(debug && inPtr > 0) {
+        Serial.print(8, BYTE);
+        Serial.print(' ');
+        Serial.print(8, BYTE);
+        inPtr--;
+        inBuffer[inPtr] = '\0';
+      }
+      break;
+    default:
+      if(inPtr < inBufferLen) {
+        inBuffer[inPtr] = inByte;
+        inPtr++;
+        inBuffer[inPtr] = '\0';
+        if(debug) {
+          Serial.print(inByte, BYTE);
+        }
       }
     }
-  }
 }
 
 // Loop through each device, print out temperature data
@@ -596,9 +594,12 @@ void setup() {
 }
 
 void loop() {
-  readSerial();
+  while(Serial.available()) {
+     readSerial();
+  }
   reportChanges.check();
   reportInputs();  
 }
+
 
 

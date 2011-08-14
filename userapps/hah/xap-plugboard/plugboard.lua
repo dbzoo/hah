@@ -47,9 +47,12 @@ if args.help then
       exit()
 end
 
-scriptdir = args.appletdir
-ini = config.read("/etc/xap-livebox.ini")
+collectgarbage("setpause",150) -- default 200%
+local scriptdir = args.appletdir
+local ini = config.read("/etc/xap-livebox.ini")
 
+local uid = nil
+local instance = nil
 if ini['plugboard'] then
    uid = ini.plugboard['uid']
    if uid then uid = tostring(uid) end

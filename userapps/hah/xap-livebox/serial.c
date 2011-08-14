@@ -54,6 +54,12 @@ int firmwareMinor() {
 	return minor_firmware;
 }
 
+void setFirmwareVersion(int major, int minor) {
+  info("Override AVR firmware to version %d.%d", major, minor);
+  major_firmware = major;
+  minor_firmware = minor;
+}
+
 static void serin_firmware_rev(int argc, char *argv[])
 {
 	// string returned MAJOR.MINOR or MAJOR
@@ -324,7 +330,7 @@ void serialSend(char *buf)
 static void getFirmwareVersion()
 {
 	serialSend("version"); // Get AVR version
-	usleep(200 * 1000);     // wait for response - 200ms
+	usleep(500 * 1000);     // wait for response - 500ms
 	serialInputHandler(gSerialfd, NULL);	// non-blocking read
 }
 

@@ -41,6 +41,7 @@ function Dec2Bin(dec,num)
    return stringx.ljust(dec2bin(dec),num,'0')
 end
 
+--[[ Replace all this code with an LUA built-in shortcut.
 -- Binary to Decimal
 function bin2dec(num,weight)
    if num==0 then
@@ -49,10 +50,13 @@ function bin2dec(num,weight)
       return (num%2)*math.pow(2,weight) + bin2dec(math.floor(num/10), weight+1)
    end
 end
-
--- Binary to Decimal
 function Bin2Dec(num)
    return bin2dec(num,0)
+end
+--]]
+
+function Bin2Dec(num)
+   return tonumber(num,2) -- convert num of base 2 to decimal
 end
 
 -- Convert a string of space separated decimal numbers into a binary stream
@@ -97,8 +101,9 @@ function serialHandler(frame, config)
    end
    local msg = frame["serial.received"].data
    local id, msg = msg:match("OK (%d+) (.+)")
-   if id then
-      config[tonumber(id)]:process(msg)
+   local idx = tonumber(id)
+   if idx and config[idx] then
+      config[idx]:process(msg)
    end
 end
 

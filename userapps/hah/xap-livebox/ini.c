@@ -348,6 +348,20 @@ static void addPPEendpoints(char *section) {
 	}		
 }
 
+// Allow AVR firmware override.
+// WARNING: Don't you misamatch your AVR firmware with the configuration setting
+void firmwareVersionOverride() {
+  char buf[3];
+  ini_gets("hardware", "major", "", buf, sizeof(buf), inifile);
+  int major = atoi(buf);
+  ini_gets("hardware", "minor", "", buf, sizeof(buf), inifile);
+  int minor = atoi(buf);
+
+  if(major) { // Override
+    setFirmwareVersion(major, minor);
+  }
+}
+
 /** Parse the .ini file and dynamically create XAP endpoints.
  */
 void addIniEndpoints()
@@ -357,6 +371,7 @@ void addIniEndpoints()
         int s, i;
         char buff[30];
 
+	firmwareVersionOverride();
         reset_i2c_ppe();
         for (s = 0; ini_getsection(s, section, sizeof(section), inifile) > 0; s++) {
                 info("section: %s", section);

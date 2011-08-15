@@ -428,7 +428,7 @@ clean: app_clean kernel_clean target_clean hosttools_clean
 	rm -rf $(OPENSOURCE_DIR)/curl-7.19.7 $(OPENSOURCE_DIR)/curl
 	rm -rf $(OPENSOURCE_DIR)/libxml2-2.7.6 $(OPENSOURCE_DIR)/libxml2
 	rm -rf $(OPENSOURCE_DIR)/openssl-0.9.8l $(OPENSOURCE_DIR)/openssl
-	rm -rf $(OPENSOURCE_DIR)/libgcal-0.9.3 $(OPENSOURCE_DIR)/libgcal
+	rm -rf $(OPENSOURCE_DIR)/libgcal-0.9.6 $(OPENSOURCE_DIR)/libgcal
 
 kernel_clean:
 	cp $(PROFILE_DIR)/kernel-Config $(KERNEL_DIR)/.config

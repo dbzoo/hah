@@ -292,7 +292,7 @@ static void processSerialCommand(char *a_cmd)
 /** Read a buffer of serial text and process a line at a time.
 * if a CR/LF isn't seen continue to accumulate cmd data.
 */
-void serialInputHandler(int fd, void *data)
+int serialInputHandler(int fd, void *data)
 {
         static char serial_buff[128];
         int i, len;
@@ -314,6 +314,7 @@ void serialInputHandler(int fd, void *data)
                 }
         }
 	info("exit");
+	return len;
 }
 
 /// Send a message to the serial port.
@@ -329,9 +330,14 @@ void serialSend(char *buf)
 
 static void getFirmwareVersion()
 {
+  int inBytes = 0;
+  int retries = 3;
+  while(inBytes == 0 || retries > 0) {
 	serialSend("version"); // Get AVR version
-	usleep(500 * 1000);     // wait for response - 500ms
-	serialInputHandler(gSerialfd, NULL);	// non-blocking read
+	usleep(200 * 1000);     // wait for response - 200ms
+	inBytes = serialInputHandler(gSerialfd, NULL);	// non-blocking read
+	retries--;
+  }
 }
 
 /** Setup the serial port.

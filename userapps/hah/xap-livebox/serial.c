@@ -325,6 +325,7 @@ void serialSend(char *buf)
                 char nbuf[128];
                 snprintf(nbuf, sizeof(nbuf), "\n%s\n", buf);
                 write(gSerialfd, nbuf, strlen(nbuf));
+		tcdrain(gSerialfd);
         }
 }
 
@@ -332,7 +333,9 @@ static void getFirmwareVersion()
 {
   int inBytes = 0;
   int retries = 3;
-  while(inBytes == 0 || retries > 0) {
+  // As many things break if this isn't correct
+  // we'll retry a few times to make sure.
+  while(inBytes == 0 && retries > 0) {
 	serialSend("version"); // Get AVR version
 	usleep(200 * 1000);     // wait for response - 200ms
 	inBytes = serialInputHandler(gSerialfd, NULL);	// non-blocking read

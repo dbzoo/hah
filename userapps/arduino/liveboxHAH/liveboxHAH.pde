@@ -16,7 +16,7 @@
 #include <avr/wdt.h>
 #include <avr/pgmspace.h>
 
-//#define PRODUCTION
+#define PRODUCTION
 
 #define SCL_PIN 6 // PD.6
 #define SDA_PIN 7 // PD.7
@@ -462,14 +462,30 @@ void reportI2C() {
   report.bit.ppe = 0;
 }
 
+#define DEBOUNCE 10 // ms
 void reportInputs() {
-  static byte prev_value = 0;
+  static byte prev_value = 0;    
+  static long lasttime;
+  
+  if (millis() < lasttime) {
+    // we wrapped around, lets just try again
+     lasttime = millis();
+  }
+  if ((lasttime + DEBOUNCE) > millis()) {
+    // not enough time has passed to debounce
+    return;
+  }
+  lasttime = millis();
+  
   byte portd = PIND & B00111100; // Mask off other pins.  
-  if(prev_value != portd || report.bit.input) {
-    report.bit.input = 0;
+  if(report.bit.input) { 
+     report.bit.input = 0;
+     // Invert all bits to FORCE a difference on each
+     prev_value = portd ^ B00111100;
+  }
+  if(prev_value != portd) {
     Serialprint("input %d %d\r\n", portd, prev_value);
     prev_value = portd;    
-    delay(25); // (ms) debounce
   }
 }
 

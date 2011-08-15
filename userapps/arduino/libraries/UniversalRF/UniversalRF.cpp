@@ -118,7 +118,7 @@ boolean UniversalRF::setupUniversalRF()
 
   if(debug) {
     Serial.print("Bits per Frame: "); Serial.println(bitsPerFrame, DEC);
-    Serial.print("Burts to send: "); Serial.println(burstsToSend, DEC);
+    Serial.print("Bursts to send: "); Serial.println(burstsToSend, DEC);
     Serial.print("Frames per Byte: "); Serial.println(framesPerByte,DEC);
     Serial.print("Pulse Encodings: "); Serial.println(enc, DEC);
     Serial.print("Interburst delay repeat: "); Serial.println(interburstRepeat, DEC);

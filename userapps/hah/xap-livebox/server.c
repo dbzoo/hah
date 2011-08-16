@@ -121,6 +121,9 @@ static char *msg_handler(char *a_cmd) {
 	else if(strcmp(cmd,"action") == 0) {
 		return msg_action(args);
 	} 
+	else if(strcmp(cmd,"AVR") == 0) { // A direct AVR command
+	  serialSend(args);
+	} 
 	else if(strcmp(cmd,"lcd") == 0) {
 		bscEndpoint *lcd = bscFindEndpoint(endpointList, "lcd", NULL);
 		if(lcd) {

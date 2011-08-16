@@ -72,6 +72,7 @@ static void usage(char *prog) {
 	 printf("%s: [options]\n",prog);
 	 printf("  -i, --interface IF     Default %s\n", interfaceName);
 	 printf("  -s, --serial DEV       Default %s\n", serialPort);
+	 printf("  -b, --baud RATE        Default 115200\n");
 	 printf("  -d, --debug            0-7\n");
 	 printf("  -h, --help\n");
 	 exit(1);
@@ -81,7 +82,7 @@ static void usage(char *prog) {
 int main(int argc, char *argv[])
 {
 	bscEndpoint *lcd;
-	int i;
+	int i, baud = B115200;
 	printf("Livebox Connector for xAP\n");
 	printf("Copyright (C) DBzoo, 2008-2010\n\n");
 
@@ -90,6 +91,16 @@ int main(int argc, char *argv[])
 			interfaceName = argv[++i];
 		} else if(strcmp("-s", argv[i]) == 0 || strcmp("--serial", argv[i]) == 0) {
 			serialPort = argv[++i];
+		} else if(strcmp("-b", argv[i]) == 0 || strcmp("--baud", argv[i]) == 0) {
+		  switch(atoi(argv[++i])) {
+		    // limited baud rate selection.
+		    case 9600: baud = B9600; break;
+		    case 19200: baud = B19200; break;
+		    case 38400: baud = B38400; break;
+		    case 57600: baud = B57600; break;
+		    default: 
+		      baud = B115200;
+		    }
 		} else if(strcmp("-d", argv[i]) == 0 || strcmp("--debug", argv[i]) == 0) {
 			setLoglevel(atoi(argv[++i]));			
 		} else if(strcmp("-h", argv[i]) == 0 || strcmp("--help", argv[i]) == 0) {
@@ -99,7 +110,7 @@ int main(int argc, char *argv[])
 
 	xapInitFromINI("xap","dbzoo.livebox","Controller","00DB",interfaceName,inifile);
 
-	setupSerialPort(serialPort, B115200);
+	setupSerialPort(serialPort, baud);
 
 	/* Endpoint UID mapping - Identifies a particular hardware device for life.
 	   As endpoints can be dynamically added we define ranges so this remains true.

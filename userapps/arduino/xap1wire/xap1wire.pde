@@ -68,6 +68,10 @@ void setup () {
 
   xap.setBuffer(buf, sizeof buf);
   delay(800);
+  sendInfo();
+}
+
+static void sendInfo() {
     for(int i=0;i<numberOfDevices; i++) {
       sendXapState("xAPBSC.info", &sensor[i]);
     }    
@@ -106,13 +110,11 @@ void sendXapState(char *clazz, struct _sensor *sensor) {
 }
 
 void processXapMsg() {
-  if(xap.getType() != XAP_MSG_ORDINARY) return;
-  if(!xap.isValue("xap-header","target", SOURCE)) return;
-  if(xap.isValue("xap-header","class","xAPBSC.query")) {
-
-    for(int i=0;i<numberOfDevices; i++) {
-      sendXapState("xAPBSC.info", &sensor[i]);
-    }    
+  if(xap.getType() == XAP_MSG_ORDINARY &&
+     xap.isValue("xap-header","target", SOURCE) &&
+     xap.isValue("xap-header","class","xAPBSC.query"))
+  {
+    sendInfo();
   }
 }
 

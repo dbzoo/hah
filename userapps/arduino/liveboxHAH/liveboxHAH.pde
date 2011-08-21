@@ -18,8 +18,8 @@
 
 #define PRODUCTION
 
-#define SCL_PIN 6 // PD.6
-#define SDA_PIN 7 // PD.7
+#define SCL_PIN 7 // PD.7
+#define SDA_PIN 6 // PD.6
 
 SoftI2cMaster i2c;
 #define MAXPPE 8   // Maximum number of devices
@@ -85,6 +85,8 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 DeviceAddress tempDeviceAddress;
 int oneWireCount; // Number of devices on the bus.
+#define MAXONEWIRE 16
+float oneWireTemp[MAXONEWIRE];
 
 /****** End variable configuration ***********/
 
@@ -222,7 +224,7 @@ void doI2C(char *arg) {
   byte addr = (hexDigit(*arg) << 4) | hexDigit(*(arg+1));
   arg += 2;
 
-  debugprint("i2c cmd: %c\ni2c addr: 0x%x\r\n", cmd, addr);
+  debugprint("i2c cmd: %c\r\ni2c addr: 0x%x\r\n", cmd, addr);
 
   // "I2C Maa" - Add a new I2C device at an address aa
   if (cmd == 'M' || cmd == 'm') { 
@@ -394,57 +396,63 @@ void resetSerialBuffer() {
 }
 
 void readSerial() {
-    int inByte = Serial.read();
-    if(inByte == '\r') { // CR to LF
-      inByte = '\n';
-    } 
-    else if(inByte == 127) { // DEL to BS
-      inByte = '\b';
-    }
+  int inByte = Serial.read();
+  if(inByte == '\r') { // CR to LF
+    inByte = '\n';
+  } 
+  else if(inByte == 127) { // DEL to BS
+    inByte = '\b';
+  }
 
-    switch(inByte) {
-    case '\n':
-      if(debug) Serial.println();
-      if(inPtr > 0) {
-        doCommand();
-      }
-      resetSerialBuffer();
-      break;
-    case '\b':
-      if(debug && inPtr > 0) {
-        Serial.print(8, BYTE);
-        Serial.print(' ');
-        Serial.print(8, BYTE);
-        inPtr--;
-        inBuffer[inPtr] = '\0';
-      }
-      break;
-    default:
-      if(inPtr < inBufferLen) {
-        inBuffer[inPtr] = inByte;
-        inPtr++;
-        inBuffer[inPtr] = '\0';
-        if(debug) {
-          Serial.print(inByte, BYTE);
-        }
+  switch(inByte) {
+  case '\n':
+    if(debug) Serial.println();
+    if(inPtr > 0) {
+      doCommand();
+    }
+    resetSerialBuffer();
+    break;
+  case '\b':
+    if(debug && inPtr > 0) {
+      Serial.print(8, BYTE);
+      Serial.print(' ');
+      Serial.print(8, BYTE);
+      inPtr--;
+      inBuffer[inPtr] = '\0';
+    }
+    break;
+  default:
+    if(inPtr < inBufferLen) {
+      inBuffer[inPtr] = inByte;
+      inPtr++;
+      inBuffer[inPtr] = '\0';
+      if(debug) {
+        Serial.print(inByte, BYTE);
       }
     }
+  }
 }
 
 // Loop through each device, print out temperature data
 void reportOneWire() {
+  float temp;
   for(i=0;i<oneWireCount; i++)
   {
     // Search the wire for address
     if(sensors.getAddress(tempDeviceAddress, i))
     {
-      // Output the device ID
-      Serial.print("1wire ");
-      printAddress(tempDeviceAddress);      
-      Serial.print(" ");
-      Serial.println(sensors.getTempC(tempDeviceAddress));
+      temp = sensors.getTempC(tempDeviceAddress);
+      if(oneWireTemp[i] != temp || report.bit.onewire) {
+        oneWireTemp[i] = temp;
+        // Output the device ID
+        Serial.print("1wire ");
+        printAddress(tempDeviceAddress);      
+        Serial.print(" ");
+        Serial.println(temp);
+      }
     } 
   }
+  report.bit.onewire = 0;
 }
 
 void reportI2C() {
@@ -466,22 +474,22 @@ void reportI2C() {
 void reportInputs() {
   static byte prev_value = 0;    
   static long lasttime;
-  
+
   if (millis() < lasttime) {
     // we wrapped around, lets just try again
-     lasttime = millis();
+    lasttime = millis();
   }
   if ((lasttime + DEBOUNCE) > millis()) {
     // not enough time has passed to debounce
     return;
   }
   lasttime = millis();
-  
+
   byte portd = PIND & B00111100; // Mask off other pins.  
   if(report.bit.input) { 
-     report.bit.input = 0;
-     // Invert all bits to FORCE a difference on each
-     prev_value = portd ^ B00111100;
+    report.bit.input = 0;
+    // Invert all bits to FORCE a difference on each
+    prev_value = portd ^ B00111100;
   }
   if(prev_value != portd) {
     Serialprint("input %d %d\r\n", portd, prev_value);
@@ -518,9 +526,11 @@ void setupOneWire() {
   sensors.begin();  
   oneWireCount = sensors.getDeviceCount();
   debugprint("Found %d 1wire sensors\r\n", oneWireCount);
+  if(oneWireCount > MAXONEWIRE) oneWireCount = MAXONEWIRE;
   for(i=0; i<oneWireCount; i++) {
     if(sensors.getAddress(tempDeviceAddress, i))
     {
+      oneWireTemp[i] = ~0;
       if(debug) {
         Serialprint("ID: %d ROM: ", i);
         printAddress(tempDeviceAddress);
@@ -611,11 +621,12 @@ void setup() {
 
 void loop() {
   while(Serial.available()) {
-     readSerial();
+    readSerial();
   }
   reportChanges.check();
   reportInputs();  
 }
+
 
 
 

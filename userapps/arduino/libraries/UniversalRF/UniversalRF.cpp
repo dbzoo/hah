@@ -62,6 +62,10 @@ boolean UniversalRF::setupUniversalRF()
 {
   uint16_t i;
 
+  // We can get away with this and conserve memory.
+  // Its just now the input buffer is destroyed.
+  bitStream = (uint8_t *)hexPtr;
+
   // First uint8_t: bitsPerFrame
   bitsPerFrame = readByte();
   if (bitsPerFrame == 0 || bitsPerFrame > MAXENCBITS || 8 % bitsPerFrame != 0) {
@@ -105,12 +109,6 @@ boolean UniversalRF::setupUniversalRF()
   int b = frames / framesPerByte;
   if (frames % framesPerByte > 0) // Round up a byte for a partial frame usage
     b++;
-  if (b > sizeof(bitStream)) {
-    if(debug) {
-      Serial.println("Out of bitStream storage");
-    }
-    return false;
-  }
 
   for (i=0; i<b; i++) {
     bitStream[i] = readByte();

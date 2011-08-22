@@ -34,7 +34,7 @@ private:
   uint8_t burstsToSend;
   uint16_t interburstDelay;
   uint8_t interburstRepeat;
-  uint8_t bitStream[128]; // 255 HEX chars as bytes = 128
+  uint8_t *bitStream; // Reuses input buffer addressed by hexPtr
   // Computed values
   uint8_t framesPerByte;
   uint8_t bitMask[8];

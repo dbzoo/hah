@@ -156,7 +156,7 @@ void doHelp() {
   Serialprint("  VERSION\r\n");
   Serialprint("  HELP\r\n");
   Serialprint("  REPORT [1WIRE|PPE|INPUT]\r\n");
-  Serialprint("  1WIRERESET\r\n");
+  Serialprint("  1WIRE [RESET|DISABLE]\r\n");
   Serialprint("  STATUS [1WIRE|RELAY|INPUT]\r\n");
   Serialprint("  REBOOT\r\n");
   Serialprint("  ON <relay>\r\n");
@@ -355,7 +355,11 @@ void doCommand() {
   else if(debug && strcasecmp(inBuffer,"status input") == 0) {
     doInputStatus();
   } 
-  else if(strcasecmp(inBuffer,"1wirereset") == 0 || strcasecmp(inBuffer,"status 1wire") == 0) {   
+  else if( strcasecmp(inBuffer,"1wire disable") == 0) {   
+    oneWireCount = 0;
+  }
+  else if(strcasecmp(inBuffer,"1wirereset") == 0 || strcasecmp(inBuffer,"status 1wire") == 0 ||
+	  strcasecmp(inBuffer,"1wire reset") == 0) {   
     setupOneWire();
   } 
   else {

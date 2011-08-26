@@ -100,8 +100,8 @@ boolean UniversalRF::setupUniversalRF()
   // Adjust for delayMicrosecond() limit of 16383 (Arduino)
   if(interburstDelay > 16383) {
     unsigned long x = interburstRepeat * interburstDelay;
-    interBurstRepeat = x/16383 + 1;
-    interburstDelay = x / interBurstRepeat;
+    interburstRepeat = x/16383 + 1;
+    interburstDelay = x / interburstRepeat;
   }
 
   frames = readByte();

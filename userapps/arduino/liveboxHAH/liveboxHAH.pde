@@ -38,7 +38,7 @@ UniversalRF RF = UniversalRF(13); // Transmitter on PB.5
 static byte i; // Used for all loops
 
 const int firmwareMajor = 3;
-const int firmwareMinor = 2;
+const int firmwareMinor = 3;
 const byte rport[] = { 
   8,9,10,11}; // to PIN - PB.0-3
 const byte inputs[] = { 
@@ -56,6 +56,8 @@ const byte inputs[] = {
  '   6 : n/c
  '   7 : n/c
  */
+#define LCDWIDTH 8
+#define LCDHEIGHT 2
 LiquidCrystal lcd(A0,A1,A2,A3,A4,A5); //RS,E,DB4,DB5,DB6,DB7
 
 /*****  COMMAND PROCESSOR *****/
@@ -187,10 +189,26 @@ void doInputStatus() {
   }
 }
 
+// Break the string into chunks that will fit the LCD dimensions.
 void doLCD(char *msg) {
+  byte row=0;
   lcd.clear();
-  lcd.setCursor(0,0);  // We also seem to need this, as the above doesn't reposition to 0,0
-  lcd.print(msg);
+  lcd.setCursor(row,0);
+  for(i=0; i<strlen(msg); i++) {
+    if(i > 0 & i % LCDWIDTH == 0) lcd.setCursor(0, ++row);
+    lcd.write(msg[i]);
+  }
+}
+
+// Print a formatting string to the LCD
+void lcdPrint(char *fmt,...)
+{
+  char out[LCDWIDTH*LCDHEIGHT];
+  va_list args;
+  va_start (args, fmt);
+  vsnprintf(out, sizeof(out), fmt, args );
+  va_end (args);
+  doLCD(out);
 }
 
 byte hexDigit(byte c)
@@ -446,13 +464,14 @@ void reportOneWire() {
     if(sensors.getAddress(tempDeviceAddress, i))
     {
       temp = sensors.getTempC(tempDeviceAddress);
+      temp = trunc(temp * 10 + 0.5) / 10; // round to 1 decimal
       if(oneWireTemp[i] != temp || report.bit.onewire) {
         oneWireTemp[i] = temp;
         // Output the device ID
         Serial.print("1wire ");
         printAddress(tempDeviceAddress);      
         Serial.print(" ");
-        Serial.println(temp);
+        Serial.println(temp,1); // 1 decimal place
       }
     } 
   }
@@ -554,16 +573,16 @@ void setupOneWire() {
           break;          
         }
         Serial.println();
-        Serialprint("Setting resolution to %d bits\r\n", TEMPERATURE_PRECISION);
+        Serialprint("setResolution %d bits", TEMPERATURE_PRECISION);
       }
 
       sensors.setResolution(tempDeviceAddress, TEMPERATURE_PRECISION);
 
       if(debug) {
-        Serialprint(", actual resolution %d bits\r\n", sensors.getResolution(tempDeviceAddress));
+        Serialprint(", getResolution %d bits\r\n", sensors.getResolution(tempDeviceAddress));
       }
     }
-    else debugprint("ID: %d ghost device. Could not detect address. Check power and cabling\r\n");
+    else debugprint("ID: %d ghost device. Could not detect address. Check power and cabling\r\n", i);
   }
 }
 
@@ -571,8 +590,8 @@ void setupOneWire() {
 void bootWait() {
   i = 0;
   int inByte;
-
-  doLCD("Booting...");
+  
+  lcdPrint("Booting v%d.%d", firmwareMajor, firmwareMinor);
   do {  
     if(Serial.available()) {
       inByte = Serial.read();
@@ -613,7 +632,7 @@ void setup() {
   pinMode(A3, OUTPUT);
   pinMode(A4, OUTPUT);
   pinMode(A5, OUTPUT);
-  lcd.begin(8,2); // Columns x Rows
+  lcd.begin(LCDWIDTH,LCDHEIGHT); // Columns x Rows
 
   // I2C
   i2c.init(SCL_PIN, SDA_PIN);

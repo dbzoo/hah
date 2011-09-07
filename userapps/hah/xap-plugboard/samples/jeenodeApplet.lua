@@ -10,10 +10,9 @@ RoomNode = require("xap.roomnode").RoomNode
 OutputNode = require("xap.outputnode").OutputNode
 
 info={
-   version="1.0", description="JeeNode"
+   version="2.0", description="JeeNode"
 }
 
--- Make sure the xap-serial daemon is running!
 local jeemon={
       port="/dev/ttyUSB0",
       baud=57600,
@@ -25,11 +24,10 @@ local jeemon={
 
 -- Keyed by NODE ID
 local nodes = {
-   [2] = RoomNode("dbzoo.livebox.jeenode:attic")
-   [3] = OutputNode("dbzoo.livebox.jeenode:attic","light","heater","amp","tv")
-   [4] = RoomNode("dbzoo.livebox.jeenode:basement")
+   [2] = RoomNode{base="dbzoo.livebox.jeenode:attic", endpoints={temp=1,light=1}, ttl=360},
+   [3] = RoomNode{base="dbzoo.livebox.jeenode:basement", endpoints={temp=1,lobat=1}, ttl=900},
+   [4] = OutputNode{base="dbzoo.wombat.jeenode:bedroom",endpoints={p1="light",p2="heater",p3="amp",p4=0}},
 }
-
 
 function init()
    monitor(jeemon, nodes)

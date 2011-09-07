@@ -8,46 +8,34 @@
    All derivative work must retain this message and
    acknowledge the work of the original author.
 --]]
-local _G = _G
-local DEBUG = rawget(_G,'_DEBUG')
-
 module("xap.outputnode", package.seeall)
 
 require("xap.bsc")
-bitslicer = require("xap.jeenode").bitslicer
+jeenode = require("xap.jeenode")
+Nodule = jeenode.Nodule
 class = require("pl.class").class
 require("pl")
 
-class.OutputNode()
-
-function OutputNode:_init(base, ...)
-   self.base=base
-   self.names={...}
-end
+class.OutputNode(Nodule)
 
 -- create BSC endpoints
--- sender: function to send xAP data, used with the cmdCB handler
-function OutputNode:build(sender)
-   self.t={}
+function OutputNode:build(...)
+   Nodule.build(self, ...)
+
    for i=1,4 do
-      local name = utils.choose(self.names[i] == nil, i, self.names[i])
-      self.t[i] = bsc.Endpoint {id=i, 
-				source=self.base.."."..name,
-				direction=bsc.OUTPUT, 
-				type=bsc.BINARY, 
-				cmdCB=function(e)
-					 portCmd(e, sender)
-				      end
-			     }
+      self:add {key="p"..i, direction=bsc.OUTPUT, type=bsc.BINARY, cmdCB=self.portCmd}
    end
+
+-- In the Sketch the node constantly checks for an inbound RF message
+-- so its doubtful you would want to run this on batteries for any
+-- length of time.
+   self:add {key="lobat", direction=bsc.INPUT, type=bsc.BINARY}
 end
 
-function portCmd(e, sender)
-   if DEBUG then
-      print("Port "..e.id.." to "..e.state);
-   end
-   local cmd = string.byte(e.id) ..","..string.byte( utils.choose(e.state=="off",0,1))
-   sender(cmd)
+function OutputNode:portCmd(e)
+   -- The output port is the last character of the key (a little kludgy)
+   local port = e.key:sub(-1)
+   self:sender(port ..","..string.byte( utils.choose(e.state=="off",0,1)))
 end
 
 function OutputNode:process(data)
@@ -61,29 +49,6 @@ struct {
     byte lobat :1;  // supply voltage dropped under 3.1V: 0..1
 } payload;
 --]]
-   p1, p2, p3, p4, lobat = bitslicer(data,1,1,1,1,1)
-   
-   p1 = bsc.decodeState(p1)
-   p2 = bsc.decodeState(p2)
-   p3 = bsc.decodeState(p3)
-   p4 = bsc.decodeState(p4)
-
-   if DEBUG then
-      print("OUTPUT NODE")
-      print(string.format([[
-p1: %s
-p2: %s
-p3: %s
-p4: %s
-lobat: %s
-			  ]], p1, p2, p3, p4, lobat))
-   end
-
-   local v={p1,p2,p3,p4}
-   for i=1,4 do
-      if self.t[i].state ~= v[i] then
-	 self.t[i]:setState(v[i])
-	 self.t[i]:sendEvent()
-      end
-   end
+   local p1, p2, p3, p4, lobat = jeenode.bitslicer(data,1,1,1,1,1)
+   Nodule.process(self,{p1=p1,p2=p2,p3=p3,p4=p4,lobat=lobat})
 end

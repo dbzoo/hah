@@ -14,6 +14,7 @@ local DEBUG = rawget(_G,'_DEBUG')
 module("xap.jeenode", package.seeall)
 
 require("xap")
+require("xap.bsc")
 require("pl")
 
 -- decode Sketch startup string
@@ -40,20 +41,6 @@ end
 function Dec2Bin(dec,num)
    return stringx.ljust(dec2bin(dec),num,'0')
 end
-
---[[ Replace all this code with an LUA built-in shortcut.
--- Binary to Decimal
-function bin2dec(num,weight)
-   if num==0 then
-      return 0
-   else
-      return (num%2)*math.pow(2,weight) + bin2dec(math.floor(num/10), weight+1)
-   end
-end
-function Bin2Dec(num)
-   return bin2dec(num,0)
-end
---]]
 
 function Bin2Dec(num)
    return tonumber(num,2) -- convert num of base 2 to decimal
@@ -107,26 +94,6 @@ function serialHandler(frame, config)
    end
 end
 
--- A factory that produces a function that will be passed to
--- each NODE so be used to send data when an incoming BSC cmd
--- is detected.
-local function senderFactory(id, port)
-   local msg = string.format([[
-xap-header
-{
-class=Serial.Comms
-target=dbzoo.livebox.serial
-}
-Serial.Send
-{
-port=%s
-data=%%s,%s s
-}]], port,id)
-   return function(data)
-	     xap.sendShort(string.format(msg, data))
-       end
-end
-
 -- The main entry point
 -- t - a serial configuration table
 -- config - a table keyed by NODEID of processing Nodules
@@ -146,9 +113,80 @@ Serial.Setup
    msg = msg .. "}"
    xap.sendShort(msg)
 
---[=[
-   -- RF12Demo control
-   -- set quiet mode (1 = don't report bad packets)
+   local f = xap.Filter()
+   f:add("xap-header","class","serial.comms")
+   f:add("serial.received","port",t.port)
+   f:callback(serialHandler, config)
+
+   -- Build all the Nodules
+   for k,v in pairs(config) do
+      v:build(k, t.port)
+   end
+
+   -- Check for non-responding JeeNodes every 10 seconds
+   xap.Timer(grimreaper, 10, config):start()
+end
+
+-- If a Nodule does not report in after a TTL period of time
+-- we mark its INPUT endpoints as UNKNOWN and make this Endpoint DEAD.
+-- TTL is optional for an endpoint and can configured by the subclasses
+-- however it should be allowed to overriden by the user configuration
+function grimreaper(_, config)
+   local now = os.time()
+   for _,v in pairs(config) do
+      -- Does this endpoint have an expiry timeout setting?
+      -- Is is alive?  (don't reap the dead!)
+      -- Has it expired?
+      if v.cfg.ttl and v.alive and now - v.lastProcessed > v.cfg.ttl then
+	 v:expire()
+      end
+   end
+end
+
+-- The base class for JeeNode communication nodules
+class.Nodule()
+
+-- id: the nodes UNIQUE ID as defined in the SKETCH
+-- config: a table of configuration paramters
+function Nodule:_init(config)
+   self.cfg = config
+end
+
+function Nodule:build(id, port)
+   self.cfg.id = id
+   self.cfg.port = port
+   self.lastProcessed = os.time()
+   self.isalive = true
+   if DEBUG then
+      print('build '.. tostring(self))
+   end
+end
+
+-- Mark the endpoint as non responsive and make its INPUT states
+-- unknown.
+function Nodule:expire()
+   if DEBUG then
+      print('expire '.. tostring(self))
+   end
+   self.isalive = false
+   for name in pairs(self.cfg.endpoints) do
+      local e = self[name]
+      if e.type == bsc.INPUT then
+	 e.state = bsc.STATE_UNKNOWN
+	 if e.type ~= bsc.BINARY then
+	    e.text = "?"
+	 end
+	 e:sendEvent()
+      end
+   end
+end
+
+-- Implement a basic sender
+-- This sends a comma delimited data payload to the Control Sketch
+-- which will forward this to node <ID>
+-- <payload>,<id> s
+-- data(string): RF control data
+function Nodule:sender(data)
    xap.sendShort(string.format([[
 xap-header
 {
@@ -157,23 +195,69 @@ target=dbzoo.livebox.serial
 }
 Serial.Send
 {
-   port=%s
-   data=1q
-}
-]], t.port))
---]=]
+port=%s
+data=%s,%s s
+}]], self.cfg.port, data, self.cfg.id))
+end
 
-   local f = xap.Filter()
-   f:add("xap-header","class","serial.comms")
-   f:add("serial.received","port",t.port)
-   f:callback(serialHandler, config)
+-- Add a BSC endpoint to this Nodule
+-- e(table): a BSC specification
+function Nodule:add(e)
+   local epvalue = self.cfg.endpoints[e.key]
 
-   -- Build the BSC endpoints
-   for k,v in pairs(config) do
+   -- User configured to not want it.
+   if epvalue == 0 then
+      epvalue = nil
+   end
+   -- Add epvalue if its configured
+   if epvalue == nil then 
+      return
+   end
+
+   -- do we want the key value as the epvalue name?
+   if epvalue == 1 then -- NO
+      e.source = self.cfg.base.."."..e.key
+   else
+      -- The user has supplied their own name
+      e.source = self.cfg.base.."."..epvalue
+   end
+   self[e.key] = bsc.Endpoint(e)
+end
+
+-- Update BSC endpoints with new values and send an event.
+-- m(table): key= Endpoint names, value=their new values.
+function Nodule:process(m)
+   if DEBUG then
+      print('process '.. tostring(self))
+   end
+
+   -- We got some data we must be alive
+   self.lastProcessed = os.time()
+   self.isalive = true
+
+   for endpointname, v in pairs(m) do
       if DEBUG then
-	 print("Build node: "..k)
+	 print("\t"..endpointname.."="..v)
       end
-      v:build(senderFactory(k, t.port))
+      local e = self[endpointname]
+      if e then
+	 if e.type == bsc.STREAM then
+	    -- did its value just change?
+	    if e.text ~= v then
+	       e:setText(v)
+	       e:sendEvent()
+	    end
+	 elseif e.type == bsc.BINARY then
+	    state = bsc.decodeState(v)
+	    if e.state ~= state then
+	       e:setState(state)
+	       e:sendEvent()
+	    end
+	 end
+      end
    end
 end
 
+function Nodule:__tostring()
+   return self._name..'['..self.cfg.id..']'
+end

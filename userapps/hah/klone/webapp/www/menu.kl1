@@ -45,6 +45,7 @@ MENU mymenu[] =
   {"Admin","Services","services.kl1", isAuthenticated},
   {"Admin","Webserver","webserver.kl1", isAuthenticated},
   {"Admin","WOL","wol.kl1", isAuthenticated},
+  {"Admin","Firmware","firmware.kl1", isAuthenticated},
   {NULL,NULL,NULL,NULL}
 };
 

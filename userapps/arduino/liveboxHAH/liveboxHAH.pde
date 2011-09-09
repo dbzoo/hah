@@ -18,6 +18,9 @@
 
 #define PRODUCTION
 
+#define XOFF 0x13
+#define XON  0x11
+
 #define SCL_PIN 7 // PD.7
 #define SDA_PIN 6 // PD.6
 
@@ -38,7 +41,7 @@ UniversalRF RF = UniversalRF(13); // Transmitter on PB.5
 static byte i; // Used for all loops
 
 const int firmwareMajor = 3;
-const int firmwareMinor = 3;
+const int firmwareMinor = 4;
 const byte rport[] = { 
   8,9,10,11}; // to PIN - PB.0-3
 const byte inputs[] = { 
@@ -193,7 +196,7 @@ void doInputStatus() {
 void doLCD(char *msg) {
   byte row=0;
   lcd.clear();
-  lcd.setCursor(row,0);
+  lcd.setCursor(0,row);
   for(i=0; i<strlen(msg); i++) {
     if(i > 0 & i % LCDWIDTH == 0) lcd.setCursor(0, ++row);
     lcd.write(msg[i]);
@@ -391,7 +394,12 @@ void doCommand() {
       return;
     }
     if(strcasecmp(inBuffer,"urf") == 0) {
+      // Inform the client to pause sending us more data as it
+      // can take a wee while and interrupts are disabled, due to
+      // time critical functions, disabling the serial input buffer.
+      Serial.print(XOFF, BYTE);
       RF.transmit(arg);
+      Serial.print(XON, BYTE);      
     } 
     else if(strcasecmp(inBuffer,"on") == 0) {
       relayOn(arg);

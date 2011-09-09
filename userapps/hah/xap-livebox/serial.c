@@ -356,7 +356,7 @@ int setupSerialPort(char *serialport, int baud)
                 return -1;
         }
         cfmakeraw(&newtio);
-        newtio.c_cflag = baud | CS8 | CLOCAL | CREAD ;
+        newtio.c_cflag = baud | CS8 | CLOCAL | CREAD | IXOFF | IXON;
         newtio.c_iflag = IGNPAR;
         newtio.c_lflag = 0;
         newtio.c_cc[VTIME] = 0; // ignore timer

@@ -11,7 +11,7 @@ static int reboot = 0;
 static struct {
 	 char user[64];
 	 char passwd[64];
-	 char ufreq[5];
+	 char ufreq[6];
 	 char enable[2];
 } ini;
 

@@ -1,0 +1,48 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+#include "utils.h"
+#include "comms.h"
+%>
+<%
+REQUIRE_AUTH(SCRIPT_NAME);
+%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
+<link type="text/css" rel="stylesheet" href="style/current/style.css" />
+<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css" /><![endif]-->
+<script type="text/javascript" src="common.js"></script>
+</head>
+<title>HAH build</title>
+<body class="gui">
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<br/>
+<h2>Firmware</h2>
+
+<fieldset>
+<legend>HAH build</legend>
+<table>
+<tr><td>Current HAH build:</td><td><%= con.build %></td></tr>
+<tr><td>Latest HAH build:</td><td><iframe frameBorder="0" width="40" height="28" scrolling="no" src="http://hah.dbzoo.com/upgrade/build"></iframe></td></tr>
+</table>
+</fieldset>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+</body>
+</html>
+

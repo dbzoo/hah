@@ -12,11 +12,12 @@ require("string")
 rex = require("rex_posix")
 
 info={
-   version="1.0", description="Alias Interpreter"
+   version="1.1", description="Alias Interpreter"
 }
 
 pat={
-    [rex.new("(relay|rf) ([1-4]) (on|off)")]=function(m) rfRelayCmd(m) end,
+    [rex.new("(relay) ([1-4]) (on|off)")]=function(m) rfRelayCmd(m) end,
+    [rex.new("(rf) ([0-9]+) (on|off)")]=function(m) rfRelayCmd(m) end,
     [rex.new("tweet (.*)")]=function(m) tweet(unpack(m)) end
 }
 
@@ -37,7 +38,7 @@ function tweet(msg)
   sendBscCmd("dbzoo.livebox.Twitter","text="..msg)
 end
 
-function rfRelaycmd(t)
+function rfRelayCmd(t)
   local addr1,addr2,state = unpack(t)
   sendBscCmd(string.format("dbzoo.livebox.Controller:%s.%s",addr1,addr2),"state="..state)
 end

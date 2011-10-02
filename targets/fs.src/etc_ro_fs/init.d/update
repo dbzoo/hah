@@ -28,15 +28,28 @@ wget_wrap()
     fi
 }
 
+force=0
+clean=0
+for i in $*; do
+  if [ "$i" = "force" ]; then
+    force=1
+  elif [ "$i" = "clean" ]; then
+    force=1
+    clean=1
+  else
+    echo $i: is an invalid argument
+    exit 1
+  fi
+done
+
 ramdisk start
 cd /mnt/ramdisk/rd1
 
 wget_wrap build
-if [ "$1" != "force" ]; then
+if [ $force -eq 0 ]; then
   if [ "`cat ./build`" = "`cat /etc_ro_fs/build`" ]; then
      abort "Update not necessary"
   fi
-  shift
 fi
 
 echo Shutdown XAP services
@@ -47,7 +60,7 @@ wget_wrap Image.bin
 
 echo "lcd Flashing..." >/dev/ttyS0
 
-if [ "$1" = "clean" ]; then
+if [ $clean -eq 1 ]; then
   /usr/sbin/eraseall /dev/mtd$(cat /proc/mtd | grep jffs_system | sed -n "s/\(mtd\)\(.*\):\(.\)*/\2/p")
 else
   cp ./build /etc/build

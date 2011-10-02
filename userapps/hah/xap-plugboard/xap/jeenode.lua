@@ -134,10 +134,18 @@ end
 function grimreaper(_, config)
    local now = os.time()
    for _,v in pairs(config) do
+      if DEBUG then
+	 print(string.format("Reaping %s alive=%s ttl=%s timeout=%s", 
+			     tostring(v),
+			     utils.choose(v.isalive == true,"true","false"),
+			     v.cfg.ttl, 
+			     now-v.lastProcessed))
+
+      end
       -- Does this endpoint have an expiry timeout setting?
       -- Is is alive?  (don't reap the dead!)
       -- Has it expired?
-      if v.cfg.ttl and v.alive and now - v.lastProcessed > v.cfg.ttl then
+      if v.cfg.ttl and v.isalive == true and now - v.lastProcessed > v.cfg.ttl then
 	 v:expire()
       end
    end
@@ -171,7 +179,7 @@ function Nodule:expire()
    self.isalive = false
    for name in pairs(self.cfg.endpoints) do
       local e = self[name]
-      if e.type == bsc.INPUT then
+      if e.direction == bsc.INPUT then
 	 e.state = bsc.STATE_UNKNOWN
 	 if e.type ~= bsc.BINARY then
 	    e.text = "?"

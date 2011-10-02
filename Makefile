@@ -112,7 +112,7 @@ SUBDIRS_HAH = \
 SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIRS_HAH)
 
 OPENSOURCE_APPS = brctl dropbear ftpd iptables busybox ntpclient ini mtd lua \
-	lrexlib luafilesystem luasocket penlight
+	lrexlib luafilesystem luasocket penlight avrdude
 INVENTEL_APPS = inventelbin sendarp ledctrl
 HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-pachube xap-sms iServer \
 	xap-currentcost xap-googlecal xap-twitter xap-serial klone xap-plugboard 
@@ -162,6 +162,16 @@ prebuild:
 
 hah:	$(HAH_APPS)
 
+avrdude:
+	(cd $(OPENSOURCE_DIR); \
+	rm -rf avrdude-5.10; \
+	test -f avrdude-5.10.tar.gz || wget http://download.savannah.gnu.org/releases/avrdude/avrdude-5.10.tar.gz; \
+	tar zxf avrdude-5.10.tar.gz; \
+	cd avrdude-5.10; \
+	./configure --host=mips-linux --sysconfdir=/etc_ro_fs)
+	$(MAKE) -C $(OPENSOURCE_DIR)/avrdude-5.10
+	install -m 555 $(OPENSOURCE_DIR)/avrdude-5.10/avrdude $(INSTALL_DIR)/usr/bin
+	$(STRIP) $(INSTALL_DIR)/usr/bin/avrdude
 
 xaplib2:
 	$(MAKE) -C $(HAH_DIR)/xaplib2

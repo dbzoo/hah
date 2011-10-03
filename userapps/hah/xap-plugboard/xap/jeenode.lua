@@ -120,7 +120,9 @@ Serial.Setup
 
    -- Build all the Nodules
    for k,v in pairs(config) do
-      v:build(k, t.port)
+      if v.build then
+	 v:build(k, t.port)
+      end
    end
 
    -- Check for non-responding JeeNodes every 10 seconds
@@ -134,19 +136,21 @@ end
 function grimreaper(_, config)
    local now = os.time()
    for _,v in pairs(config) do
-      if DEBUG then
-	 print(string.format("Reaping %s alive=%s ttl=%s timeout=%s", 
-			     tostring(v),
-			     utils.choose(v.isalive == true,"true","false"),
-			     v.cfg.ttl, 
-			     now-v.lastProcessed))
-
-      end
-      -- Does this endpoint have an expiry timeout setting?
-      -- Is is alive?  (don't reap the dead!)
-      -- Has it expired?
-      if v.cfg.ttl and v.isalive == true and now - v.lastProcessed > v.cfg.ttl then
-	 v:expire()
+      if v.cfg and v.cfg.ttl then -- is it even reapable?
+	 if DEBUG then
+	    print(string.format("Reaping %s alive=%s ttl=%s timeout=%s", 
+				tostring(v),
+				utils.choose(v.isalive == true,"true","false"),
+				v.cfg.ttl, 
+				now-v.lastProcessed))
+	    
+	 end
+	 -- Does this endpoint have an expiry timeout setting?
+	 -- Is is alive?  (don't reap the dead!)
+	 -- Has it expired?
+	 if v.isalive == true and now - v.lastProcessed > v.cfg.ttl then
+	    v:expire()
+	 end
       end
    end
 end

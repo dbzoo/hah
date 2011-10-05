@@ -87,7 +87,8 @@ function serialHandler(frame, config)
       pretty.dump(frame["serial.received"])
    end
    local msg = frame["serial.received"].data
-   local id, msg = msg:match("OK (%d+) (.+)")
+   -- Sometimes the O gets dropped. So make this optional.
+   local id, msg = msg:match("O?K (%d+) (.+)")
    local idx = tonumber(id)
    if idx and config[idx] then
       config[idx]:process(msg)
@@ -174,8 +175,7 @@ function Nodule:build(id, port)
    end
 end
 
--- Mark the endpoint as non responsive and make its INPUT states
--- unknown.
+-- Mark the endpoint as non responsive and make its INPUT states unknown.
 function Nodule:expire()
    if DEBUG then
       print('expire '.. tostring(self))
@@ -183,6 +183,9 @@ function Nodule:expire()
    self.isalive = false
    for name in pairs(self.cfg.endpoints) do
       local e = self[name]
+      -- Catch the nil (e) where by the user has configured
+      -- an invalid endpoint as part of the node defn
+      assert(e, string.format("%s: has no '%s' configurable endpoint", tostring(self), name))
       if e.direction == bsc.INPUT then
 	 e.state = bsc.STATE_UNKNOWN
 	 if e.type ~= bsc.BINARY then

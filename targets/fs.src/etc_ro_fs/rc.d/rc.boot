@@ -26,9 +26,10 @@ POPULATE_JFFS2()
     echo "Restore - Populate JFFS2"
     # PUT FACTORY PARAMETERS IN JFFS2
     mkdir /mnt/jffs2/jffs2_3/etc
-    for i in inetd.conf issue.net fstab build group hosts passwd resolv.conf xap-livebox.ini plugboard; do
+    for i in inetd.conf issue.net fstab build group hosts passwd resolv.conf xap-livebox.ini; do
       /bin/cp -a /etc_ro_fs/$i /mnt/jffs2/jffs2_3/etc
     done
+    mkdir /mnt/jffs2/jffs2_3/etc/plugboard
     mkdir /mnt/jffs2/jffs2_3/tmp
     mkdir /mnt/jffs2/jffs2_3/home
     mkdir /mnt/jffs2/jffs2_3/root

@@ -220,12 +220,14 @@ end
 function Nodule:add(e)
    local epvalue = self.cfg.endpoints[e.key]
 
+   -- not a present endpoint configuration.
+   if epvalue == nil then
+      return
+   end
+
    -- User configured to not want it.
    if epvalue == 0 then
-      epvalue = nil
-   end
-   -- Add epvalue if its configured
-   if epvalue == nil then 
+      self.cfg.endpoints[e.key] = nil
       return
    end
 

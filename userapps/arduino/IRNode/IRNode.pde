@@ -20,8 +20,8 @@ static byte myNodeID;       // node ID used for this unit
 
 // This defines the structure of the packets which get sent out by wireless:
 struct {
-  int type; // NEC, SONY, RC5, UNKNOWN
-  int bits; // Number of bits in decoded value
+  byte type; // NEC, SONY, RC5, UNKNOWN
+  byte bits; // Number of bits in decoded value
   unsigned long value;  // decoded value
 } 
 payload;
@@ -81,5 +81,4 @@ void loop () {
     irrecv.resume(); // Receive the next value
   }
 }
-
 

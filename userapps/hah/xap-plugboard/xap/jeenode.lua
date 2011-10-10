@@ -89,7 +89,9 @@ function serialHandler(frame, config)
    local msg = frame["serial.received"].data
    -- Sometimes the O gets dropped. So make this optional.
    local id, msg = msg:match("O?K (%d+) (.+)")
-   local idx = tonumber(id)
+   -- Any node that reports with a ACK gets 32 added to the ID
+   -- see http://talk.jeelabs.net/topic/811#post-4734
+   local idx = tonumber(id) % 32
    if idx and config[idx] then
       config[idx]:process(msg)
    end

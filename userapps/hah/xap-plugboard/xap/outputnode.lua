@@ -23,7 +23,7 @@ function OutputNode:build(...)
    Nodule.build(self, ...)
 
    for i=1,4 do
-      self:add {key="p"..i, direction=bsc.OUTPUT, type=bsc.BINARY, cmdCB=self.portCmd}
+      self:add {key="p"..i, direction=bsc.OUTPUT, type=bsc.BINARY, cmdCB=function(e) self:portCmd(e) end}
    end
 
 -- In the Sketch the node constantly checks for an inbound RF message

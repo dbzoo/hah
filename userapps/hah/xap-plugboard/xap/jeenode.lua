@@ -91,9 +91,9 @@ function serialHandler(frame, config)
    local id, msg = msg:match("O?K (%d+) (.+)")
    -- Any node that reports with a ACK gets 32 added to the ID
    -- see http://talk.jeelabs.net/topic/811#post-4734
-   local idx = tonumber(id) % 32
-   if idx and config[idx] then
-      config[idx]:process(msg)
+   local idx = tonumber(id)
+   if idx and config[idx%32] then
+      config[idx%32]:process(msg)
    end
 end
 

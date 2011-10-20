@@ -36,7 +36,7 @@
 #include <avr/sleep.h>
 #include <util/atomic.h>
 
-#define SERIAL  1   // set to 1 to also report readings on the serial port
+#define SERIAL  0   // set to 1 to also report readings on the serial port
 #define DEBUG   0   // set to 1 to display each loop() run and PIR trigger
 
 // SHT11 & ONE_WIRE are mutually exclusive.

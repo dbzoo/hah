@@ -47,6 +47,7 @@
 //#define SHT11_PORT  1   // defined if SHT11 is connected to a port
 #define LDR_PORT    4   // defined if LDR is connected to a port's AIO pin
 #define PIR_PORT    4   // defined if PIR is connected to a port's DIO pin
+                        // If you change this pin adjust the ISR() vector
 
 #define MEASURE_PERIOD  300 // how often to measure, in tenths of seconds
 #define RETRY_PERIOD    10  // how soon to retry if ACK didn't come in
@@ -150,7 +151,7 @@ DeviceAddress deviceAddress;
     PIR pir (PIR_PORT);
 
     // the PIR signal comes in via a pin-change interrupt
-    ISR(PCINT2_vect) { pir.poll(); }
+    ISR(PCINT23_vect) { pir.poll(); }
 #endif
 
 // has to be defined because we're using the watchdog for low-power waiting

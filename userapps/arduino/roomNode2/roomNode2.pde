@@ -163,7 +163,7 @@ public:
 PIR pir (PIR_PORT);
 
 // the PIR signal comes in via a pin-change interrupt
-ISR(PCINT2_vect) { 
+ISR(PCINT2_vect) {
   pir.poll(); 
 }
 #endif
@@ -237,11 +237,12 @@ static void doMeasure() {
 
 // periodic report, i.e. send out a packet and optionally report on serial port
 static void doReport() { 
-  // the RF12 runs on runs INT0 this interrupt is on PORTD the same as
-  // the PIR... so when the RF12 is being used the PORT gets a PIN CHANGE event.
+  // the RF12 runs on INT0 this interrupt is on PCINT18 the same as port PD as
+  // the PIR (PCINT23) so when the RF12 is being used the entire PORT gets a PIN
+  // CHANGE event PCIFR.
   // We need to capture this and mask it off so the PIR does not fire again.
   
-  PCICR &= ~(1 << PCIE2);      
+  PCICR &= ~(1 << PCIE2);  // disable the PD pin-change interrupt.     
 
   rf12_sleep(RF12_WAKEUP);
   while (!rf12_canSend())
@@ -252,7 +253,7 @@ static void doReport() {
   // When a logic change on any PCINT23:16 pin triggers an interrupt request, 
   // PCIF2 becomes set(one). If the I-bit in SREG and the PCIE2 bit in PCICR 
   // are set (one), the MCU will jump to thecorresponding Interrupt Vector. 
-  // The flag is cleared when the interrupt routine is executed. Alter-natively,
+  // The flag is cleared when the interrupt routine is executed. Alternatively,
   // the flag can be cleared by writing a logical one to it.
   PCIFR = (1<<PCIF2);   //clear any pending interupt
 

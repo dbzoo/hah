@@ -34,6 +34,9 @@
 #include <PortsSHT11.h>
 #include <RF12.h>
 #include <avr/sleep.h>
+#include <avr/interrupt.h>
+#include <avr/io.h>
+
 #include <util/atomic.h>
 
 #define SERIAL  0   // set to 1 to also report readings on the serial port
@@ -151,7 +154,7 @@ DeviceAddress deviceAddress;
     PIR pir (PIR_PORT);
 
     // the PIR signal comes in via a pin-change interrupt
-    ISR(PCINT23_vect) { pir.poll(); }
+    ISR(PCINT2_vect) { pir.poll(); }
 #endif
 
 // has to be defined because we're using the watchdog for low-power waiting
@@ -221,11 +224,16 @@ static void doMeasure() {
 
 // periodic report, i.e. send out a packet and optionally report on serial port
 static void doReport() {
+    PCICR &= ~(1 << PCIE2);      
+    
     rf12_sleep(RF12_WAKEUP);
     while (!rf12_canSend())
         rf12_recvDone();
     rf12_sendStart(0, &payload, sizeof payload, RADIO_SYNC_MODE);
     rf12_sleep(RF12_SLEEP);
+    
+    PCIFR &= ~(1<<PCIF2); //clear any pending PIR interrupt 
+    PCICR |= (1<<PCIE2);   // and re-enable the PIR interrupt
 
     #if SERIAL
         Serial.print("ROOM ");
@@ -282,7 +290,7 @@ static void doTrigger() {
 void setup () {
     #if SERIAL || DEBUG
         Serial.begin(57600);
-        Serial.print("\n[roomNode.3]");
+        Serial.print("\n[roomNode.4]");
         myNodeID = rf12_config();
     #else
         myNodeID = rf12_config(0); // don't report info on the serial port

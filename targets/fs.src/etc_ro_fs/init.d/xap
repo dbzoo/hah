@@ -17,7 +17,7 @@ stop_web() {
 }
 
 start_hub() {
-    /usr/bin/xap-hub -i $MYDEV &
+    /usr/bin/xap-hub -i $MYDEV > /var/log/xap-hub.log 2>&1 &
     sleep 1
 }
 
@@ -26,7 +26,7 @@ stop_hub() {
 }
 
 start_livebox() {
-    /usr/bin/xap-livebox -s /dev/ttyS0 -i $MYDEV &
+    /usr/bin/xap-livebox -s /dev/ttyS0 -i $MYDEV >/var/log/xap-livebox.log 2>&1 &
 }
 stop_livebox() {
     killall xap-livebox
@@ -34,7 +34,7 @@ stop_livebox() {
 
 start_serial() {
     if [ `iniget $INI serial enable 0` -eq 1 ] ;  then 
-	/usr/bin/xap-serial -i $MYDEV &
+	/usr/bin/xap-serial -i $MYDEV >/var/log/xap-serial.log 2>&1 &
     fi
 }
 stop_serial() {
@@ -43,7 +43,7 @@ stop_serial() {
 
 start_twitter() {
     if [ `iniget $INI twitter enable 0` -eq 1 ] ;  then 
-	/usr/bin/xap-twitter -i $MYDEV &
+	/usr/bin/xap-twitter -i $MYDEV >/var/log/xap-twitter.log 2>&1 &
     fi
 }
 stop_twitter() {
@@ -53,7 +53,7 @@ stop_twitter() {
 start_sms() {
     if [ `iniget $INI sms enable 0` -eq 1 ] ;  then 
 	USBSERIAL=`iniget $INI sms usbserial /dev/ttyUSB0`
-	/usr/bin/xap-sms -s $USBSERIAL -i $MYDEV &
+	/usr/bin/xap-sms -s $USBSERIAL -i $MYDEV >/var/log/xap-sms.log 2>&1 &
     fi
 }
 stop_sms() {
@@ -62,7 +62,7 @@ stop_sms() {
 
 start_pachube() {
     if [ `iniget $INI pachube enable 0` -eq 1 ] ;  then 
-	/usr/bin/xap-pachube -i $MYDEV &
+	/usr/bin/xap-pachube -i $MYDEV >/var/log/xap-pachube.log 2>&1 &
     fi
 }
 stop_pachube() {
@@ -72,7 +72,7 @@ stop_pachube() {
 start_currentcost() {
     if [ `iniget $INI currentcost enable 0` -eq 1 ] ;  then 
 	USBSERIAL=`iniget $INI currentcost usbserial /dev/ttyUSB0`
-	/usr/bin/xap-currentcost -s $USBSERIAL -i $MYDEV &
+	/usr/bin/xap-currentcost -s $USBSERIAL -i $MYDEV >/var/log/xap-currentcost.log 2>&1 &
     fi
 }
 stop_currentcost() {
@@ -81,7 +81,7 @@ stop_currentcost() {
 
 start_googlecal() {
     if [ `iniget $INI googlecal enable 0` -eq 1 ] ;  then 
-	/usr/bin/xap-googlecal -i $MYDEV &
+	/usr/bin/xap-googlecal -i $MYDEV >/var/log/xap-googlecal.log 2>&1 &
     fi
 }
 stop_googlecal() {
@@ -102,7 +102,7 @@ stop_plugboard() {
 
 start_iserver() {
     if [ `iniget $INI iserver enable 0` -eq 1 ] ;  then 
-	/usr/bin/iServer -i $MYDEV &
+	/usr/bin/iServer -i $MYDEV >/var/log/iserver.log 2>&1 &
     fi
 }
 stop_iserver() {

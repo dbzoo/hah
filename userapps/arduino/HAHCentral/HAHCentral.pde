@@ -7,7 +7,7 @@
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 
-#define LED_PIN     9   // activity LED, comment out to disable
+//#define LED_PIN     9   // activity LED, comment out to disable
 
 static unsigned long now () {
     // FIXME 49-day overflow
@@ -168,9 +168,7 @@ void setup() {
         config.nodeId = 0x41; // node A1 @ 433 MHz
         config.group = 0xD4;
         saveConfig();
-    }
-    
-    showHelp();
+    }    
 }
 
 void loop() {

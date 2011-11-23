@@ -19,6 +19,7 @@
 #include <libxml/parser.h>
 #include "xap.h"
 #include "bsc.h"
+#include "utlist.h"
 
 // Seconds between xapBSC.info messages.
 #define INFO_INTERVAL 120
@@ -38,6 +39,7 @@ unsigned char state = ST_NONE;
 
 bscEndpoint *endpointList = NULL;
 bscEndpoint *currentTag = NULL;
+bscEndpoint *ccTotal = NULL; // Endpoint to sum the Wattage over all Channels
 
 static int infoEventChannel(bscEndpoint *, char *);
 static int infoEventTemp(bscEndpoint *, char *);
@@ -260,6 +262,44 @@ static void cdataBlockCB(void *ctx, const xmlChar *ch, int len)
                                 bscSetState(currentTag, BSC_STATE_ON);
                         }
                         bscSendEvent(currentTag);
+
+			// Was this a new channel value?
+			if(strcmp("ch", currentTag->name) == 0) {
+
+			  // Sum all channels for ch.total
+			  int total = 0;
+			  int channelCount = 0;
+			  bscEndpoint *cce;
+			  LL_FOREACH(endpointList, cce) {
+			    if(strcmp("ch", cce->name) == 0 && strcmp("total", cce->subaddr)) {
+			      debug("ch.total adding %s.%s value %s", cce->name, cce->subaddr, cce->text);
+			      total += atoi(cce->text);
+			      channelCount ++;
+			    }
+			  }
+
+			  // Defer construction of this endpoint until we no there are more then 3 phases.
+			  if(channelCount > 1) {
+
+			    if(ccTotal == NULL) {
+			      // ch.total = ch.1 + ch.2 + ch.3
+			      ccTotal = bscAddEndpoint(&endpointList, "ch", "total", BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
+			      bscAddEndpointFilter(ccTotal, INFO_INTERVAL);
+			      bscSetState(ccTotal, BSC_STATE_ON);
+			    }
+
+			    // roll previous total into userData for hystersis calculations.
+			    if(ccTotal->userData)
+			      free(ccTotal->userData);
+			    ccTotal->userData = (void *)ccTotal->text;
+			    
+			    char totalText[10];
+			    snprintf(totalText, sizeof(totalText),"%d", total);
+			    ccTotal->text = strdup(totalText);
+			    
+			    bscSendEvent(ccTotal);
+			  }
+			}
                 }
                 break;
         }
@@ -435,11 +475,11 @@ int main(int argc, char *argv[])
                 }
         }
 
-  if(strncmp(serialPort,"/dev/",5) == 0) {
-        xapAddSocketListener(setupSerialPort(), &serialInputHandler, endpointList);
-        xapProcess();
-  } else {
-    serialInputHandler(setupSerialPort(), NULL);
-  }
-  return 0;
+	if(strncmp(serialPort,"/dev/",5) == 0) {
+	  xapAddSocketListener(setupSerialPort(), &serialInputHandler, endpointList);
+	  xapProcess();
+	} else {
+	  serialInputHandler(setupSerialPort(), NULL);
+	}
+	return 0;
 }

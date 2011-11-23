@@ -60,6 +60,8 @@ ccTag[] = {
                   {"ch3", &infoEventChannel, "ch", "3", 3},
                   {"tmpr", &infoEventTemp, "temp", NULL, 4},
                   {"tmprF", &infoEventTemp, "tempF", NULL, 4},
+		  // ch.total is UID 5
+		  // sensors start at 10 0x0A
                   {NULL, NULL, NULL, NULL}
           };
 
@@ -283,6 +285,7 @@ static void cdataBlockCB(void *ctx, const xmlChar *ch, int len)
 
 			    if(ccTotal == NULL) {
 			      // ch.total = ch.1 + ch.2 + ch.3
+			      bscSetEndpointUID(5);
 			      ccTotal = bscAddEndpoint(&endpointList, "ch", "total", BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
 			      bscAddEndpointFilter(ccTotal, INFO_INTERVAL);
 			      bscSetState(ccTotal, BSC_STATE_ON);

@@ -107,6 +107,11 @@ function Endpoint:setText(text)
    self.text = text
 end
 
+function Endpoint:setDisplayText(text)
+   self.state = STATE_ON
+   self.displaytext = text
+end
+
 stateMap={["on"]=STATE_ON,["off"]=STATE_OFF,
 	  ["true"]=STATE_ON,["false"]=STATE_OFF,
 	  ["yes"]=STATE_ON,["no"]=STATE_OFF,

@@ -57,7 +57,7 @@ typedef struct _client
 Client;
 
 int yylex();
-void *yy_scan_bytes();
+void *yy_scan_buffer();
 YYSTYPE yylval;
 Client *clientList = NULL;
 
@@ -333,7 +333,10 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
         int token;
         char *filterType;
 
-        void *b = yy_scan_bytes(msg, len);
+	// use in place buffer scanning which is slightly faster then yy_scan_bytes()
+	// as the buffer is not copied internally and then subsequently freed by the lexer.
+	// Requires last to bytes of (msg) to be 0, (len) includes these bytes.
+        void *b = yy_scan_buffer(msg, len);
         while( c->connected && (token = yylex()) > 0) {
                 switch(c->state) {
                 case ST_WAIT_FOR_MESSAGE:
@@ -504,12 +507,16 @@ void delClient(Client *c)
 void clientListener(int fd, void *data)
 {
         Client *c = (Client *)data;
-        static unsigned char buf[XAP_DATA_LEN+1];
+        static unsigned char buf[XAP_DATA_LEN+2];
         int bytes;
 
         // Drain the socket of data.
         while( (bytes = recv(fd, buf, XAP_DATA_LEN, MSG_DONTWAIT)) > 0) {
-                parseiServerMsg(c, buf, bytes);
+	        // yy_scan_buffer expects the last two bytes to be NULL for in-situ scanning.
+	        // however they are not scanned.
+	        buf[bytes++] = 0;
+	        buf[bytes++] = 0;
+	        parseiServerMsg(c, buf, bytes);
         }
 
         if(bytes == 0 || c->connected == 0) { // Disconnected client

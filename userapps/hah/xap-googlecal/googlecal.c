@@ -97,7 +97,6 @@ void dump_events()
 {
         gcal_event_t event;
         int i;
-	if(getLoglevel() != LOG_DEBUG) return;
 	
         printf("Dump event cache - found %d events\n", events.length);
         for(i=0; i<events.length; i++) {
@@ -207,7 +206,9 @@ void googlePeriodEventCheck(int interval, void *userData)
         if(events.entries)
                 return;
 
-         dump_events();
+	if(getLoglevel() == LOG_DEBUG) {
+	  dump_events();
+	}
 }
 
 /** Search the array of pending calendar events and if its active action it.
@@ -226,8 +227,10 @@ void googleEventCheck(int interval, void *userData)
                 if(!event)
                         break;
 
-                debug("Trigger event");
-                dump_event(event);
+		if(getLoglevel() == LOG_DEBUG) {
+		  debug("Trigger event");
+		  dump_event(event);
+		}
 
                 // Convert the event ISO8601 timestamp - we never expect these to fail...
                 char *date = gcal_event_get_start(event);

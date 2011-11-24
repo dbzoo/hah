@@ -342,7 +342,7 @@ void parseXml(char *data, int size)
 void serialInputHandler(int fd, void *data)
 {
         char serial_buff[128];
-        char serial_xml[4096];
+        static char serial_xml[4096];
         static int serial_cursor = 0;
         int i;
         int len;

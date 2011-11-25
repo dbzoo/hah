@@ -342,13 +342,18 @@ void parseXml(char *data, int size)
 void serialInputHandler(int fd, void *data)
 {
         char serial_buff[128];
-        static char serial_xml[4096];
+        static char serial_xml[4096]= {0};
         static int serial_cursor = 0;
         int i;
         int len;
 
-        debug("serialInputHandler(fd:%d)", fd);
-        while((len = read(fd, serial_buff, sizeof(serial_buff))) > 0) {
+        debug("(fd:%d)(len:%d)(xml:%s)", fd, serial_cursor, serial_xml);
+        while((len = read(fd, serial_buff, sizeof(serial_buff))) > 0) {		
+		if(getLoglevel() == LOG_DEBUG) {
+			for(i=0;i<len;i++)
+				putchar(serial_buff[i]);
+			putchar('\n');
+		}
                 for(i=0; i < len; i++) {
                         if(serial_buff[i] == '\r' || serial_buff[i] == '\n')
                                 continue;
@@ -360,11 +365,12 @@ void serialInputHandler(int fd, void *data)
                         serial_xml[serial_cursor] = 0;
 
                         if(strstr(serial_xml,"</msg>")) {
-                                int xmlsize = serial_cursor;
-                                serial_cursor = 0;
+				debug("EOM");
                                 if(strncmp(serial_xml,"<msg>",5) == 0) {
-                                        parseXml(serial_xml, xmlsize);
+                                        parseXml(serial_xml, serial_cursor);
                                 }
+				serial_cursor = 0;
+				serial_xml[0] = 0;			
                         }
                 }
         }

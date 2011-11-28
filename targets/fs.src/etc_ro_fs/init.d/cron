@@ -1,0 +1,13 @@
+#! /bin/sh
+
+case "$1" in
+	start)
+		crond 
+		;;
+	stop)
+		killall crond
+		;;
+	*)	
+	error "Usage: $0 start|stop"
+	;;
+esac

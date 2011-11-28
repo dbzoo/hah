@@ -13,7 +13,9 @@ echo "Mounting filesystems"
 /bin/mount -t tmpfs -o size=256k tmpfs /var
 /bin/mount -t devpts devpts /dev/pts
 
-mkdir -p /var/log /var/run /var/lib /var/tmp
+for i in log run tmp spool/cron/crontabs; do
+  mkdir -p /var/$i
+done
 
 # dump the kernel ring buffer so we can examine it later
 dmesg > /var/log/messages

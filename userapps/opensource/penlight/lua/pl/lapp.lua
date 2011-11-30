@@ -90,7 +90,7 @@ local function is_filetype(type)
     return type == 'file-in' or type == 'file-out'
 end
 
-local types
+local types={}
 
 local function convert_parameter(ps,val)
     if ps.converter then
@@ -137,7 +137,6 @@ function process_options_string(str)
 	parms = {}
 	aliases = {}
 	parmlist = {}
-	types = {}
 
     local function check_varargs(s)
         local res,cnt = s:gsub('%.%.%.%s*','')

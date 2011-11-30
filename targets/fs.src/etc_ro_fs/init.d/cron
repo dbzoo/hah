@@ -8,6 +8,6 @@ case "$1" in
 		killall crond
 		;;
 	*)	
-	error "Usage: $0 start|stop"
+		echo "Usage: $0 start|stop"
 	;;
 esac

@@ -83,8 +83,7 @@ static void submit_form() {
 	 }
 
 	 if(restart) {
-	     char *argv[] = {"/etc/init.d/xap","restart","iserver", NULL};
-	     subprocess(argv);
+	   system("/etc/init.d/xap restart iserver");
 	 }
 }
 /**********************************************************************/

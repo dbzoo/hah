@@ -30,8 +30,7 @@ static void submit_form() {
 	 }
 
 	 if(sms_restart) {
-	     char *argv[] = {"/etc/init.d/xap","restart", "sms", NULL};
-	     subprocess(argv);
+	   system("/etc/init.d/xap restart sms");
 	 }
 
 	 const char *serial_enable = request_get_arg(request,"serial_enable");
@@ -39,8 +38,7 @@ static void submit_form() {
 		  if((*serial_enable == '1' && ini.serial_enable[0] == '0') ||
 			 (*serial_enable == '0' && ini.serial_enable[0] == '1')) {
 			   ini_puts("serial","enable",serial_enable,con.inifile);
-			   char *argv[] = {"/etc/init.d/xap","restart", "serial", NULL};
-			   subprocess(argv);
+			   system("/etc/init.d/xap restart serial");
 		  }
 	 }
 
@@ -49,8 +47,7 @@ static void submit_form() {
 		  if((*plugboard_enable == '1' && ini.plugboard_enable[0] == '0') ||
 			 (*plugboard_enable == '0' && ini.plugboard_enable[0] == '1')) {
 			   ini_puts("plugboard","enable",plugboard_enable,con.inifile);
-			   char *argv[] = {"/etc/init.d/xap","restart", "plugboard", NULL};
-			   subprocess(argv);
+			   system("/etc/init.d/xap restart plugboard");
 		  }
 	 }
 

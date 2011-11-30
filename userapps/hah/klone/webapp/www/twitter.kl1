@@ -62,8 +62,7 @@ static int submit_form() {
 }
 
 static void restart_twitter() {
-	     char *argv[] = {"/etc/init.d/xap","restart","twitter", NULL};
-	     subprocess(argv);
+  system("/etc/init.d/xap restart twitter");
 }
 
 /**********************************************************************/

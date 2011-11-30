@@ -17,37 +17,6 @@ void upperstr(char *s) {
     }
 }
 
-int subprocess(char **arg) {
-    int fd, maxfd;
-    signal(SIGCHLD, SIG_IGN); // Avoid creating zombies
-    switch(fork()) {
-    case 0: // child
-	break;
-    case -1: //fork failed
-	return -1;
-    default: // parent
-	return 0;
-    }
-
-    // now running child
-    if(setsid() < 0) return -1;
-    switch(fork()) {
-    case 0: break;
-    case -1: return -1;
-    default:
-	_exit(0);
-    }
-    chdir("/");
-    maxfd = sysconf(_SC_OPEN_MAX);
-    while(fd < maxfd)
-	close(fd++);
-    open("/dev/null",O_RDWR);
-    dup(0);
-    dup(0);
-
-    execv(arg[0], arg);
-}
-
 // Carve up a string delimited by a comma
 // ex:   hello,world,foobar
 //xo arg[0] = hello

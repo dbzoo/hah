@@ -1,0 +1,47 @@
+#!/usr/bin/lua
+-- $Id$
+-- Allow xAPBSC.cmd messages to be sent from the command line
+-- also useful within a crontab 
+
+lapp = require("pl.lapp")
+
+lapp.add_type("onoff","string",
+	function(x)
+		if x ~= "on" and x ~= "off" then
+			lapp.error("State can only be on or off")
+		end
+	end
+	)
+
+local args = lapp
+[[
+  Various flags and option types
+    -t (string)   xAPBSC Target
+    -s (onoff)    xAPBSC State
+    -x            xAPBSC Text
+    -l            xAPBSC Level
+]]
+require("xap")
+
+local cmd = string.format([[
+xap-header
+{
+class=xAPBSC.cmd
+target=%s
+}
+output.state.1
+{
+id=*
+state=%s
+]],args.t, args.s)
+
+if args.x then
+  cmd = cmd .. "text="..args.x.."\n"
+end
+if args.l then
+  cmd = cmd .. "level="..args.l.."\n"
+end
+cmd = cmd .. "}"
+
+xap.init("dbzoo.lua.bscmsg","FF00DF00")
+xap.sendShort(cmd)

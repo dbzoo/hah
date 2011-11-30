@@ -109,8 +109,7 @@ static void submit_form() {
 	 }
 
 	 if(restart) {
-		 char *argv[] = {"/etc/init.d/xap","restart","pachube", NULL};
-		 subprocess(argv);
+	   system("/etc/init.d/xap restart pachube");
 	 }
 }
 /**********************************************************************/
@@ -130,8 +129,7 @@ static void submit_form() {
 	   ini_putl("pachube","count", ini.count, con.inifile);
   }
   if(action && strcmp(action,"Restart") == 0) {
-      char *argv[] = {"/etc/init.d/xap","restart", "pachube", NULL};
-      subprocess(argv);
+    system("/etc/init.d/xap restart pachube");
   }
 
   const char *del = request_get_arg(request,"del");

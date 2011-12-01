@@ -211,7 +211,7 @@ xap-serial: xaplib2
 	install -m 755 $(HAH_DIR)/xap-serial/xap-serial $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-serial
 
-xap-pachube: xaplib2 libcurl
+xap-pachube: xaplib2
 	$(MAKE) -C $(HAH_DIR)/xap-pachube
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/xap-pachube/xap-pachube $(INSTALL_DIR)/usr/bin

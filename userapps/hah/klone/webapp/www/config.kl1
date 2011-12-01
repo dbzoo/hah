@@ -14,6 +14,13 @@ static struct {
          int timeout_1wire;
 } ini;
 
+static void readIni() {
+	 ini.devices1wire = ini_getl("1wire","devices", 0, con.inifile);
+	 ini.devicesrf = ini_getl("rf","devices", 0, con.inifile);
+	 ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), con.inifile);
+	 ini.timeout_1wire = ini_getl("1wire","timeout", 0, con.inifile);
+}
+
 static void submit_form() {
 	submit_statickey(request,"1wire","devices");
 	submit_statickey(request,"1wire","timeout");
@@ -32,12 +39,6 @@ static void submit_form() {
 	}
 }
 
-static void readIni() {
-	 ini.devices1wire = ini_getl("1wire","devices", 0, con.inifile);
-	 ini.devicesrf = ini_getl("rf","devices", 0, con.inifile);
-	 ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), con.inifile);
-	 ini.timeout_1wire = ini_getl("1wire","timeout", 0, con.inifile);
-}
 %>
 <%
 REQUIRE_AUTH(SCRIPT_NAME);

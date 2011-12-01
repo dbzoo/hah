@@ -192,6 +192,7 @@ The iServer is a TCP/xAP gateway used by the xAPFlash/Joggler HMI application
 <fieldset>
   <legend>Status</legend>
 <%
+{
 char buffer[512];
 struct sockaddr_in serv;
 int fd;
@@ -214,6 +215,7 @@ if((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 			   io_write(out, buffer, i);
 	   }
 	   close(fd);
+}
 }
 %>
 </fieldset>

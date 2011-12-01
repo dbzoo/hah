@@ -17,12 +17,18 @@ for i in log run tmp spool/cron; do
   mkdir -p /var/$i
 done
 ln -s /etc/crontabs /var/spool/cron/crontabs
-mkdir -p /etc/crontabs
 
 # dump the kernel ring buffer so we can examine it later
 dmesg > /var/log/messages
 
 /etc_ro_fs/rc.d/rc.boot
 # From this point forward we don't need to consult etc_ro_fs as /etc is setup.
+
+# Has cron been setup yet?
+if [ ! -d /etc/crontabs ]; then
+  ln -s /etc_ro_fs/init.d/cron /etc/init.d/cron
+  ln -s /etc_ro_fs/rc1.d/S41crond /etc/rc1.d/S41crond
+  mkdir -p /etc/crontabs
+fi
 
 /etc/rc.d/rc.runlevel 1

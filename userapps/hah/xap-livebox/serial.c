@@ -259,6 +259,12 @@ static void processSerialCommand(char *a_cmd)
 
 	info("%s", a_cmd);
 
+	// Somebody left the AVR in debug mode after hacking around in it!
+	// The '>' character is the AVR command line prompt.
+	if(*a_cmd == '>') {
+	  die("AVR detected to be in DEBUG mode");
+	}
+
 	// Tokenize AVR command into arguments
 	while(*a_cmd) {
 		argv[argc++] = a_cmd;

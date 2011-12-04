@@ -9,6 +9,7 @@ static struct {
 	 char ftp_enable[2];
 	 char ssh_port[6];
 	 char telnet_port[6];
+	 char cron_enable[2];
 } ini;
 
 static void readIni() {
@@ -17,6 +18,7 @@ static void readIni() {
 	 ini_gets("network","ftp_enable","0",ini.ftp_enable,sizeof(ini.ftp_enable),con.inifile);
 	 ini_gets("network","ssh_port","22",ini.ssh_port,sizeof(ini.ssh_port),con.inifile);
 	 ini_gets("network","telnet_port","23",ini.telnet_port,sizeof(ini.telnet_port),con.inifile);
+	 ini_gets("cron","enable","0",ini.cron_enable,sizeof(ini.cron_enable),con.inifile);
 }
 
 static void submit_form() {
@@ -26,8 +28,8 @@ static void submit_form() {
    const char *ftp_enabled = request_get_arg(request,"remote_mgt_ftp");
    const char *ssh_port = request_get_arg(request,"ssh_port");
    const char *telnet_port = request_get_arg(request,"telnet_port");
+   const char *cron_enabled = request_get_arg(request,"cron");
 
-   signal(SIGCHLD, SIG_IGN); // Avoid creating zombies.
    if(ssh_enabled) {
 		restart = 0;
 		if(ssh_port && strcmp(ssh_port,ini.ssh_port)) {
@@ -40,12 +42,7 @@ static void submit_form() {
 			 restart = 1;
 		}
 		if (restart) {
-		   // Don't lock up the HTTPD child if the call fails.
-		   if(fork() == 0) {
-		         char *argv[] = {"/etc/init.d/ssh","restart", NULL};
-			 execv("/etc/init.d/ssh", argv);
-			 exit(0);
-		   }
+		  system("/etc/init.d/ssh restart");
 		}
    }
 
@@ -61,11 +58,7 @@ static void submit_form() {
 			 restart = 1;
 		}
 		if (restart) {
-		   if(fork() == 0) {
-		         char *argv[] = {"/etc/init.d/telnet","restart", NULL};
-			 execv("/etc/init.d/telnet", argv);
-			 exit(0);
-		   }
+		  system("/etc/init.d/telnet restart");
 		}
    }
 
@@ -77,11 +70,18 @@ static void submit_form() {
 			 restart = 1;
 		}
 		if (restart) {
-		   if(fork() == 0) {
-		         char *argv[] = {"/etc/init.d/ftp","restart", NULL};
-			 execv("/etc/init.d/ftp", argv);
-			 exit(0);
-		   }
+		  system("/etc/init.d/ftp restart");
+		}
+   }
+   if(cron_enabled) {
+		restart = 0;
+		if((*cron_enabled == '1' && ini.cron_enable[0] == '0') ||
+		   (*cron_enabled == '0' && ini.cron_enable[0] == '1')) {
+			 ini_puts("cron","enable",cron_enabled,con.inifile);			 
+			 restart = 1;
+		}
+		if (restart) {
+		  system("/etc/init.d/cron restart");
 		}
    }
 
@@ -165,7 +165,15 @@ addEvent(window,"load",function() {
 	<input class="spaceradio" type="radio" value="1" name="remote_mgt_ftp" <% if(ini.ftp_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
     <input class="spaceradio" type="radio" value="0" name="remote_mgt_ftp" <% if(ini.ftp_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
   </div>
+</fieldset>
 
+<fieldset>
+  <legend>Scheduler</legend>
+  <div class="setting">
+    <div class="label">Cron</div>
+	<input class="spaceradio" type="radio" value="1" name="cron" <% if(ini.cron_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+    <input class="spaceradio" type="radio" value="0" name="cron" <% if(ini.cron_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
 </fieldset>
 </div>
 <br/>

@@ -1,13 +1,30 @@
 #! /bin/sh
 
+. /etc/ini.conf
+
 case "$1" in
-	start)
-		crond 
-		;;
-	stop)
-		killall crond
-		;;
-	*)	
-		echo "Usage: $0 start|stop"
+    start)
+	if [ `iniget $INI cron enable 0` -eq 1 ]; then
+	    if ! pidof crond >/dev/null; then
+	    	crond
+	    fi
+	fi
+	;;
+    stop)
+	killall crond
+	;;
+    restart)
+	$0 stop
+	$0 start
+	;;
+    status)
+        if pidof crond >/dev/null; then
+	    echo "running"
+	else
+	    echo "stopped"
+        fi
+        ;;
+    *)	
+	echo "Usage: $0 start|stop|restart|status"
 	;;
 esac

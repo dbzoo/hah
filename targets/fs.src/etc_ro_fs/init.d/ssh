@@ -6,7 +6,7 @@ case "$1" in
     start)
 	
 	if [ `iniget $INI network ssh_enable 1` -eq 1 ]; then
-		if ! pidof dropbear | sed "s/$$\$//" | grep -q [0-9] ; then
+		if ! pidof dropbear >/dev/null ; then
 		        port=`iniget $INI network ssh_port 22`
 	    		dropbear -p $port
 		fi
@@ -20,10 +20,13 @@ case "$1" in
 	$0 start
 	;;
     status)
-        if pidof dropbear | sed "s/$$\$//" | grep -q [0-9] ; then
+        if pidof dropbear >/dev/null ; then
 		echo "running"
 	else
 		echo "stopped"
         fi
         ;;
+    *)	
+	echo "Usage: $0 start|stop|restart|status"
+	;;
 esac

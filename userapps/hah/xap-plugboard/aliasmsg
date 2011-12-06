@@ -1,5 +1,5 @@
 #!/usr/bin/lua
--- $Id: bscmsg 307 2011-11-30 19:54:33Z dbzoo.com $
+-- $Id$
 lapp = require("pl.lapp")
 local args = lapp
 [[

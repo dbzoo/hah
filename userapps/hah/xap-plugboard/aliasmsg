@@ -1,0 +1,22 @@
+#!/usr/bin/lua
+-- $Id: bscmsg 307 2011-11-30 19:54:33Z dbzoo.com $
+lapp = require("pl.lapp")
+local args = lapp
+[[
+  Various flags and option types
+      <alias> (string)       Alias command
+]]
+require("xap")
+
+local cmd = string.format([[
+xap-header
+{
+class=alias
+}
+command
+{
+text=%s
+}]],args.alias)
+
+xap.init("dbzoo.lua.aliasmsg","FF00DF00")
+xap.sendShort(cmd)

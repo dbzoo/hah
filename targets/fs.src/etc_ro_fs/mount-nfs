@@ -2,4 +2,6 @@
 insmod sunrpc
 insmod lockd
 insmod nfs
-mount -t nfs -o nolock 192.168.1.9:/home/brett /opt
+# Make sure NFS over UDP is enabled on your server.
+# rpcinfo -p 
+mount -t nfs -o nolock,soft,timeo=5,retry=5 192.168.1.9:/home/brett /opt

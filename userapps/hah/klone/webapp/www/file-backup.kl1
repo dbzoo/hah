@@ -1,0 +1,33 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "login.h"
+#include <fcntl.h>
+#include <u/libu.h>
+#include <klone/klone.h>
+#include <klone/io.h>
+#include <klone/utils.h>
+#include <stdio.h>
+%><% // Don't separate these chars as they will be pushed into the output stream!
+      REQUIRE_AUTH(SCRIPT_NAME);
+      response_disable_caching(response);
+
+      response_set_field(response, "Content-Description","File Transfer");
+      response_set_field(response, "Content-Disposition","attachment; filename=hah-backup.tar.gz");
+      response_set_field(response, "Content-Type","application/octet-stream");
+      response_set_field(response, "Content-Transfer-Encoding","binary");
+
+      // TODO: Perhaps we could use a popen() call an avoid the temporary file.
+      io_t *fio = NULL;
+      { 
+	char buf[512];
+	struct stat sbuf;
+	// These should always be present
+	strcpy(buf,"cd / && tar cf - etc/xap-livebox.ini etc/crontabs etc/plugboard ");
+	if(stat("/etc/TZ", &sbuf) == 0) strcat(buf,"etc/TZ "); // optional backup if present.
+	strcat(buf,"| gzip -c >/tmp/hah-backup.tar.gz");
+	dbg_err_if(system(buf) < 0);
+      }
+      dbg_err_if(u_file_open("/tmp/hah-backup.tar.gz", O_RDONLY, &fio));
+      dbg_err_if(io_pipe(out, fio) < 0);
+err:
+      if(fio) io_free(fio);
+%>

@@ -6,7 +6,9 @@
 #include "comms.h"
 %>
 <%
-REQUIRE_AUTH(SCRIPT_NAME);
+if(REQUIRE_AUTH(SCRIPT_NAME)) {
+  response_disable_caching(response);
+}
 %>
 <html>
 <head>

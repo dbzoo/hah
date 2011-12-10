@@ -103,9 +103,7 @@ static void readIni() {
 if(REQUIRE_AUTH(SCRIPT_NAME)) {
   readIni();
   process_form();
-  /* disable caching */
-  response_set_field(response, "Pragma:", "no-cache");
-  response_set_field(response, "Cache-Control", "no-cache, no-store, must-revalidate");
+  response_disable_caching(response);
 }
 %>
 <html>

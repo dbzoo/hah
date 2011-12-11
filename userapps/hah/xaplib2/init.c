@@ -17,6 +17,7 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <ctype.h>
+#include <signal.h>
 #include "minIni.h"
 #include "xap.h"
 
@@ -152,10 +153,29 @@ void heartbeatHandler(int interval, void *data)
                 "source=%s\n"
                 "interval=%d\n"
                 "port=%d\n"
-                "pid=%d\n"
-                "}\n", xapGetUID(), xapGetSource(), interval, gXAP->rxPort, getpid());
+                "pid=%s:%d\n"
+                "}\n", xapGetUID(), xapGetSource(), interval, gXAP->rxPort, xapGetIP(), getpid());
         xapSend(buff);
 }
+
+// Handler for process termination - SIGINT, SIGTERM
+void termHandler(int sig)
+{
+        char buff[XAP_DATA_LEN];
+        sprintf(buff, "xap-hbeat\n"
+                "{\n"
+                "v=12\n"
+                "hop=1\n"
+                "uid=%s\n"
+                "class=xap-hbeat.stop\n"
+                "interval=%d\n"
+                "source=%s\n"
+                "port=%d\n"
+                "pid=%s:%d\n"
+                "}\n", xapGetUID(), xapGetSource(), XAP_HEARTBEAT_INTERVAL, gXAP->rxPort, xapGetIP(), getpid());
+        xapSend(buff);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -227,6 +247,9 @@ void xapInit(char *source, char *uid, char *interfaceName)
 
         xapAddTimeoutAction(&heartbeatHandler, XAP_HEARTBEAT_INTERVAL, NULL);
         xapAddSocketListener(gXAP->rxSockfd, handleXapPacket, NULL);
+
+	signal(SIGTERM, termHandler);
+	signal(SIGINT, termHandler);
 }
 
 /**

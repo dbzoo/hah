@@ -17,8 +17,9 @@ for i in 0 1 2 3 4 5; do
 # dropbear quits when it chmod()'s to 620 we set it up like this.
   chmod 0620 $ROOTFS/dev/ttyp$i
 done
-mknod $ROOTFS/dev/tty0 c 4 0
-mknod $ROOTFS/dev/tty1 c 4 1
+for i in 0 1 2 3 4 5; do
+  mknod $ROOTFS/dev/tty$i c 4 $i
+done
 mknod $ROOTFS/dev/ttyS0 c 4 64
 mknod $ROOTFS/dev/tty c 5 0
 mknod $ROOTFS/dev/console c 5 1

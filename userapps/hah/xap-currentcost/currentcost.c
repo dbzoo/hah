@@ -111,7 +111,7 @@ static long loadSensorINI(char *key, int sensor, char *location, int size)
         char buff[10];
         sprintf(buff,"%s%d",key,sensor);
         long n = ini_gets("currentcost", buff, "", location, size, inifile);
-        debug("%s=%s", buff, location);
+        info("%s=%s", buff, location);
         return n;
 }
 
@@ -160,11 +160,14 @@ static void findOrAddSensor(int channel)
 	} else {
 	  snprintf(sensor, sizeof(sensor), "%d.%d", currentSensor, channel);
 	}
+	info(sensor);
 
         currentTag = bscFindEndpoint(endpointList, "sensor", sensor);
         if(currentTag == NULL) {
+	        unsigned char uid = (currentSensor-1)*3+channel+10;
+	        info("Adding new sensor uid=%02x",uid);
                 // Add to the list we want to search and manage
-                bscSetEndpointUID(currentSensor+10);
+                bscSetEndpointUID(uid);
                 char stype[2]; // Analog/Digital
                 loadSensorINI("type", currentSensor, stype, sizeof(stype));
                 int bscType = stype[0] == 'D' ? BSC_BINARY : BSC_STREAM;
@@ -320,7 +323,7 @@ void parseXml(char *data, int size)
 {
         xmlSAXHandler handler;
 
-        debug("%s", data);
+        info("%s", data);
 
         memset(&handler, 0, sizeof(handler));
         handler.initialized = XML_SAX2_MAGIC;

@@ -73,7 +73,6 @@ SUBDIRS_OPENSOURCE = \
         $(OPENSOURCE_DIR)/ddns \
         $(OPENSOURCE_DIR)/ntpclient \
         $(OPENSOURCE_DIR)/dropbear \
-        $(OPENSOURCE_DIR)/ftpd \
         $(OPENSOURCE_DIR)/ini \
         $(OPENSOURCE_DIR)/mtd \
 	$(OPENSOURCE_DIR)/lua \
@@ -111,7 +110,7 @@ SUBDIRS_HAH = \
 
 SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIRS_HAH)
 
-OPENSOURCE_APPS = brctl dropbear ftpd iptables busybox ntpclient ini mtd lua \
+OPENSOURCE_APPS = brctl dropbear iptables busybox ntpclient ini mtd lua \
 	lrexlib luafilesystem luasocket penlight avrdude
 INVENTEL_APPS = inventelbin sendarp ledctrl
 HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-pachube xap-sms iServer \
@@ -345,15 +344,6 @@ libc:
 
 ddns:
 	$(MAKE) -C $(OPENSOURCE_DIR)/ddns dynamic
-
-ftpd:
-	@if [ ! -f $(OPENSOURCE_DIR)/ftpd/Makefile ]; then \
-	   (cd $(OPENSOURCE_DIR)/ftpd; ./configure --host=mips ); \
-	fi
-	$(MAKE) -C $(OPENSOURCE_DIR)/ftpd 
-	$(STRIP) $(OPENSOURCE_DIR)/ftpd/src/pure-ftpd
-	install -m 755 -d $(INSTALL_DIR)/usr/sbin
-	install -m 755 $(OPENSOURCE_DIR)/ftpd/src/pure-ftpd $(INSTALL_DIR)/usr/sbin
 
 ipkg:
 	@if [ ! -f $(OPENSOURCE_DIR)/ipkg/Makefile ]; then \

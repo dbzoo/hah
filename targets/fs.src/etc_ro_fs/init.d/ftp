@@ -2,23 +2,30 @@
 
 . /etc/ini.conf
 
+ftppid() {
+  pid=$(ps | fgrep -v awk | awk '/ftpd/ {print $1}')
+}
+
 case "$1" in
     start)
 	if [ `iniget $INI network ftp_enable 0` -eq 1 ]; then
-		if ! pidof pure-ftpd | sed "s/$$\$//" | grep -q [0-9] ; then
-	    		pure-ftpd -B
+                ftppid	    
+		if [ -z "$pid" ]; then
+	    		tcpsvd -vE 0.0.0.0 21 ftpd -w / &
 		fi
 	fi
         ;;
     stop)
-        killall pure-ftpd 2>/dev/null
+        ftppid	    
+        kill $pid 2>/dev/null
         ;;
     restart)
 	$0 stop
 	$0 start
 	;;
     status)
-        if pidof pure-ftpd | sed "s/$$\$//" | grep -q [0-9] ; then
+        ftppid	    
+        if [ -n "$pid" ]; then
 		echo "running"
 	else
 		echo "stopped"

@@ -136,17 +136,13 @@ CONFIG_ELF_KERNEL=y
 CONFIG_BINFMT_ELF=y
 # CONFIG_BINFMT_MISC is not set
 CONFIG_NET=y
-CONFIG_PCI_NAMES=y
+# CONFIG_PCI_NAMES is not set
 CONFIG_HOTPLUG=y
 
 #
 # PCMCIA/CardBus support
 #
-CONFIG_PCMCIA=m
-CONFIG_CARDBUS=y
-CONFIG_I82092=y
-CONFIG_I82365=y
-CONFIG_TCIC=y
+# CONFIG_PCMCIA is not set
 
 #
 # PCI Hotplug Support
@@ -327,12 +323,7 @@ CONFIG_IP_NF_TARGET_LOG=y
 CONFIG_IP_NF_TARGET_TCPMSS=y
 # CONFIG_IPV6 is not set
 # CONFIG_KHTTPD is not set
-CONFIG_ATM=y
-# CONFIG_ATM_CLIP is not set
-# CONFIG_ATM_LANE is not set
-CONFIG_ATM_BR2684=y
-CONFIG_ATM_BR2684_IPFILTER=y
-CONFIG_ATM_RT2684=y
+# CONFIG_ATM is not set
 # CONFIG_VLAN_8021Q is not set
 # CONFIG_IPX is not set
 # CONFIG_ATALK is not set
@@ -367,7 +358,6 @@ CONFIG_NET_SCHED=y
 CONFIG_NET_SCH_CBQ=y
 CONFIG_NET_SCH_HTB=y
 CONFIG_NET_SCH_CSZ=m
-CONFIG_NET_SCH_ATM=y
 CONFIG_NET_SCH_PRIO=m
 CONFIG_NET_SCH_RED=m
 CONFIG_NET_SCH_SFQ=m
@@ -467,11 +457,6 @@ CONFIG_SD_EXTRA_DEVS=40
 # CONFIG_SCSI_DEBUG is not set
 
 #
-# PCMCIA SCSI adapter support
-#
-# CONFIG_SCSI_PCMCIA is not set
-
-#
 # I2O device support
 #
 # CONFIG_I2O is not set
@@ -530,8 +515,6 @@ CONFIG_NET_RADIO=y
 # CONFIG_AIRO is not set
 # CONFIG_HERMES is not set
 # CONFIG_PLX_HERMES is not set
-# CONFIG_PCMCIA_HERMES is not set
-# CONFIG_AIRO_CS is not set
 CONFIG_NET_WIRELESS=y
 
 #
@@ -546,26 +529,6 @@ CONFIG_NET_WIRELESS=y
 # Wan interfaces
 #
 # CONFIG_WAN is not set
-
-#
-# PCMCIA network device support
-#
-# CONFIG_NET_PCMCIA is not set
-
-#
-# ATM drivers
-#
-# CONFIG_ATM_TCP is not set
-# CONFIG_ATM_LANAI is not set
-# CONFIG_ATM_ENI is not set
-# CONFIG_ATM_FIRESTREAM is not set
-# CONFIG_ATM_ZATM is not set
-# CONFIG_ATM_NICSTAR is not set
-# CONFIG_ATM_IDT77252 is not set
-# CONFIG_ATM_AMBASSADOR is not set
-# CONFIG_ATM_HORIZON is not set
-# CONFIG_ATM_IA is not set
-# CONFIG_ATM_FORE200E_MAYBE is not set
 
 #
 # Amateur Radio support
@@ -633,11 +596,6 @@ CONFIG_UNIX98_PTY_COUNT=32
 # CONFIG_DRM is not set
 
 #
-# PCMCIA character devices
-#
-# CONFIG_PCMCIA_SERIAL_CS is not set
-
-#
 # Multimedia devices
 #
 # CONFIG_VIDEO_DEV is not set
@@ -677,7 +635,7 @@ CONFIG_ISO9660_FS=m
 # CONFIG_ZISOFS is not set
 # CONFIG_MINIX_FS is not set
 # CONFIG_VXFS_FS is not set
-CONFIG_NTFS_FS=m
+# CONFIG_NTFS_FS is not set
 # CONFIG_NTFS_RW is not set
 # CONFIG_HPFS_FS is not set
 CONFIG_PROC_FS=y

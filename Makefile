@@ -79,7 +79,8 @@ SUBDIRS_OPENSOURCE = \
 	$(OPENSOURCE_DIR)/lrexlib \
 	$(OPENSOURCE_DIR)/luafilesystem \
 	$(OPENSOURCE_DIR)/luasocket \
-	$(OPENSOURCE_DIR)/penlight
+	$(OPENSOURCE_DIR)/penlight \
+	$(OPENSOURCE_DIR)/avrdude-5.10
 
 export BROADCOM_DIR=$(USERAPPS_DIR)/broadcom
 
@@ -162,12 +163,14 @@ prebuild:
 hah:	$(HAH_APPS)
 
 avrdude:
-	(cd $(OPENSOURCE_DIR); \
-	rm -rf avrdude-5.10; \
-	test -f avrdude-5.10.tar.gz || wget http://download.savannah.gnu.org/releases/avrdude/avrdude-5.10.tar.gz; \
-	tar zxf avrdude-5.10.tar.gz; \
-	cd avrdude-5.10; \
-	./configure --host=mips-linux --sysconfdir=/etc_ro_fs)
+	if [ ! -f $(OPENSOURCE_DIR)/avrdude-5.10.tar.gz ]; then \
+	  (cd $(OPENSOURCE_DIR); \
+	  wget http://download.savannah.gnu.org/releases/avrdude/avrdude-5.10.tar.gz; \
+	  tar zxf avrdude-5.10.tar.gz ) \
+	fi
+	if [ ! -f $(OPENSOURCE_DIR)/avrdude-5.10/Makefile ]; then \
+	  (cd $(OPENSOURCE_DIR)/avrdude-5.10; ./configure --host=mips-linux --sysconfdir=/etc_ro_fs ) \
+	fi
 	$(MAKE) -C $(OPENSOURCE_DIR)/avrdude-5.10
 	install -m 555 $(OPENSOURCE_DIR)/avrdude-5.10/avrdude $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/avrdude

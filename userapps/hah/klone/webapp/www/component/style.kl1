@@ -1,0 +1,11 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "const.h"
+
+static char style[15];
+%><%
+	 ini_gets("gui","style", "elegant", style, sizeof (style), con.inifile);
+%><title>Home Automation Hub</title>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1"/>
+<link type="text/css" rel="stylesheet" href="style/<%=style%>/style.css"/>
+<!--[if IE]><link type="text/css" rel="stylesheet" href="style/<%=style%>/style_ie.css"/><![endif]-->
+<script type="text/javascript" src="common.js"></script>

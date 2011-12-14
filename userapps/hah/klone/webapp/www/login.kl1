@@ -138,9 +138,7 @@ if (!login.destination) login.destination = "index.kl1";
 %>
 <html>
 <head>
-<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
-<link type="text/css" rel="stylesheet" href="style/current/style.css" />
-<title>Livebox</title>
+<%@include component/style.kl1%>
 </head>
 <body class="gui" onload="javascript:document.forms[0].username.focus();">
 <div id="wrapper">

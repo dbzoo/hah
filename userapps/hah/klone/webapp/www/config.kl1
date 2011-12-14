@@ -57,10 +57,7 @@ if(action) {
 %>
 <html>
 <head>
-<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
-<link type="text/css" rel="stylesheet" href="style/current/style.css" />
-<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css" /><![endif]-->
-<script type="text/javascript" src="common.js"></script>
+<%@include component/style.kl1%>
 <script type="text/javascript">
 function to_submit(F) {
 	F.save_button.value = "Saving";
@@ -74,7 +71,6 @@ function wirereset(F) {
 }
 </script>
 </head>
-<title>HAH configuration</title>
 <body class="gui">
 <div id="wrapper">
 <div id="content">
@@ -91,43 +87,30 @@ int i;
 <input type="hidden" name="action" />
 <h2>HAH Hardware</h2>
 <table><tr>
-
 <td valign="top">
 <fieldset>
 <legend>Input</legend>
-<table>
-<tr><th>Item</th><th>Label</th></tr>
-<%
+<table><tr><th>Item</th><th>Label</th></tr><%
 for(i=1; i<5; i++) {
   io_printf(out,"<tr>%sInput %d</td>", alt_td(i), i);
   io_printf(out,"<td><input type=\"text\" name=\"input%d.label\" value=\"%s\"></td></tr>\n", i, iniGetDynLabel("input",i));
 }
-%>
-</table>
+%></table>
 </fieldset>
-</td>
-
-<td valign="top"><fieldset>
+</td><td valign="top"><fieldset>
 <legend>Relay</legend>
-<table>
-<tr><th>Item</th><th>Label</th></tr>
-<%
+<table><tr><th>Item</th><th>Label</th></tr><%
 for(i=1; i<5; i++) {
   io_printf(out,"<tr>%sRelay %d</td>", alt_td(i), i);
   io_printf(out,"<td><input type=\"text\" name=\"relay%d.label\" value=\"%s\"></td></tr>\n", i, iniGetDynLabel("relay",i));
 }
-%>
-</table>
+%></table>
 </fieldset></td>
 </tr>
 </table>
-
 <fieldset>
 <legend>RF</legend>
-
-<table>
-<tr><th>Item</th><th>Label</th><th>On</th><th>Off</th></tr>
-<%
+<table><tr><th>Item</th><th>Label</th><th>On</th><th>Off</th></tr><%
 for(i=1; i<=ini.devicesrf; i++) {
   io_printf(out,"<tr><td>RF %d</td>", i);
   io_printf(out,"<td><input size=\"10\" type=\"text\" name=\"rf%d.label\" value=\"%s\"></td>\n", i, iniGetDynLabel("rf",i));
@@ -135,15 +118,12 @@ for(i=1; i<=ini.devicesrf; i++) {
   io_printf(out,"<td><input style=\"width:230px\" type=\"text\" name=\"rf%d.off\" value=\"%s\"></td>\n", i, iniGetDynKey("rf","rf%d.off", i));
   io_printf(out,"</tr>");
 }
-%>
-</table>
+%></table>
   <div class="setting">
     <div class="label">RF Devices</div>
 	<input class="num" type="text" name="rf.devices" onblur="valid_range(this,0,<% io_printf(out,"%d",AVRmajor>1?32:12); %>,'RF count')" value="<% io_printf(out,"%d",ini.devicesrf); %>" maxlength="2" size="2"/>
   </div>
-
 </fieldset>
-
 <fieldset>
 <legend>1wire devices</legend>
 <%

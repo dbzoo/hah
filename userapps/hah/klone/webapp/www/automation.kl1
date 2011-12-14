@@ -108,17 +108,13 @@ if(REQUIRE_AUTH(SCRIPT_NAME)) {
 %>
 <html>
 <head>
-<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
-<link type="text/css" rel="stylesheet" href="style/current/style.css" />
-<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css" /><![endif]-->
-<script type="text/javascript" src="common.js"></script>
+<%@include component/style.kl1%>
 <script type="text/javascript">
 function comboSubmit() {
     frmControl.submit();
 }
 </script>
 </head>
-<title>Livebox</title>
 <body class="gui">
 <div id="wrapper">
 <div id="content">

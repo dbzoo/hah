@@ -1,6 +1,4 @@
-<%!
-/* $Id$
- */
+<%! /* -*- mode:c;coding:utf-8; -*- */
 #include "minIni.h"
 #include "login.h"
 #include "const.h"
@@ -213,11 +211,7 @@ static void submit_form() {
 %>
 <html>
 <head>
-<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
-<script type="text/javascript" src="common.js"></script>
-<link type="text/css" rel="stylesheet" href="style/current/style.css" />
-<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css"/><![endif]-->
-<title>Livebox</title>
+<%@include component/style.kl1%>
 <script type="text/javascript">
 function to_submit(F) {
   F.save_button.value = "Saving";

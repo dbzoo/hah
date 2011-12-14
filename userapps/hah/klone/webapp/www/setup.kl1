@@ -1,4 +1,4 @@
-<%!
+<%! /* -*- mode:c;coding:utf-8; -*- */
 #include <netinet/in.h>
 #include <string.h>
 #include "login.h"
@@ -13,18 +13,19 @@
 static int reboot = 0;
 
 static struct {
-	 char type[7];
-	 char ip[16];
-	 char netmask[16];
-	 char gateway[16];
-	 char dns[16];
-     char hostname[30];
-     char domain[30];
-     char ntp_host[30];
-	 char config_bridge[2];
-	 char power[2];
-	char ether0[20];  // 00:18:8B:D4:EC:06
-	char ether1[20];  // 00:18:8B:D4:EC:06
+  char type[7];
+  char ip[16];
+  char netmask[16];
+  char gateway[16];
+  char dns[16];
+  char hostname[30];
+  char domain[30];
+  char ntp_host[30];
+  char config_bridge[2];
+  char power[2];
+  char ether0[20];  // 00:18:8B:D4:EC:06
+  char ether1[20];  // 00:18:8B:D4:EC:06
+  char style[15];
 } ini;
 
 struct in_addr addr;
@@ -42,6 +43,7 @@ static void readIni() {
 	 ini_gets("hardware","power", "1", ini.power, sizeof (ini.power), con.inifile);
 	 ini_gets("network","ether_0", "", ini.ether0, sizeof (ini.ether0), con.inifile);
 	 ini_gets("network","ether_1", "", ini.ether1, sizeof (ini.ether1), con.inifile);
+	 ini_gets("gui","style", "elegant", ini.style, sizeof (ini.style), con.inifile);
 }
 
 /* Append all web named segments *webname into a single IP address
@@ -69,61 +71,59 @@ static int processIP(char *webname, char *inikey, char *ip) {
 /* Return 1 if we need a reboot
 */
 static int submit_form(io_t *out) {
-	 const char *lan_proto = request_get_arg(request,"lan_proto");
-	 if(!lan_proto) return;
-	 ini_puts("network","lan_proto", lan_proto, con.inifile);
-
-	 reboot = strcmp(lan_proto,ini.type);
-	 if(strcmp(lan_proto,"static") == 0)  {
-		  reboot |= processIP("lan_ipaddr", "ip", ini.ip);
-		  reboot |= processIP("lan_netmask", "netmask", ini.netmask);
-		  reboot |= processIP("lan_gateway", "gateway", ini.gateway);
-		  reboot |= processIP("lan_dns", "dns", ini.dns);
-		  ini_puts("network","ip", ini.ip, con.inifile);
-		  ini_puts("network","netmask", ini.netmask, con.inifile);
-		  ini_puts("network","gateway", ini.gateway, con.inifile);
-		  ini_puts("network","dns", ini.dns, con.inifile);
-	 }
-
-	 const char *hostname = request_get_arg(request,"hostname");
-	 const char *domain = request_get_arg(request,"domain");
-	 const char *ntp_host = request_get_arg(request,"ntp_host");
-	 ini_puts("network","hostname", hostname, con.inifile);
-	 ini_puts("network","domain", domain, con.inifile);
-	 ini_puts("network","ntp_host", ntp_host, con.inifile);
+	const char *gui_style = request_get_arg(request,"gui_style");
+	if(gui_style && strcmp(gui_style, ini.style)) {
+		ini_puts("gui","style", gui_style, con.inifile);    
+	}
+	const char *lan_proto = request_get_arg(request,"lan_proto");
+	if(!lan_proto) return;
+	ini_puts("network","lan_proto", lan_proto, con.inifile);
+	
+	reboot = strcmp(lan_proto,ini.type);
+	if(strcmp(lan_proto,"static") == 0)  {
+		reboot |= processIP("lan_ipaddr", "ip", ini.ip);
+		reboot |= processIP("lan_netmask", "netmask", ini.netmask);
+		reboot |= processIP("lan_gateway", "gateway", ini.gateway);
+		reboot |= processIP("lan_dns", "dns", ini.dns);
+		ini_puts("network","ip", ini.ip, con.inifile);
+		ini_puts("network","netmask", ini.netmask, con.inifile);
+		ini_puts("network","gateway", ini.gateway, con.inifile);
+		ini_puts("network","dns", ini.dns, con.inifile);
+	}
+	
+	const char *hostname = request_get_arg(request,"hostname");
+	const char *domain = request_get_arg(request,"domain");
+	const char *ntp_host = request_get_arg(request,"ntp_host");
+	ini_puts("network","hostname", hostname, con.inifile);
+	ini_puts("network","domain", domain, con.inifile);
+	ini_puts("network","ntp_host", ntp_host, con.inifile);
 	 
-	 char *config_bridge = request_get_arg(request, "config_bridge");
-	 ini_puts("network","config_bridge", config_bridge, con.inifile);
-
-         const char *ether0 = request_get_arg(request,"ether0");
-         const char *ether1 = request_get_arg(request,"ether1");
-	 ini_puts("network","ether_0", ether0, con.inifile);
-	 ini_puts("network","ether_1", ether1, con.inifile);
-	 
-	 reboot |= strcmp(hostname, ini.hostname)
-		  || strcmp(domain, ini.domain)
-		  || strcmp(ntp_host, ini.ntp_host)
-		  || strcmp(ether0, ini.ether0)
-		  || strcmp(ether1, ini.ether1)
-		  || strcmp(config_bridge, ini.config_bridge);
-
-	 const char *power = request_get_arg(request,"power_enable");
-	 if(*power != ini.power[0]) {
-		  signal(SIGCHLD, SIG_IGN); // Avoid creating zombies.		  
-		  if(fork() == 0) {
-			   char *on[] = {"/bin/ledctrl","Power","On"};
-			   char *off[] = {"/bin/ledctrl","Power","Off"};
-			   if(*power == '1') {
-					execv("/bin/ledctrl", on);
-			   } else {
-					execv("/bin/ledctrl", off);
-			   }
-		  }
-		  ini.power[0] = *power;
-		  ini_puts("hardware","power", ini.power, con.inifile);
-	 }
-
-	 return reboot;
+	char *config_bridge = request_get_arg(request, "config_bridge");
+	ini_puts("network","config_bridge", config_bridge, con.inifile);
+	
+	const char *ether0 = request_get_arg(request,"ether0");
+	const char *ether1 = request_get_arg(request,"ether1");
+	ini_puts("network","ether_0", ether0, con.inifile);
+	ini_puts("network","ether_1", ether1, con.inifile);
+	
+	reboot |= strcmp(hostname, ini.hostname)
+		|| strcmp(domain, ini.domain)
+		|| strcmp(ntp_host, ini.ntp_host)
+		|| strcmp(ether0, ini.ether0)
+		|| strcmp(ether1, ini.ether1)
+		|| strcmp(config_bridge, ini.config_bridge);
+	
+	const char *power = request_get_arg(request,"power_enable");
+	if(*power != ini.power[0]) {
+		if(*power == '1') {
+			system("/bin/ledctrl on");
+		} else {	
+			system("/bin/ledctrl off");
+		}
+		ini.power[0] = *power;
+		ini_puts("hardware","power", ini.power, con.inifile);
+	}
+	return reboot;
 }
 %>
 <%
@@ -141,11 +141,7 @@ static int submit_form(io_t *out) {
 %>
 <html>
 <head>
-<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
-<script type="text/javascript" src="common.js"></script>
-<link type="text/css" rel="stylesheet" href="style/current/style.css" />
-<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css" /><![endif]-->
-<title>Livebox</title>
+<%@include component/style.kl1%>
 <script type="text/javascript">
 function SelLAN(num,F){
   F.lan_proto.value=F.lan_proto.options[num].value;
@@ -269,6 +265,35 @@ addEvent(window,"load",function() {
     <input class="spaceradio" type="radio" value="0" name="power_enable" <% if(ini.power[0] == '0') { %> checked="checked"<% } %>/>Disable
   </div>
 </fieldset>
+
+<script type="text/javascript">
+function setStyle(val) {
+	var linkTags = document.getElementsByTagName("link");
+	for(var i = 0; i < linkTags.length; i++) {
+		var t = linkTags[i];
+		if(t.getAttribute("rel") != "stylesheet") continue;
+		if(t.getAttribute("href").indexOf("/" + val + "/") != -1) return false;
+		var newStyle = t.getAttribute("href").replace(/style\/\w+\//, "style/" + val + "/");
+		t.removeAttribute("href");
+		t.setAttribute("href", newStyle);
+	}
+}
+document.forms[0].onreset = function() { 
+	setStyle("elegant"); 
+}
+</script>
+
+<fieldset>
+<legend>GUI Style</legend>
+<div class="setting">
+  <div class="label">Style</div>
+  <select name="gui_style">
+  <option value="elegant" <% if(strcmp(ini.style,"elegant")==0) { %>selected="selected"<% } %>>Elegant</option>
+  </select>
+<input type="button" name="preview_button" value="Preview" onclick="setStyle(this.form.gui_style.value)"/>
+</div>
+</fieldset>
+
 <br/>
 
 <div class="submitFooter">

@@ -75,10 +75,7 @@ if(action && strcmp(action,"Reboot") == 0) {
 %>
 <html>
 <head>
-<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
-<link type="text/css" rel="stylesheet" href="style/current/style.css" />
-<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css" /><![endif]-->
-<script type="text/javascript" src="common.js"></script>
+<%@include component/style.kl1%>
 <script type="text/javascript">
 function to_submit(F) {
 	F.save_button.value = "Saving";
@@ -91,7 +88,6 @@ addEvent(window,"load",function() {
 
 </script>
 </head>
-<title>Livebox</title>
 <body class="gui">
 <div id="wrapper">
 <div id="content">

@@ -1,6 +1,4 @@
-<%!
-/* $Id$
- */
+<%! /* -*- mode:c;coding:utf-8; -*- */
 #include "minIni.h"
 #include "login.h"
 #include "const.h"
@@ -67,10 +65,8 @@ static void submitForm(io_t *out) {
 %>
 <html>
 <head>
-<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1" />
-<link type="text/css" rel="stylesheet" href="style/current/style.css" />
-
-<title>Livebox</title>
+<%@include component/style.kl1%>
+</head>
 <body class="gui">
 <div id="wrapper">
 <div id="content">

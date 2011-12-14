@@ -53,11 +53,7 @@ if(action) {
 %>
 <html>
 <head>
-<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1"/>
-<link type="text/css" rel="stylesheet" href="style/current/style.css"/>
-<title>Livebox</title>
-<!--[if IE]><link type="text/css" rel="stylesheet" href="style/current/style_ie.css"/><![endif]-->
-<script type="text/javascript" src="common.js"></script>
+<%@include component/style.kl1%>
 <script type="text/javascript" src="http://www.google.com/jsapi"></script>
 <script type="text/javascript">
 	 google.load('visualization','1',{packages:['annotatedtimeline']});

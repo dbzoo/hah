@@ -31,4 +31,12 @@ if [ ! -d /etc/crontabs ]; then
   mkdir -p /etc/crontabs
 fi
 
+# Create unique SSH keys for each HAH
+if [ ! -d /etc/dropbear -o -h /etc/dropbear ]; then
+  rm -f /etc/dropbear
+  mkdir /etc/dropbear
+  dropbearkey -t dss -f /etc/dropbear/dropbear_dss_host_key
+  dropbearkey -t rsa -f /etc/dropbear/dropbear_rsa_host_key
+fi
+
 /etc/rc.d/rc.runlevel 1

@@ -51,7 +51,7 @@ void log_write_ex(int level, const char *file, int line, const char *func, const
 	if(level > loglevel) return;
 
         va_list ap;
-        char buf[1024];
+        char buf[2048];
 
         va_start(ap, fmt);
         vsnprintf(buf, sizeof(buf), fmt, ap);

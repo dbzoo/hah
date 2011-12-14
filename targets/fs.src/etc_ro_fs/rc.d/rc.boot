@@ -40,7 +40,7 @@ POPULATE_JFFS2()
     done
 
     # Links to RO filesystem
-    for i in ini.conf inittab shells services ethertypes curl-ca-bundle.crt dropbear; do
+    for i in ini.conf inittab shells services ethertypes curl-ca-bundle.crt; do
       ln -sf /etc_ro_fs/$i /etc/$i
     done
 

@@ -1,7 +1,8 @@
 # Example of how to NFS mount onto the Livebox
-insmod sunrpc
-insmod lockd
-insmod nfs
+base=/lib/modules/2.4.17/kernel
+insmod $base/net/sunrpc/sunrpc.o
+insmod $base/fs/lockd/lockd.o
+insmod $base/fs/nfs/nfs.o
 # Make sure NFS over UDP is enabled on your server.
 # rpcinfo -p 
 mount -t nfs -o nolock,soft,timeo=5,retry=5 192.168.1.9:/home/brett /opt

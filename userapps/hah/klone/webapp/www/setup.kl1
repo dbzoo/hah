@@ -289,6 +289,7 @@ document.forms[0].onreset = function() {
   <div class="label">Style</div>
   <select name="gui_style">
   <option value="elegant" <% if(strcmp(ini.style,"elegant")==0) { %>selected="selected"<% } %>>Elegant</option>
+  <option value="blue" <% if(strcmp(ini.style,"blue")==0) { %>selected="selected"<% } %>>Blue</option>
   </select>
 <input type="button" name="preview_button" value="Preview" onclick="setStyle(this.form.gui_style.value)"/>
 </div>

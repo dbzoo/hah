@@ -15,10 +15,16 @@ border-color:#6384cf;
 background:#6384cf; 
 color:#fff; 
 border-color:#849dd9; 
-} 
+}
 fieldset legend { 
-color:#30519c; 
-} 
+color:#36f;
+}
+fieldset {
+border-color: #ccccff;
+border-style: ridge;
+border-width: 2px;
+}
+
 #help a { 
 color:#fff; 
 } 

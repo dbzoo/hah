@@ -164,16 +164,20 @@ static void findOrAddSensor(int channel)
 
         currentTag = bscFindEndpoint(endpointList, "sensor", sensor);
         if(currentTag == NULL) {
-	        unsigned char uid = (currentSensor-1)*3+channel+10;
-	        info("Adding new sensor uid=%02x",uid);
-                // Add to the list we want to search and manage
-                bscSetEndpointUID(uid);
-                char stype[2]; // Analog/Digital
-                loadSensorINI("type", currentSensor, stype, sizeof(stype));
-                int bscType = stype[0] == 'D' ? BSC_BINARY : BSC_STREAM;
-                currentTag = bscAddEndpoint(&endpointList, "sensor", sensor, BSC_INPUT,
-                                            bscType, NULL, &sensorInfoEvent);
-                bscAddEndpointFilter(currentTag, INFO_INTERVAL);
+	        char stype[2] = {0}; // Analog/Digital & Reused for channel too
+                loadSensorINI("channels", currentSensor, stype, sizeof(stype));
+		int maxChannel = atoi(stype);
+		if(maxChannel == 0 || channel <= maxChannel) {
+		  unsigned char uid = (currentSensor-1)*3+channel+10;
+		  info("Adding new sensor uid=%02x",uid);
+		  // Add to the list we want to search and manage
+		  bscSetEndpointUID(uid);
+		  loadSensorINI("type", currentSensor, stype, sizeof(stype));
+		  int bscType = stype[0] == 'D' ? BSC_BINARY : BSC_STREAM;
+		  currentTag = bscAddEndpoint(&endpointList, "sensor", sensor, BSC_INPUT,
+					      bscType, NULL, &sensorInfoEvent);
+		  bscAddEndpointFilter(currentTag, INFO_INTERVAL);
+		}
         }
 }
 

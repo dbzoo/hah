@@ -179,6 +179,9 @@ static void findOrAddSensor(int channel)
 		  bscAddEndpointFilter(currentTag, INFO_INTERVAL);
 		}
         }
+	
+	if(currentTag == NULL)  // Sensor never got creating!
+	  state = ST_NONE;
 }
 
 /// SAX element (TAG) callback

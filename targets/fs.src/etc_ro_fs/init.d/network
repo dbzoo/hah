@@ -78,10 +78,11 @@ case $1 in
 	    DOMAIN="`iniget $INI network domain`"
 	    ifconfig $MYDEV $IP netmask $NETMASK
 	    [ ! -z "$GATEWAY" ] && route add default gw $GATEWAY
-		if [ ! -z "$DOMAIN" ]; then
+	        rm -f /etc/resolv.conf
+		if [ -n "$DOMAIN" ]; then
 			echo "search $DOMAIN" >> /etc/resolv.conf
 		fi
-		if [ ! -z "$DNS" ]; then
+		if [ -n "$DNS" ]; then
 			echo "nameserver $DNS" >> /etc/resolv.conf
 		fi
 		echo "$IP $HOSTNAME" >>/etc/hosts

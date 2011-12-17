@@ -43,7 +43,7 @@ static void readIni() {
 	 ini_gets("hardware","power", "1", ini.power, sizeof (ini.power), con.inifile);
 	 ini_gets("network","ether_0", "", ini.ether0, sizeof (ini.ether0), con.inifile);
 	 ini_gets("network","ether_1", "", ini.ether1, sizeof (ini.ether1), con.inifile);
-	 ini_gets("gui","style", "elegant", ini.style, sizeof (ini.style), con.inifile);
+	 ini_gets("webserver","style", "elegant", ini.style, sizeof (ini.style), con.inifile);
 }
 
 /* Append all web named segments *webname into a single IP address
@@ -73,7 +73,7 @@ static int processIP(char *webname, char *inikey, char *ip) {
 static int submit_form(io_t *out) {
 	const char *gui_style = request_get_arg(request,"gui_style");
 	if(gui_style && strcmp(gui_style, ini.style)) {
-		ini_puts("gui","style", gui_style, con.inifile);    
+		ini_puts("webserver","style", gui_style, con.inifile);    
 	}
 	const char *lan_proto = request_get_arg(request,"lan_proto");
 	if(!lan_proto) return;

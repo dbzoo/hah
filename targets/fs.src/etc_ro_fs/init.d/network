@@ -86,7 +86,11 @@ case $1 in
 		fi
 		echo "$IP $HOSTNAME" >>/etc/hosts
 		NTPHOST="`iniget $INI network ntp_host uk.pool.ntp.org`"
-		[ ! -z "$NTPHOST" ] && ntpclient -s -h $NTPHOST
+		
+		if [ -n "$NTPHOST" ]; then
+		    echo "lcd NTP sync"
+		    ntpclient -s -h $NTPHOST
+		fi
 	        echo "lcd $IP"
 	else
 	    echo "lcd Acquiring IP"

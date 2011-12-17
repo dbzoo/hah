@@ -113,9 +113,9 @@ for(i=1; i<5; i++) {
 <table><tr><th>Item</th><th>Label</th><th>On</th><th>Off</th></tr><%
 for(i=1; i<=ini.devicesrf; i++) {
   io_printf(out,"<tr><td>RF %d</td>", i);
-  io_printf(out,"<td><input size=\"10\" type=\"text\" name=\"rf%d.label\" value=\"%s\"></td>\n", i, iniGetDynLabel("rf",i));
-  io_printf(out,"<td><input style=\"width:230px\" type=\"text\" name=\"rf%d.on\" value=\"%s\"></td>\n", i, iniGetDynKey("rf","rf%d.on", i));
-  io_printf(out,"<td><input style=\"width:230px\" type=\"text\" name=\"rf%d.off\" value=\"%s\"></td>\n", i, iniGetDynKey("rf","rf%d.off", i));
+  io_printf(out,"<td><input size=\"15\" type=\"text\" name=\"rf%d.label\" value=\"%s\"></td>\n", i, iniGetDynLabel("rf",i));
+  io_printf(out,"<td><input style=\"width:300px\" type=\"text\" name=\"rf%d.on\" value=\"%s\"></td>\n", i, iniGetDynKey("rf","rf%d.on", i));
+  io_printf(out,"<td><input style=\"width:300px\" type=\"text\" name=\"rf%d.off\" value=\"%s\"></td>\n", i, iniGetDynKey("rf","rf%d.off", i));
   io_printf(out,"</tr>");
 }
 %></table>

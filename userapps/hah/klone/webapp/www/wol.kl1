@@ -189,24 +189,23 @@ static void submit_form() {
        send_wol(host[row].mac, host[row].hostname);       
   }
 
-  const char *arg = request_get_arg(request,"del");
-  if(arg) {
-	 int row = atoi(arg);
-	 // Bubble the other rows down over this deleted one.
-	 for(i=row; i < ini.count-1; i++) {
-		  memcpy(&host[row], &host[row+1], sizeof(host[i]));
-	 }
-	 // clear our deleted row.
-	 memset( &host[ini.count-1], 0, sizeof(host[i]));
-
-	 // Write out the datastreams - including our blank one.
-	 for(i=0; i<ini.count; i++) {
-		  saveDynINI("mac", i, host[i].mac);
-		  saveDynINI("hostname", i, host[i].hostname);
-	 }
-	 // now remove it from the list.
-	 ini.count--;
-	 ini_putl("wol","count", ini.count, con.inifile);
+  if(action && strncmp(action,"Del",3) == 0) {
+       int row = atoi(action+3);
+       // Bubble the other rows down over this deleted one.
+       for(i=row; i < ini.count-1; i++) {
+	 memcpy(&host[row], &host[row+1], sizeof(host[i]));
+       }
+       // clear our deleted row.
+       memset( &host[ini.count-1], 0, sizeof(host[i]));
+       
+       // Write out the datastreams - including our blank one.
+       for(i=0; i<ini.count; i++) {
+	 saveDynINI("mac", i, host[i].mac);
+	 saveDynINI("hostname", i, host[i].hostname);
+       }
+       // now remove it from the list.
+       ini.count--;
+       ini_putl("wol","count", ini.count, con.inifile);
   }
 %>
 <html>
@@ -222,9 +221,10 @@ function add(F) {
  F.action.value = "Add";
  apply(F);
 }
-function del(F) {
- F.action.value = "Del";
- apply(F);
+function del(i) {
+  F = document.forms['wol'];
+  F.action.value = "Del"+i;
+  apply(F);
 }
 function wake(F,i) {
  F.action.value = "Wake"+i;
@@ -241,21 +241,21 @@ function wake(F,i) {
 <div id="contents">
 <br/>
 <h2>Wake on LAN</h2>
-<form action="<%= SCRIPT_NAME %>" method="post">
+<form name="wol" action="<%= SCRIPT_NAME %>" method="post">
 <input type="hidden" name="submit_button"/>
 <input type="hidden" name="action"/>
 
 <fieldset>
   <legend>WOL Addresses</legend>
    <table>
-	   <tr><th>MAC Address</th><th>Host Name</th></tr>
+  <tr><th>MAC Address</th><th>Host Name</th><th>&nbsp;</th></tr>
 <%
 	   for(i=0; i<ini.count; i++) {
 %>
        <tr>
          <td><input name="mac<% io_printf(out,"%d",i); %>" maxlength="18" size="18" value="<%= host[i].mac %>""/></td>
          <td><input name="hostname<% io_printf(out,"%d",i); %>" maxlength="30" size="30" value="<%= host[i].hostname %>"/></td>
-         <td><input type="image" src="/images/bin_bt.gif" name="del" value="<% io_printf(out,"%d",i); %>" onclick="del(this.form)"/></td>
+         <td class="bin" title="Click to remove WOL host" onclick="del(<% io_printf(out,"%d",i);%>)"></td>
          <td><input type="button" value="Wake Up" onclick="wake(this.form,<% io_printf(out,"%d",i); %>)"/></td>
        </tr>
 <%

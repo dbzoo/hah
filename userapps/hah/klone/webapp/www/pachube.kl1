@@ -132,9 +132,8 @@ static void submit_form() {
     system("/etc/init.d/xap restart pachube");
   }
 
-  const char *del = request_get_arg(request,"del");
-  if(del) {
-	 int row = atoi(del);
+  if(action && strncmp(action,"Del",3) == 0) {
+       int row = atoi(action+3);
 	 // Bubble the other rows down over this deleted one.
 	 for(i=row; i < ini.count-1; i++) {
 		  memcpy(&ds[row], &ds[row+1], sizeof(ds[i]));
@@ -169,8 +168,9 @@ function add(F) {
  F.action.value = "Add";
  apply(F);
 }
-function del(F) {
- F.action.value = "Del";
+function del(i) {
+ F = document.forms['services'];
+ F.action.value = "Del"+i;
  apply(F);
 }
 function restart(F) {
@@ -211,7 +211,7 @@ addEvent(window,"load",function() {
 
   <div class="setting">
     <div class="label">API Key</div>
-    <input maxlength="65" size="60" name="apikey" value="<%= ini.apikey %>"/>
+    <input maxlength="65" size="65" name="apikey" value="<%= ini.apikey %>"/>
   </div>
 
   <div class="setting">
@@ -227,7 +227,7 @@ addEvent(window,"load",function() {
 <fieldset>
   <legend>Datastream</legend>
    <table>
-	   <tr><th>ID</th><th>Tag</th><th>xAP source</th><th>xAP class</th><th>xAP section</th><th>key</th></tr>
+  <tr><th>ID</th><th>Tag</th><th>xAP source</th><th>xAP class</th><th>xAP section</th><th>key</th><th>&nbsp;</th></tr>
 <%
 	   for(i=0; i<ini.count; i++) {
 %>
@@ -238,7 +238,7 @@ addEvent(window,"load",function() {
          <td><input name="class<% io_printf(out,"%d",i); %>" maxlength="32" size="11" value="<%= ds[i].class %>"/></td>
          <td><input name="section<% io_printf(out,"%d",i); %>" maxlength="32" size="11" value="<%= ds[i].section %>"/></td>
          <td><input name="key<% io_printf(out,"%d",i); %>" maxlength="32" size="4" value="<%= ds[i].key %>"/></td>
-		 <td><input type="image" src="/images/bin_bt.gif" name="del" value="<% io_printf(out,"%d",i); %>" onclick="del(this.form)"/></td>
+         <td class="bin" title="Click to remove setting" onclick="del(<% io_printf(out,"%d",i);%>)"></td>
        </tr>
 <%
 	   }

@@ -32,14 +32,14 @@ text-align:right;
 #wrapper {
 position:relative;
 text-align:left;
-width:54.363em;
+width:72.464em;
 margin:0 auto;
 }
 #content {
 background:#fff;
 }
 #header {
-width:54.363em;
+width:72.464em;
 height:9.340em;
 background:#111;
 padding-top:.908em;
@@ -71,13 +71,13 @@ text-decoration:underline;
 }
 #menu {
 position:relative;
-width:54.363em;
+width:72.464em;
 }
 #menuSub {
 position:absolute;
 top:2.265em;
 left:0;
-width:54.363em;
+width:72.283em;
 padding-top:.362em;
 border-style:solid solid none solid;
 border-width:.09em;
@@ -147,7 +147,7 @@ position:relative;
 float:left;
 }
 #main #contents {
-width:52.536em; 
+width:70.471em; 
 padding:.906em;
 }
 #main #contentsInfo {
@@ -363,4 +363,8 @@ line-height:1.812em;
   font-size: 20pt;
   padding-left: 45px;
   background: url(/images/throbber.gif) no-repeat;
+}
+.bin {
+background:url(/images/bin_bt.gif) center no-repeat;
+cursor:pointer;
 }

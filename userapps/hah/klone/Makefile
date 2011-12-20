@@ -8,7 +8,7 @@ WEBAPP_DIR = $(CURDIR)/webapp
 MAKL_PLATFORM = linux-mips
 
 #KLONE_CONF_ARGS = --enable_debug
-KLONE_CONF_ARGS += --enable_hooks --disable-lib=openssl --disable-lib=z --disable_cxx
+KLONE_CONF_ARGS += --enable_hooks --enable_sup_fs --disable-lib=openssl --disable-lib=z --disable_cxx
 
 # also run make in the build directory (must be absolute paths)
 SUBDIR = $(CURDIR)/liblivebox

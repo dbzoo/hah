@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<joggler>
+	<version>0.5</version>
+	<name>HAHflash</name>
+	<xAP>
+		<uid>0738</uid>
+	</xAP>
+	<usejogglerapi>false</usejogglerapi>
+	<configfilelocation>local</configfilelocation>
+	<configfile>/live/xapconfig.xml</configfile>
+</joggler>

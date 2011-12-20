@@ -5,23 +5,34 @@
 #include "utils.h"
 
 static struct {
-	 char temp_unit[2];
-	 int devices1wire;
-	 int devicesrf;
+  char temp_unit[2];
+  int devices1wire;
+  int devicesrf;
+  int infoProtect;
+  int startPage[6];
 } ini;
 
 static void readIni() {
    ini.devices1wire = ini_getl("1wire","devices", 0, con.inifile);
    ini.devicesrf = ini_getl("rf","devices", 0, con.inifile);
    ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), con.inifile);
+   ini_gets("webserver","startPage","html",ini.startPage,sizeof(ini.startPage),con.inifile);
+   ini.infoProtect = ini_getl("security","info_protect", 0, con.inifile);
 }
 %>
 <%
-  if(getInfoProtect()) {
+  if(ini.infoProtect) {
     REQUIRE_AUTH(SCRIPT_NAME);
   }
   response_disable_caching(response);
   readIni();
+
+  // Bit of a kludge really.
+  // Load index.kl1 if explicitly ask for.  Default URI of / to configuration setting of StartPage
+  if(strcmp(request_get_uri(request),"/index.kl1") && strcmp(ini.startPage,"flash") == 0) {
+    response_redirect(response, "flashgui.kl1");
+    return 0;
+  }
 %>
 <html>
 <head>

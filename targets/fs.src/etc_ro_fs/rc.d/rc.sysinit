@@ -39,4 +39,9 @@ if [ ! -d /etc/dropbear -o -h /etc/dropbear ]; then
   dropbearkey -t rsa -f /etc/dropbear/dropbear_rsa_host_key
 fi
 
+# Has WWW been setup yet?
+if [ ! -d /etc/www ]; then
+  mkdir -p /etc/www
+fi
+
 /etc/rc.d/rc.runlevel 1

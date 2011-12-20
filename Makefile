@@ -107,7 +107,8 @@ SUBDIRS_HAH = \
 	$(HAH_DIR)/xap-plugboard \
 	$(HAH_DIR)/xap-serial \
 	$(HAH_DIR)/klone \
-	$(HAH_DIR)/iServer
+	$(HAH_DIR)/iServer \
+	$(HAH_DIR)/xap-flash
 
 SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIRS_HAH)
 
@@ -115,7 +116,8 @@ OPENSOURCE_APPS = brctl dropbear iptables busybox ntpclient ini mtd lua \
 	lrexlib luafilesystem luasocket penlight avrdude
 INVENTEL_APPS = inventelbin sendarp ledctrl
 HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-pachube xap-sms iServer \
-	xap-currentcost xap-googlecal xap-twitter xap-serial klone xap-plugboard 
+	xap-currentcost xap-googlecal xap-twitter xap-serial klone xap-plugboard \
+	xap-flash
 
 BUSYBOX_DIR = $(OPENSOURCE_DIR)/busybox
 
@@ -290,6 +292,9 @@ xap-twitter: xaplib2 libcurl
 
 xap-plugboard:
 	$(MAKE) -C $(HAH_DIR)/xap-plugboard
+
+xap-flash:
+	$(MAKE) -C $(HAH_DIR)/xap-flash
 
 klone: libcurl
 	$(MAKE) -C $(HAH_DIR)/klone

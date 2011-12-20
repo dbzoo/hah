@@ -3,6 +3,12 @@
 #include "login.h"
 #include "const.h"
 
+static struct {
+  char startPage[6];
+  int infoProtect;
+  int loginScreen;
+} ini;
+
 static void change_passwd(io_t *out) {
 	   char *old = request_get_arg(request, "old");
 	   char *new = request_get_arg(request, "new");
@@ -41,12 +47,10 @@ static void change_passwd(io_t *out) {
 	   }
 }
 
-int getInfoProtect() {
-	return ini_getl("security","info_protect", 0, con.inifile);
-}
-
-int getLoginScreen() {
-	return ini_getl("security","login_screen", 0, con.inifile);
+static void readIni() {
+	 ini_gets("webserver","startPage","html",ini.startPage,sizeof(ini.startPage),con.inifile);
+	 ini.infoProtect = ini_getl("security","info_protect", 0, con.inifile);
+	 ini.loginScreen = ini_getl("security","login_screen", 0, con.inifile);
 }
 
 static void submitForm(io_t *out) {
@@ -57,11 +61,17 @@ static void submitForm(io_t *out) {
 
        val = request_get_arg(request, "loginscreen");
        ini_putl("security","login_screen", val ? 1 : 0, con.inifile);
+
+       char *startPage = request_get_arg(request,"startPage");
+       if(startPage && strcmp(startPage, ini.startPage)) {
+	 ini_puts("webserver","startPage", startPage, con.inifile);			 
+       }       
 }
 
 %>
 <%
-  REQUIRE_AUTH(SCRIPT_NAME);
+REQUIRE_AUTH(SCRIPT_NAME);
+readIni();
 %>
 <html>
 <head>
@@ -81,6 +91,7 @@ static void submitForm(io_t *out) {
 <%
 	 if(vars_get_value_i(request_get_args(request), "action") == 1) {
 		  submitForm(out);
+		  readIni();
 	 }
 %>
 
@@ -104,15 +115,25 @@ static void submitForm(io_t *out) {
 <legend>Web Access</legend>
  <div class="setting">
     <div class="label">Password protect info page</div>
-    <input class="spaceradio" type="checkbox" name="infoprotect" value="1" <% if(getInfoProtect()){ %>checked<% } %>/>
+    <input class="spaceradio" type="checkbox" name="infoprotect" value="1" <% if(ini.infoProtect){ %>checked<% } %>/>
  </div>
  <div class="setting">
     <div class="label">Login screen</div>
-    <input class="spaceradio" type="checkbox" name="loginscreen" value="1" <% if(getLoginScreen()){ %>checked<% } %>/>
+    <input class="spaceradio" type="checkbox" name="loginscreen" value="1" <% if(ini.loginScreen){ %>checked<% } %>/>
  </div>
 </fieldset>
+
+<fieldset>
+<legend>Info Page</legend>
+  <div class="setting">
+  <div class="label">Page type</div>
+  <input class="spaceradio" type="radio" value="html" name="startPage" <% if(strcmp(ini.startPage,"html") == 0) { %> checked="checked"<% } %>/>HTML&nbsp;
+  <input class="spaceradio" type="radio" value="flash" name="startPage" <% if(strcmp(ini.startPage,"flash") == 0) { %> checked="checked"<% } %>/>Flash
+  </div>
+</fieldset>
+
 <br/>
-  <input type="hidden" name="action" value="1" />
+<input type="hidden" name="action" value="1" />
 <div class="submitFooter">
   <input type="submit" value="Save Settings"/>
   <input type="reset" value="Cancel Changes"/>

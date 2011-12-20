@@ -121,7 +121,7 @@ for(i=1; i<=ini.devicesrf; i++) {
 %></table>
   <div class="setting">
     <div class="label">RF Devices</div>
-	<input class="num" type="text" name="rf.devices" onblur="valid_range(this,0,<% io_printf(out,"%d",AVRmajor>1?32:12); %>,'RF count')" value="<% io_printf(out,"%d",ini.devicesrf); %>" maxlength="2" size="2"/>
+	<input class="num" type="text" name="rf.devices" onblur="valid_range(this,0,<% io_printf(out,"%d",AVRmajor>1?96:12); %>,'RF count')" value="<% io_printf(out,"%d",ini.devicesrf); %>" maxlength="2" size="2"/>
   </div>
 </fieldset>
 <fieldset>

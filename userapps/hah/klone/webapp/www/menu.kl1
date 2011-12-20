@@ -39,6 +39,7 @@ MENU mymenu[] =
   {"Automation","Pachube","pachube.kl1", NULL},
   {"Automation","Graph","graph.kl1", isPachubeEnabled},
   {"Automation","Assists","assistance.kl1", NULL},
+  {"GUI","xAPFlash","flashgui.kl1", NULL},
   {"Admin","Info","index.kl1", NULL},
   {"Admin","Instance","instance.kl1", isAuthenticated},
   {"Admin","Management","setup.kl1", isAuthenticated},

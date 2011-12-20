@@ -1,0 +1,648 @@
+<?xml version="1.0" encoding="windows-1252"?>
+<joggler>
+	<version>0.5</version>
+	<config>
+		<iserver>
+			<port>9996</port>
+			<ip>127.0.0.1</ip>
+		</iserver>
+		<xAP>
+			<bscbuttons>false</bscbuttons>
+			<bscpages>false</bscpages>
+		</xAP>
+	</config>
+
+	<layout>
+		<gridXmax>8</gridXmax>
+		<gridYmax>4</gridYmax>
+		<aspectLock>false</aspectLock>
+		<configure>false</configure>
+		<background>
+			<image>sonata-background-menubar.jpg</image>
+			<scaleX>800</scaleX>
+			<scaleY>420</scaleY>
+		</background>
+		<defaults>
+			<button>
+				<alpha>.75</alpha>
+				<width>80</width>
+  			    <height>80</height>
+				<style>glossy_button_off_.png</style>			
+			</button>
+			<textbox>
+				<alpha>.75</alpha>
+				<width>100</width>
+  			    <height>100</height>
+				<align>centre</align>
+			</textbox>
+			<label>
+				<offset>centre</offset>
+			</label>
+			<bsctext>
+			  	<fontsize>40</fontsize>
+				<align>centre</align>
+			</bsctext>			
+		</defaults>
+	</layout>
+	
+	<page NAME="Menu">
+		<group>Menu</group>
+		<button NAME="page1">
+			<label>
+				<text>Control</text>
+			</label>
+			<style>menu_button_off_.png</style>						
+			<gridX>0</gridX>
+			<gridY>0</gridY>
+			<link>Page1</link>
+			<mode>pagetoggle</mode>
+			<group>Menu</group>
+		</button>		
+		<button NAME="page2">
+			<label>
+				<text>Monitor</text>
+			</label>
+			<gridX>0</gridX>
+			<gridY>1</gridY>
+			<style>menu_button_off_.png</style>						
+			<link>Page2</link>
+			<mode>pagetoggle</mode>
+			<group>Menu</group>
+		</button>
+		<button NAME="page3">
+			<label>
+				<text>Page 3</text>
+			</label>
+			<gridX>0</gridX>
+			<gridY>2</gridY>
+			<style>menu_button_off_.png</style>						
+			<visible>true</visible>
+			<link>Page3</link>
+			<mode>pagetoggle</mode>
+			<group>Menu</group>
+		</button>
+		<button NAME="page4">
+			<label>
+				<text>Page 4</text>
+			</label>
+			<gridX>0</gridX>
+			<gridY>3</gridY>
+			<style>menu_button_off_.png</style>						
+			<visible>true</visible>
+			<link>Page4</link>
+			<mode>pagetoggle</mode>
+			<group>Menu</group>
+		</button>
+	</page>	
+	
+	<page NAME="Page1">
+		<group>main</group>		
+		<visible>true</visible>
+
+		<button NAME="Relay1">
+			<label>
+				<text>Relay 1</text>
+			</label>
+			<gridX>2</gridX>
+			<gridY>0</gridY>
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DB60</uid>
+				<source>dbzoo.livebox.controller:relay.1</source>
+			</xAP>
+			<mode>control</mode>			
+		</button>
+
+		<button NAME="Relay2">
+			<label>
+				<text>Relay 2</text>
+			</label>
+			<gridX>3</gridX>
+			<gridY>0</gridY>
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DB61</uid>
+				<source>dbzoo.livebox.controller:relay.2</source>
+			</xAP>				
+			<mode>control</mode>			
+		</button>
+
+		<button NAME="Relay3">
+			<label>
+				<text>Relay 3</text>
+			</label>
+			<gridX>4</gridX>
+			<gridY>0</gridY>
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DB62</uid>
+				<source>dbzoo.livebox.controller:relay.3</source>
+			</xAP>
+			<mode>control</mode>
+		</button>
+
+		<button NAME="Relay4">
+			<label>
+				<text>Relay 4</text>
+			</label>
+			<gridX>5</gridX>
+			<gridY>0</gridY>
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DB63</uid>
+				<source>dbzoo.livebox.controller:relay.4</source>
+			</xAP>
+			<mode>control</mode>
+		</button>
+
+		<!-- RF -->
+		<button NAME="RF1">
+			<label>
+				<text>RF 1</text>
+			</label>
+			<gridX>1</gridX>
+			<gridY>1</gridY>
+			<style>glossy_button_off_.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DBA0</uid>
+				<source>dbzoo.livebox.controller:rf.1</source>
+			</xAP>
+			<mode>control</mode>
+		</button>
+
+		<button NAME="RF2">
+			<label>
+				<text>RF 2</text>
+			</label>
+			<gridX>2</gridX>
+			<gridY>1</gridY>
+			<style>glossy_button_off_.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DBA1</uid>
+				<source>dbzoo.livebox.controller:rf.2</source>
+			</xAP>
+			<mode>control</mode>
+		</button>
+
+		<button NAME="RF3">
+			<label>
+				<text>RF 3</text>
+			</label>
+			<gridX>3</gridX>
+			<gridY>1</gridY>
+			<style>glossy_button_off_.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DBA2</uid>
+				<source>dbzoo.livebox.controller:rf.3</source>
+			</xAP>
+			<mode>control</mode>
+		</button>
+		<button NAME="RF4">
+			<label>
+				<text>RF 4</text>
+			</label>
+			<gridX>4</gridX>
+			<gridY>1</gridY>
+			<style>glossy_button_off_.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DBA3</uid>
+				<source>dbzoo.livebox.controller:rf.4</source>
+			</xAP>
+			<mode>control</mode>
+		</button>
+		<button NAME="RF5">
+			<label>
+				<text>RF 5</text>
+			</label>
+			<gridX>5</gridX>
+			<gridY>1</gridY>
+			<style>glossy_button_off_.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DBA4</uid>
+				<source>dbzoo.livebox.controller:rf.5</source>
+			</xAP>
+			<mode>control</mode>
+		</button>
+		<button NAME="RF6">
+			<label>
+				<text>RF 6</text>
+			</label>
+			<gridX>6</gridX>
+			<gridY>1</gridY>
+			<style>glossy_button_off_.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DBA5</uid>
+				<source>dbzoo.livebox.controller:rf.6</source>
+			</xAP>
+			<mode>control</mode>
+		</button>
+		<button NAME="RF7">
+			<label>
+				<text>RF 7</text>
+			</label>
+			<gridX>7</gridX>
+			<gridY>1</gridY>
+			<style>glossy_button_off_.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DBA6</uid>
+				<source>dbzoo.livebox.controller:rf.7</source>
+			</xAP>
+			<mode>control</mode>
+		</button>
+		
+	<!-- a button to Overlay a few setting that you want to check quickly -->
+		<button NAME="overlay-page-btn">
+			<label>
+				<text>Check</text>
+			</label>
+			<gridX>1</gridX>
+			<gridY>3</gridY>
+			<style>menu_button_off_.png</style>						
+			<link>overlay-page</link>
+			<mode>pagetoggle</mode>
+<!-- BUG: the button won't update the STYLE unless its in a group even if its the only element -->
+			<group>check</group>  
+		</button>			
+	</page>
+	
+    <page NAME="overlay-page">
+	   <visible>false</visible>
+	   <!-- Clip and position a background behind our buttons -->
+       <background>
+	      <image>blue-background.jpg</image>
+		  <width>220</width>
+		  <height>110</height>
+		  <posX>200</posX>
+		  <posY>10</posY>
+	   </background>
+	   
+		<button NAME="temp2-popup">
+			<gridX>3</gridX>
+			<gridY>0</gridY>
+			<label>
+				<text>Room 1</text>
+				<fontcolour>0x000000</fontcolour>
+				<offset>-20</offset>
+				<fontsize>20</fontsize>			
+			</label>
+			<bsctext>
+				<fontcolour>0x000000</fontcolour>
+			</bsctext>			
+			<style>inside-temp-icon.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>*</uid>
+				<source>dbzoo.livebox.controller:1wire.1</source>
+			</xAP>				
+			<mode>text</mode>			
+			<hide>state</hide>
+		</button>	   
+		<button NAME="temp1-popup">
+			<gridX>2</gridX>
+			<gridY>0</gridY>
+			<label>
+				<text>Outside</text>
+				<fontcolour>0x000000</fontcolour>
+				<offset>-20</offset>
+				<fontsize>20</fontsize>			
+			</label>
+			<bsctext>
+				<fontcolour>0x000000</fontcolour>
+			</bsctext>			
+			<style>outside-temp-icon.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>*</uid>
+				<source>dbzoo.livebox.controller:1wire.2</source>
+			</xAP>
+			<mode>text</mode>			
+			<hide>state</hide>
+		</button>
+	</page>
+	
+	<page NAME="Page2">
+		<group>main</group>		
+		<visible>false</visible>
+
+		<button NAME="temp1">
+			<gridX>2</gridX>
+			<gridY>0</gridY>
+			<label>
+				<text>Outside</text>
+				<fontcolour>0x000000</fontcolour>
+				<offset>-20</offset>
+				<fontsize>20</fontsize>			
+			</label>
+			<bsctext>
+				<fontcolour>0x000000</fontcolour>
+			</bsctext>			
+			<style>outside-temp-icon.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>*</uid>
+				<source>dbzoo.livebox.controller:1wire.2</source>
+			</xAP>
+			<mode>text</mode>			
+			<hide>state</hide>
+		</button>
+
+		<button NAME="temp2">
+			<gridX>3</gridX>
+			<gridY>0</gridY>
+			<label>
+				<text>Room 1</text>
+				<fontcolour>0x000000</fontcolour>
+				<offset>-20</offset>
+				<fontsize>20</fontsize>			
+			</label>
+			<bsctext>
+				<fontcolour>0x000000</fontcolour>
+			</bsctext>			
+			<style>inside-temp-icon.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>*</uid>
+				<source>dbzoo.livebox.controller:1wire.1</source>
+			</xAP>				
+			<mode>text</mode>			
+			<hide>state</hide>
+		</button>
+
+		<button NAME="temp3">
+			<gridX>4</gridX>
+			<gridY>0</gridY>
+			<style>inside-temp-icon.png</style>			
+			<label>
+				<text>Room 2</text>
+				<fontcolour>0x000000</fontcolour>
+				<offset>-20</offset>
+				<fontsize>20</fontsize>			
+			</label>
+			<bsctext>
+				<fontcolour>0x000000</fontcolour>
+			</bsctext>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>*</uid>
+				<source>dbzoo.livebox.controller:1wire.3</source>
+			</xAP>
+			<mode>text</mode>
+			<hide>state</hide>
+		</button>
+
+		<button NAME="temp4">
+			<gridX>5</gridX>
+			<gridY>0</gridY>
+			<label>
+				<text>Room 3</text>
+				<fontcolour>0x000000</fontcolour>
+				<offset>-20</offset>
+				<fontsize>20</fontsize>			
+			</label>
+			<bsctext>
+				<fontcolour>0x000000</fontcolour>
+			</bsctext>			
+			<style>inside-temp-icon.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>*</uid>
+				<source>dbzoo.livebox.controller:1wire.4</source>
+			</xAP>
+			<mode>text</mode>
+			<hide>state</hide>
+		</button>
+		
+		<button NAME="temp5">
+			<gridX>6</gridX>
+			<gridY>0</gridY>
+			<label>
+				<text>Room 4</text>
+				<fontcolour>0x000000</fontcolour>
+				<offset>-20</offset>
+				<fontsize>20</fontsize>			
+			</label>
+			<bsctext>
+				<fontcolour>0x000000</fontcolour>
+			</bsctext>			
+			<style>inside-temp-icon.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>*</uid>
+				<source>dbzoo.livebox.controller:1wire.4</source>
+			</xAP>
+			<mode>text</mode>
+			<hide>state</hide>
+		</button>
+
+		<button NAME="cc-temp">
+			<gridX>1</gridX>
+			<gridY>2</gridY>
+			<label>
+				<text>CC Temp</text>
+				<fontcolour>0xFFFFFF</fontcolour>
+				<offset>-20</offset>
+				<fontsize>20</fontsize>			
+			</label>
+			<bsctext>
+				<fontcolour>0xFFFFFF</fontcolour>
+			</bsctext>			
+			<style>thermometer_red.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DC04</uid>
+				<source>dbzoo.livebox.CurrentCost:temp</source>
+			</xAP>
+			<mode>text</mode>
+			<hide>state</hide>
+		</button>
+
+		<button NAME="phase1">
+			<gridX>2</gridX>
+			<gridY>2</gridY>
+			<label>
+				<text>Phase 1</text>
+				<fontcolour>0xFFFFFF</fontcolour>
+				<offset>-20</offset>
+				<fontsize>20</fontsize>			
+			</label>
+			<bsctext>
+				<fontcolour>0xFFFFFF</fontcolour>
+				<fontsize>32</fontsize>
+			</bsctext>			
+			<style>electricity.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DC01</uid>
+				<source>dbzoo.livebox.CurrentCost:ch.1</source>
+			</xAP>
+			<mode>text</mode>
+			<hide>state</hide>
+		</button>
+		
+		<button NAME="sensor1">
+			<gridX>3</gridX>
+			<gridY>2</gridY>
+			<label>
+				<text>Sensor 1</text>
+				<fontcolour>0x000000</fontcolour>
+				<fontsize>20</fontsize>			
+				<offset>-20</offset>
+			</label>
+			<bsctext>
+				<fontcolour>0x000000</fontcolour>
+			</bsctext>			
+			<style>lightbulb.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DC0B</uid>
+				<source>dbzoo.livebox.CurrentCost:sensor.1</source>
+			</xAP>
+			<mode>text</mode>
+			<hide>state</hide>
+		</button>
+		
+		<button NAME="sensor2">
+			<gridX>4</gridX>
+			<gridY>2</gridY>
+			<label>
+				<text>Sensor 2</text>
+				<fontcolour>0x000000</fontcolour>
+				<offset>-20</offset>
+				<fontsize>20</fontsize>			
+			</label>
+			<bsctext>
+				<fontcolour>0x000000</fontcolour>
+			</bsctext>			
+			<style>lightbulb.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DC0C</uid>
+				<source>dbzoo.livebox.CurrentCost:sensor.2</source>
+			</xAP>
+			<mode>text</mode>
+			<hide>state</hide>
+		</button>
+		<button NAME="sensor3">
+			<gridX>5</gridX>
+			<gridY>2</gridY>
+			<label>
+				<text>Sensor 3</text>
+				<fontcolour>0x000000</fontcolour>
+				<offset>-20</offset>
+				<fontsize>20</fontsize>			
+			</label>
+			<bsctext>
+				<fontcolour>0x000000</fontcolour>
+			</bsctext>			
+			<style>lightbulb.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DC0D</uid>
+				<source>dbzoo.livebox.CurrentCost:sensor.3</source>
+			</xAP>
+			<mode>text</mode>
+			<hide>state</hide>
+		</button>
+		<button NAME="sensor4">
+			<gridX>6</gridX>
+			<gridY>2</gridY>
+			<label>
+				<text>Sensor 4</text>
+				<fontcolour>0x000000</fontcolour>
+				<offset>-20</offset>
+				<fontsize>20</fontsize>			
+			</label>
+			<bsctext>
+				<fontcolour>0x000000</fontcolour>
+			</bsctext>			
+			<style>lightbulb.png</style>			
+			<xAP>
+				<schema>xAPBSC</schema>
+				<uid>FF00DC0E</uid>
+				<source>dbzoo.livebox.CurrentCost:sensor.4</source>
+			</xAP>
+			<mode>text</mode>
+			<hide>state</hide>
+		</button>
+
+		<textbox name="sms-msg">
+			<gridX>1</gridX>
+			<gridY>3</gridY>
+			<width>*4</width>
+			<height>/4</height>
+			<align>left</align>
+			<background>
+				<visible>false</visible>
+			</background>
+			<text>No SMS Message</text>
+			<xAP>				
+				<schema>generic</schema>
+				<source>dbzoo.livebox.SMS</source>
+				<uid>FF00DD00</uid>
+				<generic>
+					<Class>SMS.message</Class>
+					<body>inbound</body>
+					<parameter>msg</parameter>
+				</generic>
+			</xAP>			
+		</textbox>
+		
+		<textbox name="sms-num">
+			<gridX>1</gridX>
+			<gridY>3</gridY>
+			<width>*4</width>
+			<height>/4</height>
+			<posY>-20</posY>
+			<align>left</align>
+			<background>
+				<visible>false</visible>
+			</background>
+			<text>(xxx)xxxx-xxx</text>
+			<xAP>				
+				<schema>generic</schema>
+				<source>dbzoo.livebox.SMS</source>
+				<uid>FF00DD00</uid>
+				<generic>
+					<Class>SMS.message</Class>
+					<body>inbound</body>
+					<parameter>num</parameter>
+				</generic>
+			</xAP>			
+		</textbox>
+
+	</page>
+	
+	<page NAME="Page3">
+		<group>main</group>		
+		<visible>false</visible>
+		<background>
+		   <posX>108</posX>
+		   <posY>0</posY>
+		   <image>black-background.jpg</image>
+		   <width>700</width>
+		   <height>420</height>
+		   <visible>true</visible>
+		</background>
+		
+		<button name="Configure">
+			<label>
+				<text>Configure</text>
+			</label>
+			<gridX>3</gridX>
+			<gridY>0</gridY>
+			<mode>config</mode>
+		</button>		
+</page>
+
+	<page NAME="Page4">
+		<group>main</group>		
+		<visible>false</visible>
+	</page>
+</joggler>

@@ -6,12 +6,13 @@
 #define DS_TAGSIZE 32
 
 struct datastream {
-     int id;
-     char tag[DS_TAGSIZE];
-     float value;
+  unsigned int feed;
+  unsigned int id;
+  char tag[DS_TAGSIZE];
+  float value;
 };
 
-void updateDatastream(int id, char *tag, float value);
-char *xmlDatastream();
+void updateDatastream(unsigned int feed, unsigned int id, char *tag, float value);
+void pachubeWebUpdate(int interval, void *userData);
 
 #endif

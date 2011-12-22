@@ -8,6 +8,7 @@
 #define sizearray(x) (sizeof(x) / sizeof(x[0]))
 
 struct _datastream {
+	char feed[7];
 	char id[4];
 	char tag[20];
 	char source[64];
@@ -51,6 +52,7 @@ static void readIni() {
 	 }
 	 int i;
 	 for(i=0; i < ini.count; i++) {
+		  loadDynINI("feed", i, ds[i].feed, sizeof(ds[i].feed));
 		  loadDynINI("id", i, ds[i].id, sizeof(ds[i].id));
 		  loadDynINI("tag", i, ds[i].tag, sizeof(ds[i].tag));
 		  loadDynINI("source", i, ds[i].source, sizeof(ds[i].source));
@@ -92,6 +94,7 @@ static void submit_form() {
 
 	 int i;
 	 for(i=0; i<ini.count; i++) {
+		  const char *feed = getdynkey("feed", i);
 		  const char *id = getdynkey("id", i);
 		  const char *tag = getdynkey("tag", i);
 		  const char *source = getdynkey("source", i);
@@ -100,6 +103,7 @@ static void submit_form() {
 		  const char *key = getdynkey("key", i);
 		  if(id == NULL || source == NULL || section == NULL || key == NULL || class == NULL) 
 			  continue;
+		  saveDynINI("feed", i, feed);
 		  saveDynINI("id", i, id);
 		  saveDynINI("tag", i, tag);
 		  saveDynINI("source", i, source);
@@ -143,6 +147,7 @@ static void submit_form() {
 
 	 // Write out the datastreams - including our blank one.
 	 for(i=0; i<ini.count; i++) {
+		  saveDynINI("feed", i, ds[i].feed);
 		  saveDynINI("id", i, ds[i].id);
 		  saveDynINI("tag", i, ds[i].tag);
 		  saveDynINI("source", i, ds[i].source);
@@ -216,7 +221,7 @@ addEvent(window,"load",function() {
 
   <div class="setting">
     <div class="label">Feed ID</div>
-    <input maxlength="8" size="8" name="feedid" value="<%= ini.feedid %>" onblur="isdigit(this,'Feed ID')"/>
+  <input maxlength="8" size="8" name="feedid" value="<%= ini.feedid %>" onblur="isdigit(this,'Feed ID')"/> (Default if unassigned on a datastream)
   </div>
   <div class="setting">
     <div class="label">Update Frequency</div>
@@ -227,11 +232,12 @@ addEvent(window,"load",function() {
 <fieldset>
   <legend>Datastream</legend>
    <table>
-  <tr><th>ID</th><th>Tag</th><th>xAP source</th><th>xAP class</th><th>xAP section</th><th>key</th><th>&nbsp;</th></tr>
+  <tr><th>Feed</th><th>ID</th><th>Tag</th><th>xAP source</th><th>xAP class</th><th>xAP section</th><th>key</th><th>&nbsp;</th></tr>
 <%
 	   for(i=0; i<ini.count; i++) {
 %>
 	   <tr>
+         <td><input name="feed<% io_printf(out,"%d",i); %>" maxlength="6" size="1" value="<%= ds[i].feed %>" onblur="isdigit(this,'FEED')"/></td>
          <td><input name="id<% io_printf(out,"%d",i); %>" maxlength="4" size="1" value="<%= ds[i].id %>" onblur="isdigit(this,'ID')"/></td>
          <td><input name="tag<% io_printf(out,"%d",i); %>" maxlength="20" size="10" value="<%= ds[i].tag %>"/></td>
          <td><input name="source<% io_printf(out,"%d",i); %>" maxlength="64" size="30" value="<%= ds[i].source %>"/></td>

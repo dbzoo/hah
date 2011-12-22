@@ -48,21 +48,24 @@ value=10.4
 #include "mem.h"
 #include "pachube.h"
 
+#define OPTIONAL 0
+#define MANDATORY 1
+
 char *interfaceName = "eth0";
 
 char *inifile = "/etc/xap-livebox.ini";
-static int g_ufreq;
-static pach_t g_pachube;
+static unsigned int g_ufreq;
+char *g_apikey;
+static unsigned int g_feedid;  // default feed
 
-// Web Filters are klone GUI supplied easy filters as parsed from the .ini file.
-struct webFilter
-{
-        // for PACHUBE usage
-        int id;
-        char *tag;
-        // for xAP packet inspection
-        char *section;
-        char *key;
+struct webFilter {
+  // for PACHUBE usage
+  unsigned int feed;
+  unsigned int id;
+  char *tag;
+  // for xAP packet inspection
+  char *section;
+  char *key;
 };
 
 /** Receive an xap messages matching the webFilter [INI] conf.
@@ -79,7 +82,7 @@ void broadcastUpdate(void *userData)
 	} else {
 		f = atof(value);
 	}
-        updateDatastream(wf->id, wf->tag, f);
+        updateDatastream(wf->feed, wf->id, wf->tag, f);
 }
 
 /** process an xAP pachube update message.
@@ -87,27 +90,31 @@ void broadcastUpdate(void *userData)
 */
 void pachubeUpdate(void *userData)
 {
+	char *feed = xapGetValue("datastream","feed");
 	char *id = xapGetValue("datastream","id");
         char *tag = xapGetValue("datastream","tag");
         char *value = xapGetValue("datastream","value");
 
-        int idn = atoi(id);
+        unsigned int idn = atoi(id);
         if(idn <= 0) {
                 warning("Invalid DATASTREAM section ID element: %s", id);
                 return;
         }
-        updateDatastream(idn, tag, atof(value));
+	unsigned int feedn;
+	if(feed) { // If supplied it must be valid.
+	  feedn = atoi(feed);
+	  if(feedn <= 0) {
+	    warning("Invalid DATASTREAM feed ID: %s", feed);
+	    return;
+	  }
+	} else { // missing?  Default to global feed id.
+	  feedn = g_feedid;
+	}
+        updateDatastream(feedn, idn, tag, atof(value));
 }
 
-/** Update the PACHUBE webservice with our datastreams.
-* xapAddTimeoutAction callback
-*/
-void pachubeWebUpdate(int interval, void *userData)
-{
-        pach_updateDatastreamXml(g_pachube, xmlDatastream());
-}
 
-char *getDynINI(char *key, int id)
+static char *getDynINI(char *key, unsigned int id, int mandatory)
 {
         char dkey[32];
         char value[128];
@@ -116,7 +123,11 @@ char *getDynINI(char *key, int id)
         long n = ini_gets("pachube", dkey, "", value, sizeof(value), inifile);
         // Brutal death if all is not perfect.
 	info("Loaded key %s=%s", dkey, value);
-        die_if(n == 0, "INI file missing [pachube] %s=<value>", dkey);
+	if(n == 0) {
+	  if(mandatory)
+	    die("INI file missing [pachube] %s=<value>", dkey);
+	  return NULL;
+	}
         return strdup(value);
 }
 
@@ -128,17 +139,16 @@ void parseINI()
 
         ini_gets("pachube","apikey","",apikey,sizeof(apikey),inifile);
         die_if(strlen(apikey) == 0, "apikey has not been setup\n");
+	g_apikey = strdup(apikey);
 
-        feedid = ini_getl("pachube","feedid", 0, inifile);
-        die_if(feedid == 0,"feedid has not been setup");
+        g_feedid = ini_getl("pachube","feedid", 0, inifile);
+        die_if(g_feedid == 0,"feedid has not been setup");
 
         g_ufreq = ini_getl("pachube","ufreq",60,inifile);
 	if(g_ufreq < 6 || g_ufreq > 900) {
                 g_ufreq = 60; // default 60sec, 6 sec to 15 mins.
 		warning("Update frequency out of range using default %d sec", g_ufreq);
 	}
-
-        g_pachube = pach_new(apikey, feedid);
 
         long filters = ini_getl("pachube","count",0,inifile);
         int i;
@@ -147,16 +157,21 @@ void parseINI()
         for(i=0; i < filters; i++) {
                 // Construct an xAP filter based upon the WEB FILTER values
                 struct webFilter *wf = (struct webFilter *)malloc(sizeof(struct webFilter));
-	        char *id = getDynINI("id",i);
+	        char *id = getDynINI("id",i,MANDATORY);
                 wf->id = atoi(id);
 	        free(id);
-                wf->tag = getDynINI("tag",i);
-	        wf->section = getDynINI("section",i);
-                wf->key = getDynINI("key",i);
+
+	        id = getDynINI("feed",i,OPTIONAL);
+		wf->feed = id ? atoi(id) : g_feedid;
+		free(id);
+
+                wf->tag = getDynINI("tag",i,MANDATORY);
+	        wf->section = getDynINI("section",i,MANDATORY);
+                wf->key = getDynINI("key",i,MANDATORY);
 
                 xAPFilter *xf = NULL;
-                xapAddFilter(&xf, "xap-header", "source", getDynINI("source",i));
-	        xapAddFilter(&xf, "xap-header", "class", getDynINI("class",i));
+                xapAddFilter(&xf, "xap-header", "source", getDynINI("source",i,MANDATORY));
+	        xapAddFilter(&xf, "xap-header", "class", getDynINI("class",i,MANDATORY));
 	        xapAddFilter(&xf, wf->section, wf->key, XAP_FILTER_ANY);
                 xapAddFilterAction(&broadcastUpdate, xf, wf);
         }

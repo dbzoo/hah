@@ -168,8 +168,8 @@ void termHandler(int sig)
                 "hop=1\n"
                 "uid=%s\n"
                 "class=xap-hbeat.stop\n"
-                "interval=%d\n"
                 "source=%s\n"
+                "interval=%d\n"
                 "port=%d\n"
                 "pid=%s:%d\n"
                 "}\n", xapGetUID(), xapGetSource(), XAP_HEARTBEAT_INTERVAL, gXAP->rxPort, xapGetIP(), getpid());

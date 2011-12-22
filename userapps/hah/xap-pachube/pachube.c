@@ -19,27 +19,18 @@ static const char *eeml_head = "<eeml xmlns=\"http://www.eeml.org/xsd/005\""
         "<environment>";
 static const char *eeml_foot ="</environment></eeml>";
 
-pach_t pach_new(char *apikey, int feedid) {
-     pach_t p;
-
-     p = mem_malloc(sizeof(pach_t), M_ZERO);
-     p->api = mem_strdup(apikey, M_NONE);
-     p->feedid = feedid;
-     return p;
-}
-
 /* Send a pre-formated XML datastream set to pachube */
-int pach_updateDatastreamXml(pach_t p, char *xml) {
+int pach_updateDatastreamXml(int feed, char *api, char *xml) {
      if(xml == NULL) return;
 
-     info("feed %d", p->feedid);
+     info("feed %d", feed);
 
      char *eeml = mem_malloc(strlen(eeml_head) + strlen(eeml_foot) + strlen(xml) + 1, M_NONE);
      strcpy(eeml, eeml_head);
      strcat(eeml, xml);
      strcat(eeml, eeml_foot);
 
-     int ret = update_environment(p->feedid, p->api, eeml, XML);
+     int ret = update_environment(feed, api, eeml, XML);
      info("return %d", ret);
      mem_free(eeml);
 
@@ -47,7 +38,3 @@ int pach_updateDatastreamXml(pach_t p, char *xml) {
 
 }
 
-void pach_destroy(pach_t p) {
-     if(p->api) mem_free(p->api);
-     mem_free(p);
-}

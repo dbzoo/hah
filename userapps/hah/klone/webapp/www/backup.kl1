@@ -32,7 +32,8 @@ io_printf(out, "temporary filename: %s <p>", filename);
 io_printf(out, "client filename: %s <p>", client_filename);
 io_printf(out, "file size: %u <p>", file_sz);
 */
-if(strcmp(mime_type,"application/gzip")) {
+// Firefox is gzip, Chrome/IE is x-gzip
+if(strcmp(mime_type,"application/gzip") && strcmp(mime_type,"application/x-gzip")) {
   err = "Invalid MIME type expecting application/gzip";
   goto footer;
  }

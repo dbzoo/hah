@@ -41,7 +41,12 @@ again:
        if(ds[i].max)
 	 j += snprintf(&xml[j], xmllen-j," maxValue=\"%s\"", ds[i].max);
        
-       j += snprintf(&xml[j], xmllen-j,">%.2f</value></data>", ds[i].value);
+       j += snprintf(&xml[j], xmllen-j,">%.2f</value>", ds[i].value);
+
+       if(ds[i].unit)
+	 j += snprintf(&xml[j], xmllen-j,"<unit symbol=\"%s\">%s</unit>", ds[i].unit, ds[i].unit);
+
+       j += snprintf(&xml[j], xmllen-j,"</data>");
        
        if(j >= xmllen) { // out of buffer?
 	 xmllen += 512;
@@ -85,7 +90,7 @@ static void addFeed(unsigned int feed) {
 	feeds[feeds_cnt-1] = feed;
 }
 
-void updateDatastream(unsigned int feed, unsigned int id, char *tag, float value, char *min, char *max) {
+void updateDatastream(unsigned int feed, unsigned int id, char *tag, float value, char *min, char *max, char *unit) {
   int idx = findDatastream(feed, id);
      if(idx == -1) {
           info("NEW datastream");
@@ -98,6 +103,7 @@ void updateDatastream(unsigned int feed, unsigned int id, char *tag, float value
 	  ds[idx].tag = mem_strdup(tag, M_NONE);
 	  ds[idx].min = min ? mem_strdup(min, M_NONE) : NULL;
 	  ds[idx].max = max ? mem_strdup(max, M_NONE) : NULL;
+	  ds[idx].unit = unit ? mem_strdup(unit, M_NONE) : NULL;
 	  addFeed(feed);
      }
      info("feed=%d, id=%d, tag=%s, value=%.2f", ds[idx].feed, ds[idx].id, ds[idx].tag, value);

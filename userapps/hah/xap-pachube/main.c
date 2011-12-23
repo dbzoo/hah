@@ -64,6 +64,7 @@ struct webFilter {
   unsigned int id;
   char *min;
   char *max;
+  char *unit;
   char *tag;
   // for xAP packet inspection
   char *section;
@@ -84,7 +85,7 @@ void broadcastUpdate(void *userData)
 	} else {
 		f = atof(value);
 	}
-        updateDatastream(wf->feed, wf->id, wf->tag, f, wf->min, wf->max);
+        updateDatastream(wf->feed, wf->id, wf->tag, f, wf->min, wf->max, wf->unit);
 }
 
 /** process an xAP pachube update message.
@@ -98,6 +99,7 @@ void pachubeUpdate(void *userData)
         char *value = xapGetValue("datastream","value");
         char *min = xapGetValue("datastream","min");
         char *max = xapGetValue("datastream","max");
+        char *unit = xapGetValue("datastream","unit");
 
         unsigned int idn = atoi(id);
         if(idn <= 0) {
@@ -114,7 +116,7 @@ void pachubeUpdate(void *userData)
 	} else { // missing?  Default to global feed id.
 	  feedn = g_feedid;
 	}
-        updateDatastream(feedn, idn, tag, atof(value), min, max);
+        updateDatastream(feedn, idn, tag, atof(value), min, max, unit);
 }
 
 
@@ -171,6 +173,7 @@ void parseINI()
 
 	        wf->min = getDynINI("min",i,OPTIONAL);
 	        wf->max = getDynINI("max",i,OPTIONAL);
+	        wf->unit = getDynINI("unit",i,OPTIONAL);
 
                 wf->tag = getDynINI("tag",i,MANDATORY);
 	        wf->section = getDynINI("section",i,MANDATORY);

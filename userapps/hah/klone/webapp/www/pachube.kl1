@@ -11,6 +11,8 @@ struct _datastream {
 	char feed[7];
 	char id[4];
 	char tag[20];
+	char min[8];
+	char max[8];
 	char source[64];
 	char class[32];
 	char section[32];
@@ -55,6 +57,8 @@ static void readIni() {
 		  loadDynINI("feed", i, ds[i].feed, sizeof(ds[i].feed));
 		  loadDynINI("id", i, ds[i].id, sizeof(ds[i].id));
 		  loadDynINI("tag", i, ds[i].tag, sizeof(ds[i].tag));
+		  loadDynINI("min", i, ds[i].min, sizeof(ds[i].min));
+		  loadDynINI("max", i, ds[i].max, sizeof(ds[i].max));
 		  loadDynINI("source", i, ds[i].source, sizeof(ds[i].source));
 		  loadDynINI("class", i, ds[i].class, sizeof(ds[i].class));
 		  loadDynINI("section", i, ds[i].section, sizeof(ds[i].section));
@@ -97,6 +101,8 @@ static void submit_form() {
 		  const char *feed = getdynkey("feed", i);
 		  const char *id = getdynkey("id", i);
 		  const char *tag = getdynkey("tag", i);
+		  const char *min = getdynkey("min", i);
+		  const char *max = getdynkey("max", i);
 		  const char *source = getdynkey("source", i);
 		  const char *class = getdynkey("class", i);
 		  const char *section = getdynkey("section", i);
@@ -106,6 +112,8 @@ static void submit_form() {
 		  saveDynINI("feed", i, feed);
 		  saveDynINI("id", i, id);
 		  saveDynINI("tag", i, tag);
+		  saveDynINI("min", i, min);
+		  saveDynINI("max", i, max);
 		  saveDynINI("source", i, source);
 		  saveDynINI("class", i, class);
 		  saveDynINI("section", i, section);
@@ -150,6 +158,8 @@ static void submit_form() {
 		  saveDynINI("feed", i, ds[i].feed);
 		  saveDynINI("id", i, ds[i].id);
 		  saveDynINI("tag", i, ds[i].tag);
+		  saveDynINI("min", i, ds[i].min);
+		  saveDynINI("max", i, ds[i].max);
 		  saveDynINI("source", i, ds[i].source);
 		  saveDynINI("class", i, ds[i].class);
 		  saveDynINI("section", i, ds[i].section);
@@ -232,7 +242,7 @@ addEvent(window,"load",function() {
 <fieldset>
   <legend>Datastream</legend>
    <table>
-  <tr><th>Feed</th><th>ID</th><th>Tag</th><th>xAP source</th><th>xAP class</th><th>xAP section</th><th>key</th><th>&nbsp;</th></tr>
+  <tr><th>Feed</th><th>ID</th><th>Tag</th><th>Min</th><th>Max</th><th>xAP source</th><th>xAP class</th><th>xAP section</th><th>key</th><th>&nbsp;</th></tr>
 <%
 	   for(i=0; i<ini.count; i++) {
 %>
@@ -240,6 +250,8 @@ addEvent(window,"load",function() {
          <td><input name="feed<% io_printf(out,"%d",i); %>" maxlength="6" size="1" value="<%= ds[i].feed %>" onblur="isdigit(this,'FEED')"/></td>
          <td><input name="id<% io_printf(out,"%d",i); %>" maxlength="4" size="1" value="<%= ds[i].id %>" onblur="isdigit(this,'ID')"/></td>
          <td><input name="tag<% io_printf(out,"%d",i); %>" maxlength="20" size="10" value="<%= ds[i].tag %>"/></td>
+         <td><input name="min<% io_printf(out,"%d",i); %>" maxlength="7" size="1" value="<%= ds[i].min %>" onblur="isdigit(this,'MIN')"/></td>
+         <td><input name="max<% io_printf(out,"%d",i); %>" maxlength="7" size="1" value="<%= ds[i].max %>" onblur="isdigit(this,'MAX')"/></td>
          <td><input name="source<% io_printf(out,"%d",i); %>" maxlength="64" size="30" value="<%= ds[i].source %>"/></td>
          <td><input name="class<% io_printf(out,"%d",i); %>" maxlength="32" size="11" value="<%= ds[i].class %>"/></td>
          <td><input name="section<% io_printf(out,"%d",i); %>" maxlength="32" size="11" value="<%= ds[i].section %>"/></td>

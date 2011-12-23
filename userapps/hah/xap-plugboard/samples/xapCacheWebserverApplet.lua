@@ -16,7 +16,7 @@ require("pl.pretty")
 url = require("socket.url")
 
 info={
-   version="1.4", description="xAP Caching web servlet"
+   version="1.5", description="xAP Caching web servlet"
 }
 
 local client
@@ -41,7 +41,7 @@ local vfs = {
 
 function sendError( client, status, str )
     message = "HTTP/1.0 " .. status .. " OK\r\n" ;
-    message = message .. "Server:  xapCacheApplet" .. socket.version .. "\r\n";
+    message = message .. "Server:  xapCacheWebserverApplet" .. info.version .. "\r\n";
     message = message .. "Content-type: text/html\r\n";
     message = message .. "Connection: close\r\n\r\n" ;
     message = message .. "<html><head><title>Error</title></head>" ;
@@ -91,7 +91,7 @@ function service(request)
    path = url.unescape( path )
 
    local message = "HTTP/1.0 200/OK\r\n"
-   message = message .. "Server: xapCacheApplet" .. info.version .. "\r\n";
+   message = message .. "Server: xapCacheWebserverApplet" .. info.version .. "\r\n";
    message = message .. "Content-Type: text/html\r\n"
    message = message .. "Connection: close\r\n\r\n"
    

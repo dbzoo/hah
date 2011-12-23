@@ -62,6 +62,8 @@ struct webFilter {
   // for PACHUBE usage
   unsigned int feed;
   unsigned int id;
+  char *min;
+  char *max;
   char *tag;
   // for xAP packet inspection
   char *section;
@@ -82,7 +84,7 @@ void broadcastUpdate(void *userData)
 	} else {
 		f = atof(value);
 	}
-        updateDatastream(wf->feed, wf->id, wf->tag, f);
+        updateDatastream(wf->feed, wf->id, wf->tag, f, wf->min, wf->max);
 }
 
 /** process an xAP pachube update message.
@@ -94,6 +96,8 @@ void pachubeUpdate(void *userData)
 	char *id = xapGetValue("datastream","id");
         char *tag = xapGetValue("datastream","tag");
         char *value = xapGetValue("datastream","value");
+        char *min = xapGetValue("datastream","min");
+        char *max = xapGetValue("datastream","max");
 
         unsigned int idn = atoi(id);
         if(idn <= 0) {
@@ -110,7 +114,7 @@ void pachubeUpdate(void *userData)
 	} else { // missing?  Default to global feed id.
 	  feedn = g_feedid;
 	}
-        updateDatastream(feedn, idn, tag, atof(value));
+        updateDatastream(feedn, idn, tag, atof(value), min, max);
 }
 
 
@@ -164,6 +168,9 @@ void parseINI()
 	        id = getDynINI("feed",i,OPTIONAL);
 		wf->feed = id ? atoi(id) : g_feedid;
 		free(id);
+
+	        wf->min = getDynINI("min",i,OPTIONAL);
+	        wf->max = getDynINI("max",i,OPTIONAL);
 
                 wf->tag = getDynINI("tag",i,MANDATORY);
 	        wf->section = getDynINI("section",i,MANDATORY);

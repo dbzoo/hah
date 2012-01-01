@@ -101,15 +101,22 @@ end
 -- t - a serial configuration table
 -- config - a table keyed by NODEID of processing Nodules
 function monitor(t, config)
-   local msg = [[
+   local target = t["target"]
+   if target == nil then
+      target = "dbzoo.livebox.serial"
+   end
+   t["target"] = nil
+
+   local msg = string.format([[
 xap-header
 {
 class=Serial.Comms
-target=dbzoo.livebox.serial
+target=%s
 }
 Serial.Setup
 {
-]]
+]], target)
+
    for k,v in pairs(t) do
       msg = msg..k.."="..v.."\n"
    end
@@ -124,7 +131,7 @@ Serial.Setup
    -- Build all the Nodules
    for k,v in pairs(config) do
       if v.build then
-	 v:build(k, t.port)
+	 v:build(k, t.port, target)
       end
    end
 
@@ -162,14 +169,15 @@ end
 class.Nodule()
 
 -- id: the nodes UNIQUE ID as defined in the SKETCH
--- config: a table of configuration paramters
+-- config: a table of configuration parameters
 function Nodule:_init(config)
    self.cfg = config
 end
 
-function Nodule:build(id, port)
+function Nodule:build(id, port, target)
    self.cfg.id = id
    self.cfg.port = port
+   self.cfg.target = target
    self.lastProcessed = os.time()
    self.isalive = true
    if DEBUG then
@@ -208,13 +216,13 @@ function Nodule:sender(data)
 xap-header
 {
 class=Serial.Comms
-target=dbzoo.livebox.serial
+target=%s
 }
 Serial.Send
 {
 port=%s
 data=%s,%s s
-}]], self.cfg.port, data, self.cfg.id))
+}]], self.cfg.target, self.cfg.port, data, self.cfg.id))
 end
 
 -- Add a BSC endpoint to this Nodule

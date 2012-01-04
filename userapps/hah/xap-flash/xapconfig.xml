@@ -39,7 +39,7 @@
 				<offset>centre</offset>
 			</label>
 			<bsctext>
-			  	<fontsize>40</fontsize>
+			  	<fontsize>34</fontsize>
 				<align>centre</align>
 			</bsctext>			
 		</defaults>

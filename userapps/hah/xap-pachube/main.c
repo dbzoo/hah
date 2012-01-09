@@ -123,7 +123,7 @@ void pachubeUpdate(void *userData)
 static char *getDynINI(char *key, unsigned int id, int mandatory)
 {
         char dkey[32];
-        char value[128];
+        char value[129];
 
         sprintf(dkey,"%s%d",key,id);
         long n = ini_gets("pachube", dkey, "", value, sizeof(value), inifile);
@@ -140,7 +140,7 @@ static char *getDynINI(char *key, unsigned int id, int mandatory)
 /// Parse the INI file for additional configuration parameters.
 void parseINI()
 {
-        char apikey[100];
+        char apikey[129];
         long feedid, n;
 
         ini_gets("pachube","apikey","",apikey,sizeof(apikey),inifile);

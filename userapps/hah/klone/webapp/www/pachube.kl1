@@ -22,7 +22,7 @@ struct _datastream {
 } ds[32];
 
 static struct {
-	 char apikey[65];
+	 char apikey[129];
 	 char feedid[8];
 	 int count;
 	 char ufreq[4];
@@ -231,7 +231,7 @@ addEvent(window,"load",function() {
 
   <div class="setting">
     <div class="label">API Key</div>
-    <input maxlength="65" size="65" name="apikey" value="<%= ini.apikey %>"/>
+    <input maxlength="129" size="65" name="apikey" value="<%= ini.apikey %>"/>
   </div>
 
   <div class="setting">

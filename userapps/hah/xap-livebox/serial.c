@@ -367,6 +367,8 @@ int setupSerialPort(char *serialport, int baud)
         newtio.c_lflag = 0;
         newtio.c_cc[VTIME] = 0; // ignore timer
         newtio.c_cc[VMIN] = 0; // no blocking read
+        newtio.c_cc[VSTOP] = 0x13;
+        newtio.c_cc[VSTART] = 0x11;
         tcflush(fd, TCIFLUSH);
         tcsetattr(fd, TCSANOW, &newtio);
         gSerialfd = fd;

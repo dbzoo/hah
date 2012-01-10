@@ -55,13 +55,13 @@ static char *msg_query(char *args) {
  *   Ret: ok
  */
 static char *msg_action(char *arg) {
-	char *tuple_ptr;
-	char *tuple = strtok_r(arg," ", &tuple_ptr);
+        char *savepoint1, savepoint2;
+	char *tuple = strtok_r(arg," ", &savepoint1);
 
 	while(tuple) {
-		char *name = strtok(tuple,".");
-		char *subaddr = strtok(NULL,",");
-		char *state = strtok(NULL," ");
+	  char *name = strtok_r(tuple,".",&savepoint2);
+	  char *subaddr = strtok_r(NULL,",",&savepoint2);
+	  char *state = strtok_r(NULL," ",&savepoint2);
 		
 		info("name=%s subaddr=%s state=%s", name, subaddr, state);
 		if (name == NULL || state == NULL) {
@@ -76,7 +76,7 @@ static char *msg_action(char *arg) {
 			err("bad endpoint: %s", arg);
 		}
 		// Next action pair
-		tuple = strtok_r(NULL," ",&tuple_ptr);
+		tuple = strtok_r(NULL," ",&savepoint1);
 	}
 	return "ok";
 }

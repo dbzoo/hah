@@ -9,7 +9,7 @@ echo "`basename $0` running .."
 
 echo "Mounting filesystems"
 /bin/mount -t proc /proc /proc
-[ -f /proc/bus/usb/devices ] && mount -t usbdevfs none /proc/bus/usb
+/bin/mount -t usbdevfs none /proc/bus/usb
 /bin/mount -t tmpfs -o size=256k tmpfs /var
 /bin/mount -t devpts devpts /dev/pts
 

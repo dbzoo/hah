@@ -62,6 +62,7 @@ ccTag[] = {
                   {"tmprF", &infoEventTemp, "tempF", NULL, 4},
 		  // ch.total is UID 5
 		  // sensors start at 10 0x0A
+                  {"chH", &infoEventChannel, "ch", "H", 1}, // EDF branded
                   {NULL, NULL, NULL, NULL}
           };
 

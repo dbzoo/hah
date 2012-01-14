@@ -29,7 +29,7 @@ char serialPort[20];
 int hysteresis;
 char *interfaceName = "eth0";
 
-enum {CC128, CLASSIC, ORIGINAL} model;
+enum {CC128, CLASSIC, ORIGINAL, EDF} model;
 int currentSensor = -1;
 
 #define ST_NONE 0
@@ -44,6 +44,7 @@ bscEndpoint *ccTotal = NULL; // Endpoint to sum the Wattage over all Channels
 static int infoEventChannel(bscEndpoint *, char *);
 static int infoEventTemp(bscEndpoint *, char *);
 
+// CurrentCost branded units.
 // Lookup table that converts an XML tag into a bscEndpoint.
 // Once a tag is matched the next CDATA section will be its value.
 struct _ccTag
@@ -62,7 +63,6 @@ ccTag[] = {
                   {"tmprF", &infoEventTemp, "tempF", NULL, 4},
 		  // ch.total is UID 5
 		  // sensors start at 10 0x0A
-                  {"chH", &infoEventChannel, "ch", "H", 1}, // EDF branded
                   {NULL, NULL, NULL, NULL}
           };
 
@@ -222,6 +222,39 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
         }
 }
 
+/// SAX element (TAG) callback - EDF currentcost
+static void startElementEDFCB(void *ctx, const xmlChar *name, const xmlChar **atts)
+{
+        debug("<%s>", name);
+
+	if(strncmp("ch",name, 2) == 0) {
+	  char *ename, *subaddr;
+	  int (*infoEvent)(bscEndpoint *, char *);
+	    
+	  if(strncmp("chH",name, 3) == 0) { // <chH> is special
+	    ename = "ch";
+	    subaddr = "H";
+	    bscSetEndpointUID(1);
+	    infoEvent = &infoEventChannel;
+	  } else {
+	    ename = "sensor";
+	    subaddr = (char *)name+2;
+	    if(*subaddr == '0') subaddr++;
+	    // Sensors start at UID 0x0A.  <ch01> is first sensor
+	    bscSetEndpointUID(9 + atoi(subaddr));
+	    infoEvent = &sensorInfoEvent;
+	  }
+	  
+	  state = ST_DATA;
+	  currentTag = bscFindEndpoint(endpointList, ename, subaddr);
+	  if(currentTag == NULL) {
+	    currentTag = bscAddEndpoint(&endpointList, ename, subaddr, BSC_INPUT, BSC_STREAM, NULL, infoEvent);
+	    bscAddEndpointFilter(currentTag, INFO_INTERVAL);
+	  }
+	}
+}
+
+
 // Duplicate a string removing any leading ZERO's
 char *dupZero(char *s) {
 	if(s == NULL || *s == '\0') // No string?
@@ -237,7 +270,47 @@ char *dupZero(char *s) {
 	return strdup(s);
 }
 
-/// SAX cdata callback
+/// SAX cdata callback - EDF currentcost
+static void cdataBlockEDFCB(void *ctx, const xmlChar *ch, int len)
+{
+        char output[40];
+        int i;
+
+        if(state == ST_NONE)
+                return;
+
+        // Value to STRZ
+        for (i = 0; (i<len) && (i < sizeof(output)-1); i++)
+                output[i] = ch[i];
+        output[i] = 0;
+
+        debug("%s", output);
+        switch(state) {
+        case ST_DATA:
+                // If its different report it.
+                if(currentTag->text == NULL || strcmp(output, currentTag->text)) {
+                        // Rotate the text data value through the user data field and free it on update.
+                        if(currentTag->userData)
+                                free(currentTag->userData);
+                        currentTag->userData = (void *)currentTag->text;
+                        currentTag->text = output;
+
+                        debug("endpoint type %d", currentTag->type);
+			// Q. Can EDF units support binary IAMS ?
+                        if(currentTag->type == BSC_BINARY) {
+                                // 0 is off, 500 is ON.  We'll use any value != 0 as ON.
+                                bscSetState(currentTag, atoi(currentTag->text) ? BSC_STATE_ON : BSC_STATE_OFF);
+                        } else {
+                                bscSetState(currentTag, BSC_STATE_ON);
+                        }
+                        bscSendEvent(currentTag);
+                }
+                break;
+        }
+        state = ST_NONE;
+}
+
+/// SAX cdata callback - Currentcost
 static void cdataBlockCB(void *ctx, const xmlChar *ch, int len)
 {
         char output[40];
@@ -335,9 +408,14 @@ void parseXml(char *data, int size)
 
         memset(&handler, 0, sizeof(handler));
         handler.initialized = XML_SAX2_MAGIC;
-        handler.startElement = startElementCB;
+	if(model == EDF) {
+	  handler.startElement = startElementEDFCB;
+	  handler.characters = cdataBlockEDFCB;
+	} else {
+	  handler.startElement = startElementCB;
+	  handler.characters = cdataBlockCB;
+	}
         handler.endElement = endElementCB;
-        handler.characters = cdataBlockCB;
 
         state = ST_NONE;
         currentSensor = 0;
@@ -400,6 +478,7 @@ int setupSerialPort()
 	  cfmakeraw(&newtio);
 	  switch(model) {
 	  case CC128:
+	  case EDF:
 	    newtio.c_cflag = B57600 | CS8 | CLOCAL | CREAD ;
 	    break;
 	  case ORIGINAL:
@@ -455,6 +534,13 @@ void setupXap()
         } else if(strcasecmp(model_s,"ORIGINAL") == 0) {
                 info("Selecting CLASSIC ORIGINAL model");
                 model = ORIGINAL;
+	} else if(strcasecmp(model_s,"CC128") == 0) {
+                info("Selecting CC128 model");
+                model = CC128;
+        } else if(strcasecmp(model_s,"EDF") == 0) {
+                info("Selecting EDF model");
+                model = EDF;
+	  
         } else {
                 info("Selecting CLASSIC model");
         }
@@ -465,7 +551,7 @@ int main(int argc, char *argv[])
 {
         int i;
         printf("\nCurrent Cost Connector for xAP v12\n");
-        printf("Copyright (C) DBzoo, 2009-2010\n\n");
+        printf("Copyright (C) DBzoo, 2009-2012\n\n");
         strcpy(serialPort,"/dev/ttyUSB0");
 
         for(i=0; i<argc; i++) {
@@ -485,10 +571,14 @@ int main(int argc, char *argv[])
         // The model switch if provided overrides the INI setting.
         for(i=0; i<argc; i++) {
                 if(strcmp("-m", argv[i]) == 0 || strcmp("--model",argv[i]) == 0) {
-                        if(strcasecmp(argv[++i], "CC128") == 0) {
+		        i++;
+                        if(strcasecmp("CC128", argv[i]) == 0) {
                                 info("Command line override selecting CC128 model");
                                 model = CC128;
-                        } else if(strcasecmp(argv[++i], "ORIGINAL") == 0) {
+			} else if(strcasecmp("EDF", argv[i]) == 0) {
+                                info("Command line override selecting EDF model");
+                                model = EDF;
+                        } else if(strcasecmp("ORIGINAL", argv[i]) == 0) {
 	                        info("Command line override selecting CLASSIC ORIGINAL model");
 	                        model = ORIGINAL;
                         }

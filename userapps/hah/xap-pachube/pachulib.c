@@ -134,6 +134,7 @@ int connect_server(int *fd)
     	memset(&(direccion.sin_zero), 8,0);  
     	if (connect(*fd, (struct sockaddr *)&direccion, sizeof(struct sockaddr)) == -1) 
 	{
+	        close(*fd);
         	err_strerror("Err!! connect");
 	        return FALSE;
         }

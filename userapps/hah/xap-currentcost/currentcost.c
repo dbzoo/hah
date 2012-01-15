@@ -293,7 +293,7 @@ static void cdataBlockEDFCB(void *ctx, const xmlChar *ch, int len)
                         if(currentTag->userData)
                                 free(currentTag->userData);
                         currentTag->userData = (void *)currentTag->text;
-                        currentTag->text = output;
+                        currentTag->text = dupZero(output);
 
                         debug("endpoint type %d", currentTag->type);
 			// Q. Can EDF units support binary IAMS ?

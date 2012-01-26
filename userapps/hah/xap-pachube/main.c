@@ -102,7 +102,7 @@ void pachubeUpdate(void *userData)
         char *unit = xapGetValue("datastream","unit");
 
         unsigned int idn = atoi(id);
-        if(idn <= 0) {
+        if(idn <= 0 && strcmp("0",id)) {
                 warning("Invalid DATASTREAM section ID element: %s", id);
                 return;
         }

@@ -53,11 +53,15 @@ local ini = config.read("/etc/xap-livebox.ini")
 
 local uid = nil
 local instance = nil
+
+if ini['xap'] then
+   instance = ini.xap['instance']
+   if instance then instance = instance.."." end
+end
+
 if ini['plugboard'] then
    uid = ini.plugboard['uid']
    if uid then uid = tostring(uid) end
-   instance = ini.plugboard['instance']
-   if instance then instance = instance.."." end
    if ini.plugboard['scriptdir'] then scriptdir = ini.plugboard['scriptdir'] end
 end
 

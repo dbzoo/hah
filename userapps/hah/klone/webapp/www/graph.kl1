@@ -121,20 +121,14 @@ int i=0;
 for(i=0;i<ini.count;i++) {  
     io_printf(out, "<option value=\"%d\"", i);
     if (i == act) { io_printf(out, " selected"); }
-    io_printf(out, "> %s - %s </option>\n", ds[i].id, ds[i].tag);
+    io_printf(out, "> %s - %s - %s </option>\n", ds[act].feed, ds[i].id, ds[i].tag);
 }
 %>
 </select>
 </p>
 <fieldset>
 <%
-io_printf(out, "<legend>Feed "); 
-if (strcmp(ds[act].feed, "") == 0) { 
-    io_printf(out, "%s", ini.feedid); 
-} else { 
-    io_printf(out, "%s", ds[act].feed); 
-}
-io_printf(out, " : Datastream %s : %s </legend>", ds[act].id, ds[act].tag);
+io_printf(out, "<legend>Feed %s : Datastream %s : %s </legend>", ds[act].feed, ds[act].id, ds[act].tag);
 %>
     <div id="visualization" style="width: 750px; height: 340px;"></div>
 </fieldset>

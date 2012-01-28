@@ -106,7 +106,7 @@ function init(source, uid)
    defaultKeys = {source=source, uid=uid, v=12, hop=1}
 
    Select(handlePacket, getRxPort())
-   Timer(heartBeat, 60):start()
+   Timer(heartBeat, 60):start(true)
 end
 
 function process()

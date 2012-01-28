@@ -8,6 +8,7 @@
 static int reboot = 0;
 
 struct _datastream {
+         char feed[8];
 	 char id[4];
 	 char tag[20];
 } ds[32];
@@ -35,8 +36,13 @@ static void readIni() {
 	 }
 	 int i;
 	 for(i=0; i < ini.count; i++) {
+                  loadDynINI("feed", i, ds[i].feed, sizeof(ds[i].feed));
 		  loadDynINI("id", i, ds[i].id, sizeof(ds[i].id));
 		  loadDynINI("tag", i, ds[i].tag, sizeof(ds[i].tag));					 
+                  if (strcmp(ds[i].feed, "") == 0) { 
+                         strcpy(ds[i].feed, ini.feedid); 
+                  }
+
 	 }
 }
 
@@ -61,7 +67,7 @@ function drawVisualization(){
 	var headID = document.getElementsByTagName('head')[0];
 	var newScript = document.createElement('script');
 	newScript.type = 'text/javascript';
-	newScript.src = 'http://apps.pachube.com/history/archive_json.php?f=<%= ini.feedid %>&d=<%= ds[act].id %>&callback=process';
+	newScript.src = 'http://apps.pachube.com/history/archive_json.php?f=<%= ds[act].feed %>&d=<%= ds[act].id %>&callback=process';
 	headID.appendChild(newScript);
 }
 
@@ -111,17 +117,26 @@ google.setOnLoadCallback(drawVisualization);
 <form name="graph" action="<%= SCRIPT_NAME %>" method="post">
 <p>	 Graph datastream: <select name="action" size="1" onChange="graph.submit()">
 <%
-int i;
-for(i=0;i<ini.count;i++) {
-%><option value="<%= ds[i].id %>" <% if (i == act) { %>selected<% } %>><%= ds[i].id %> - <%= ds[i].tag %></option>
-<%
- }
+int i=0;
+for(i=0;i<ini.count;i++) {  
+    io_printf(out, "<option value=\"%d\"", i);
+    if (i == act) { io_printf(out, " selected"); }
+    io_printf(out, "> %s - %s </option>\n", ds[i].id, ds[i].tag);
+}
 %>
 </select>
 </p>
 <fieldset>
-	<legend>Datastream <%= ds[act].id %> : <%= ds[act].tag %></legend>
-    <div id="visualization" style="width: 550px; height: 340px;"></div>
+<%
+io_printf(out, "<legend>Feed "); 
+if (strcmp(ds[act].feed, "") == 0) { 
+    io_printf(out, "%s", ini.feedid); 
+} else { 
+    io_printf(out, "%s", ds[act].feed); 
+}
+io_printf(out, " : Datastream %s : %s </legend>", ds[act].id, ds[act].tag);
+%>
+    <div id="visualization" style="width: 750px; height: 340px;"></div>
 </fieldset>
 </div>
 <br/>

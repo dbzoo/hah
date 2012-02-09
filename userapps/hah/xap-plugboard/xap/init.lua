@@ -150,7 +150,7 @@ end
 function Timer:start(initial)
    self.isalive = true
    if initial == true then
-      self.ttl = 2 -- delay 2 seconds so we fire in xap.process()
+      self.ttl = os.time() + 2 -- delay 2 seconds so we fire in xap.process()
    else
      self:reset()
    end

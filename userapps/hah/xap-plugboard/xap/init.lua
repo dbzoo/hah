@@ -150,7 +150,7 @@ end
 function Timer:start(initial)
    self.isalive = true
    if initial == true then
-      self.ttl = 0
+      self.ttl = 2 -- delay 2 seconds so we fire in xap.process()
    else
      self:reset()
    end
@@ -252,11 +252,12 @@ function Frame:_init(msg)
 end
 
 function Frame:getValue(section, key)
+  section = section:lower()
   if self[section] then
     if key == nil then
       return FILTER_ANY
     end
-    return self[section][key]
+    return self[section][key:lower()]
   else
     return nil
   end

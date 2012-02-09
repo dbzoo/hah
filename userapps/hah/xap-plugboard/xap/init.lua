@@ -106,7 +106,7 @@ function init(source, uid)
    defaultKeys = {source=source, uid=uid, v=12, hop=1}
 
    Select(handlePacket, getRxPort())
-   Timer(heartBeat, 60):start(true)
+   Timer(heartBeat, 60):start()
 end
 
 function process()
@@ -150,7 +150,7 @@ end
 function Timer:start(initial)
    self.isalive = true
    if initial == true then
-      self.ttl = os.time() + 2 -- delay 2 seconds so we fire in xap.process()
+      self.ttl = 0
    else
      self:reset()
    end

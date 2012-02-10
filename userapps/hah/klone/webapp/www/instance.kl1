@@ -100,7 +100,7 @@ function reboot(F) {
 <form name="frmControl" action="<%= SCRIPT_NAME %>" method="post">
 <input type="hidden" name="action" />
 <h2>HAH Instance</h2>
-<p>These settings should only need to be changed if you have more then one HAH box running on the same subnet.</p>
+<p>These settings should only need to be changed if you have more then one HAH box running on the same subnet.<br/>You must also ensure that each has a unique MAC address via the <a href="/setup.kl1">setup<a> page</p>
 
 <fieldset>
   <legend>Instance Settings</legend>

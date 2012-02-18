@@ -55,7 +55,7 @@ static char *msg_query(char *args) {
  *   Ret: ok
  */
 static char *msg_action(char *arg) {
-        char *savepoint1, savepoint2;
+        char *savepoint1, *savepoint2;
 	char *tuple = strtok_r(arg," ", &savepoint1);
 
 	while(tuple) {

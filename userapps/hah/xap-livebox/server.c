@@ -72,8 +72,6 @@ static char *msg_action(char *arg) {
 		if (endpoint) {
 			bscSetState(endpoint, bscDecodeState(state)); // Take action
 			bscSendCmdEvent(endpoint);
-			// issue 37 - Xon/Xoff should have solved this but isn't working !?
-			if(strcmp(name,"rf") == 0) usleep(500*1000);  // 500ms
 		} else {
 			err("bad endpoint: %s", arg);
 		}

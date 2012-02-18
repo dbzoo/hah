@@ -21,7 +21,7 @@ INI file processing
 #define MAXCHANNEL 16
 
 const char *inifile = "/etc/xap-livebox.ini";
-
+static long rfdelay;
 struct unassignedROMID *unassignedROMIDList = NULL;
 
 /** Generate an event/info and lookup the displaytext
@@ -106,6 +106,7 @@ static void cmdURF(bscEndpoint *e)
 		strlcat(serial_cmd, rf, sizeof(serial_cmd));
 		
 		serialSend(serial_cmd);
+		usleep(rfdelay);   // issue 37
 	} else {
 		notice("section [rf] key %s not found", relay_key);
                 bscSetState(e, BSC_STATE_UNKNOWN);		
@@ -422,6 +423,8 @@ void addIniEndpoints()
                         char buff[3];
                         int devices;
 
+			rfdelay = ini_getl(section, "delay", 500, inifile);
+			rfdelay *= 1000; // ms to uS
                         devices = ini_getl(section, "devices", -1, inifile);
                         if (devices > 96) {
 				n = 96; // See livebox.c for range of UID mapping.

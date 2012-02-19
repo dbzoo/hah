@@ -128,7 +128,7 @@ for(i=1; i<=ini.devicesrf; i++) {
   </div>
   <div class="setting">
     <div class="label">RF Delay</div>
-	<input class="num" type="text" name="rf.delay" onblur="valid_range(this,0,2000,'RF Delay')" value="<% io_printf(out,"%d",ini.rfdelay); %>" maxlength="4" size="4"/>
+	<input class="num" type="text" name="rf.delay" onblur="valid_range(this,0,2000,'RF Delay')" value="<% io_printf(out,"%d",ini.rfdelay); %>" maxlength="4" size="4"/> milliseconds
   </div>
 </fieldset>
 <fieldset>

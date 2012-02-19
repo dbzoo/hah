@@ -435,6 +435,8 @@ void serialInputHandler(int fd, void *data)
         static int serial_cursor = 0;
         int i;
         int len;
+	char *ch;
+	static int bstate = 0, estate = 0;
 
         debug("(fd:%d)(len:%d)(xml:%s)", fd, serial_cursor, serial_xml);
         while((len = read(fd, serial_buff, sizeof(serial_buff))) > 0) {		
@@ -443,25 +445,41 @@ void serialInputHandler(int fd, void *data)
 				putchar(serial_buff[i]);
 			putchar('\n');
 		}
-                for(i=0; i < len; i++) {
-                        if(serial_buff[i] == '\r' || serial_buff[i] == '\n')
+                for(ch = &serial_buff[0], i=0; i < len; i++, ch++) {
+                        if(*ch == '\r' || *ch == '\n')
                                 continue;
                         // Prevent buffer overruns.
                         if(serial_cursor == sizeof(serial_xml)-1) {
                                 serial_cursor = 0;
                         }
-                        serial_xml[serial_cursor++] = serial_buff[i];
+                        serial_xml[serial_cursor++] = *ch;
                         serial_xml[serial_cursor] = 0;
 
-                        if(strstr(serial_xml,"</msg>")) {
-				debug("EOM");
-                                if(strncmp(serial_xml,"<msg>",5) == 0) {
-                                        parseXml(serial_xml, serial_cursor);
-                                }
-				serial_cursor = 0;
-				serial_xml[0] = 0;			
-                        }
-                }
+			if (bstate == 0 && *ch == '<') bstate = 1;
+			else if (bstate == 1 && *ch == 'm') bstate = 2;
+			else if (bstate == 2 && *ch == 's') bstate = 3;
+			else if (bstate == 3 && *ch == 'g') bstate = 4;
+			else if (bstate == 4 && *ch == '>' && serial_cursor > 5) {
+			  strcpy(serial_xml,"<msg>");
+			  serial_cursor = 5;
+			  bstate = 0;
+			}
+			else 
+			  bstate = 0;
+
+			if (estate == 0 && *ch == '<') estate = 1;
+			else if (estate == 1 && *ch == '/') estate = 2;
+			else if (estate == 2 && *ch == 'm') estate = 3;
+			else if (estate == 3 && *ch == 's') estate = 4;
+			else if (estate == 4 && *ch == 'g') estate = 5;
+			else if (estate == 5 && *ch == '>') {
+			  parseXml(serial_xml, serial_cursor);
+			  serial_cursor = 0;
+			  serial_xml[0] = 0;			
+			  estate = 0;
+                        } else 
+			  estate = 0;
+		}
         }
 }
 

@@ -9,7 +9,11 @@ subsystem="hub pachube livebox iserver web sms serial currentcost twitter google
 
 start_web() {
     rm -f /tmp/klone_sess*
-    /usr/bin/kloned    
+    if [ -f /etc/kloned.conf ]; then
+	/usr/bin/kloned -f /etc/kloned.conf
+    else
+	/usr/bin/kloned
+    fi
 }
 
 stop_web() {

@@ -301,6 +301,7 @@ klone: libcurl
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/klone/kloned $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/kloned
+	install -m 644  $(HAH_DIR)/klone/webapp/etc/kloned.conf $(INSTALL_DIR)/etc_ro_fs
 
 penlight:
 	install -m 755 -d $(INSTALL_DIR)/usr/share/lua/5.1/pl

@@ -16,6 +16,10 @@ void resetOneWireEndpoints();
 struct tempSensor {
 	time_t lastSerialEvent;
 	char romid[19]; // 64bit 1wire address
+        float hysteresis;
+        float offset;
+        char *label;
+        char prevValue[6]; // -55.0 to 127.0
 };
 
 struct unassignedROMID {

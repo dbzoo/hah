@@ -68,9 +68,27 @@ int infoEventBinary(bscEndpoint *e, char *clazz)
 */
 static int infoEvent1wire (bscEndpoint *e, char *clazz)
 {
-        // [1wire]
-        // sensor1.label=
-        infoEventLabeled(e, clazz, "sensor", e->text);
+	struct tempSensor *userData = (struct tempSensor *)e->userData;
+
+	float new = atof(e->text);
+	if(userData->offset) { // recalibate
+	  snprintf(e->text, sizeof(e->text),"%.1f", new + userData->offset);
+	}
+	float old = atof(userData->prevValue);
+
+        // Alway report INFO events so we can repond to xAPBSC.query + Timeouts.
+        // xapBSC.event are only emitted based on the hystersis or if they have never been reported.
+        if(strcmp(clazz, BSC_INFO_CLASS) == 0 || new > old + userData->hysteresis || new < old - userData->hysteresis || e->last_report == 0) {
+		// Configure the displayText optional argument.
+		if(userData->label) {
+			if(e->displayText == NULL)
+				e->displayText = (char *)malloc(64);
+			snprintf(e->displayText, 64, "%s %s", userData->label, e->text);
+		}
+		strlcpy(userData->prevValue, e->text, sizeof(userData->prevValue));
+		return 1; // trigger event
+	}
+        return 0; // no update
 }
 
 /** Handle xapBSC.cmd for the RF endpoints (AVR rev=1)
@@ -205,7 +223,7 @@ static int addOneWireIniEndpoints(int mode)
 {
 	long n;
 	int i;
-        char buff[17];
+        char buff[30], value[30];
 	const int maxDevices = firmwareMajor() > 1 ? 31 : 15;
 	char romid[19];
 
@@ -226,15 +244,30 @@ static int addOneWireIniEndpoints(int mode)
 				warning("sensor%d.romid : Missing or invalid ROMID", i);
 				continue;
 			}
-			
 		}
 
 		info("Creating endpoint");
 		snprintf(buff,sizeof(buff),"%d", i);
 		bscEndpoint *e = bscAddEndpoint(&endpointList, "1wire", buff, BSC_INPUT, BSC_STREAM, NULL, &infoEvent1wire);
 
-		struct tempSensor *sensor = (struct tempSensor *)malloc(sizeof(struct tempSensor));
-		sensor->lastSerialEvent = 0;
+		struct tempSensor *sensor = (struct tempSensor *)calloc(sizeof(struct tempSensor),1);
+
+		snprintf(buff,sizeof(buff),"sensor%d.hysteresis", i);
+		info("Looking for %s", buff);
+		ini_gets("1wire", buff, "0", value, sizeof(value), inifile);
+		float hysteresis = atof(value);
+		if (hysteresis > 0) sensor->hysteresis = hysteresis;
+			
+		snprintf(buff,sizeof(buff),"sensor%d.offset", i);
+		info("Looking for %s", buff);
+		ini_gets("1wire", buff, "0", value, sizeof(value), inifile);
+		sensor->offset = atof(value);
+
+		snprintf(buff,sizeof(buff),"sensor%d.label", i);
+		info("Looking for %s", buff);
+		ini_gets("1wire", buff, "", value, sizeof(value), inifile);
+		if(*value) sensor->label = strdup(value);
+		
 		if(firmwareMajor() > 1) strcpy(sensor->romid, romid);
 		e->userData = sensor;
 
@@ -279,6 +312,7 @@ void resetOneWireEndpoints()
 			}
 
 			struct tempSensor *sensor = (struct tempSensor *)bscDelEndpoint(e);
+			if(sensor->label) free(sensor->label);
 			free(sensor);
                 }
         }

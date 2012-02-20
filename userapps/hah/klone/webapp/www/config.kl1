@@ -40,6 +40,8 @@ static void submit_form() {
 	if(AVRmajor > 1) {
 	  submit_dynkeys(request,"1wire","sensor%d.romid", ini.devices1wire);
 	}
+	submit_dynkeys(request,"1wire","sensor%d.hysteresis", ini.devices1wire);
+	submit_dynkeys(request,"1wire","sensor%d.offset", ini.devices1wire);
 }
 
 %>
@@ -137,7 +139,7 @@ for(i=1; i<=ini.devicesrf; i++) {
 if(ini.devices1wire > 0) {
 %>
 <table>
-<tr><th>Item</th><th>Label</th>
+<tr><th>Item</th><th>Label</th><th>Offset</th><th>Hysteresis</th>
 <%
 if(AVRmajor > 1) io_printf(out,"<th>ROM ID</th>");
 %>
@@ -146,6 +148,8 @@ if(AVRmajor > 1) io_printf(out,"<th>ROM ID</th>");
 for(i=1; i<=ini.devices1wire; i++) {
    io_printf(out,"<tr><td>Sensor %d</td>", i);
    io_printf(out,"<td><input type=\"text\" name=\"sensor%d.label\" value=\"%s\"></td>", i, iniGetDynLabel("sensor",i));
+   io_printf(out,"<td><input type=\"text\" size=\"6\" name=\"sensor%d.offset\" value=\"%s\"></td>", i, iniGetDynKey("1wire","sensor%d.offset",i));
+   io_printf(out,"<td><input type=\"text\" size=\"6\" name=\"sensor%d.hysteresis\" value=\"%s\"></td>", i, iniGetDynKey("1wire","sensor%d.hysteresis",i));
    if(AVRmajor > 1) {
 	   io_printf(out,"<td><input size=\"19\" maxlength=\"18\" type=\"text\" name=\"sensor%d.romid\" value=\"%s\"></td>", 
 		     i, iniGetDynKey("1wire","sensor%d.romid", i));

@@ -194,3 +194,42 @@ function incomingCmd(frame, e)
    end
 end
 
+function send(body)
+   assert(type(body) == "table", "Parameter must be a table")
+   assert(body.target, "Missing target")
+
+   local msg = string.format([[
+xap-header
+{
+target=%s
+class=xAPBSC.cmd
+}
+output.state.1
+{
+id=*
+]], body.target)
+
+  body.target=nil
+  body.state = decodeState(body.state)
+
+  for k,v in pairs(body) do
+    msg = msg .. k.."="..v.."\n"
+  end
+  msg = msg .. "}"
+
+  xap.sendShort(msg)
+end
+
+function sendText(target, text, state)
+  state = state or "on"
+  send{target=target, text=text, state=state}
+end
+
+function sendState(target, state)
+  send{target=target, state=state}
+end
+
+function sendLevel(target, level, state)
+  state = state or "on"
+  send{target=target, level=level, state=state}
+end

@@ -7,6 +7,7 @@
 module(...,package.seeall)
 
 require("xap")
+require("xap.bsc")
 
 info={
    version="1.0", description="Relay 1 Auto off"
@@ -14,16 +15,7 @@ info={
 
 function relayOff(timer)
   print("Relay 1 auto off")
-  xap.sendShort([[xap-header
-{
-target=dbzoo.livebox.Controller:relay.1
-class=xAPBSC.cmd
-}
-output.state.1
-{
-id=*
-state=off
-}]])
+  bsc.sendState("dbzoo.livebox.Controller:relay.1","off")
   timer:delete()
 end
 

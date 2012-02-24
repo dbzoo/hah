@@ -8,6 +8,7 @@ both xap-twitter and xap-googlecal
 module(...,package.seeall)
 
 require("xap")
+require("xap.bsc")
 require("string")
 rex = require("rex_posix")
 
@@ -18,29 +19,17 @@ info={
 pat={
     [rex.new("(relay) ([1-4]) (on|off)")]=function(m) rfRelayCmd(m) end,
     [rex.new("(rf) ([0-9]+) (on|off)")]=function(m) rfRelayCmd(m) end,
-    [rex.new("tweet (.*)")]=function(m) tweet(unpack(m)) end
+    [rex.new("tweet (.*)")]=function(m) tweet(m) end
 }
 
-function sendBscCmd(target,body)
-  xap.sendShort(string.format([[xap-header
-{
-target=%s
-class=xAPBSC.cmd
-}
-output.state.1
-{
-id=*
-%s
-}]], target, body))
-end
-
-function tweet(msg)
-  sendBscCmd("dbzoo.livebox.Twitter","text="..msg)
+function tweet(m)
+  local msg = unpack(m)
+  bsc.sendText("dbzoo.livebox.Twitter",msg)
 end
 
 function rfRelayCmd(t)
   local addr1,addr2,state = unpack(t)
-  sendBscCmd(string.format("dbzoo.livebox.Controller:%s.%s",addr1,addr2),"state="..state)
+  bsc.sendState(string.format("dbzoo.livebox.Controller:%s.%s",addr1,addr2),state)
 end
 
 function aliasEngine(frame)

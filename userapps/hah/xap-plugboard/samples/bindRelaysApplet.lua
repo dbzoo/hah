@@ -9,6 +9,7 @@
 module(...,package.seeall)
 
 require("xap")
+require("xap.bsc")
 require("pl.list")
 
 info={
@@ -51,17 +52,7 @@ local function relayBind(relays)
    xap.Timer(oneShot, 1):start()
 
    for i in List.iter(relays) do
-     xap.sendShort(string.format([[xap-header
-{
-target=%s%s
-class=xAPBSC.cmd
-}
-output.state.1
-{
-id=*
-state=%s
-}]], source, i, state))
-
+     bsc.sendState(source .. tostring(i), state)
    end
 end
 

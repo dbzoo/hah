@@ -72,7 +72,12 @@ static int infoEvent1wire (bscEndpoint *e, char *clazz)
 
 	float new = atof(e->text);
 	if(userData->offset) { // recalibate
-	  snprintf(e->text, sizeof(e->text),"%.1f", new + userData->offset);
+	  // As e->text was malloc'd to the right size its possible adding an offet will require
+	  // another digit -> thus more memory.  Use bscSetText to free/strdup the buf[]
+	  new += userData->offset;
+	  char buf[6]; // -55.0 to 127.0  (6 chars max)
+	  snprintf(buf, sizeof(buf),"%.1f", new);
+	  bscSetText(e, buf);
 	}
 	float old = atof(userData->prevValue);
 

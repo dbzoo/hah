@@ -1,6 +1,7 @@
 #!/usr/bin/lua
 -- $Id$
 lapp = require("pl.lapp")
+config = require("pl.config")
 local args = lapp
 [[
   Various flags and option types
@@ -18,5 +19,14 @@ command
 text=%s
 }]],args.alias)
 
-xap.init("dbzoo.lua.aliasmsg","FF00DF00")
+local ini = config.read("/etc/xap-livebox.ini")
+local instance = nil
+
+if ini['xap'] then
+   instance = ini.xap['instance']
+   if instance then instance = instance.."." end
+end
+if instance == nil then instance="" end
+
+xap.init("dbzoo.livebox."..instance.."aliasmsg","FF00DF00")
 xap.sendShort(cmd)

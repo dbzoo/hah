@@ -11,12 +11,12 @@
 #define PRESCALER256
 
 // The datapin defines the pin which is wired-up to the Data-output-pin of the receiver-module.
-unsigned int DATAPIN = 14;      // The pin number of the data signal
+unsigned int DATAPIN = 3;  // The pin number of the data signal : (Digital 3 = chip pin 5 - PD3
 
 // If the receiver-module has a RSSI-output-pin, this pin can be wired-up to only process strongly received signals.
 // If the receiver-module does not have a RSSI-output-pin, the data-output-pin can be used as a trigger on every signal (even noise). 
-unsigned int RSSIPIN    = 10; // The pin number of the RSSI signal
-unsigned int RSSIIRQNR  = 0;  // The irq number of the RSSI pin
+unsigned int RSSIPIN    = 3; // The pin number of the RSSI signal
+unsigned int RSSIIRQNR  = 1;  // The irq number of the RSSI pin - 0 (PD2) and 1 (PD3)
 
 
 // The timings of the pulses received from the receiver-module will be stored in this Circul/Ring-buffer. 

@@ -1,12 +1,15 @@
-/* Universal RF Rx
- *
+/* $Id$
+ * Universal RF Rx
+ * 
  * Code heavily borrowed from: http://arduinoha.googlecode.com
 */
 
-// Comment both for PRODUCTION.
+// Comment all for PRODUCTION.
 #define ShowErrors
 #define ShowReceivedCommands
+#define ShowReceivedPulses
 
+// DEF
 #define SerialBaudrate 115200
 #define PRESCALER256
 
@@ -142,7 +145,7 @@ void rssiPinTriggered(void)
   {
     sendreceivestate = listeningforpulses;
     prevTime = 0;//ICR1;
-     // reset the counter as close as possible when the rssi pin is triggered (to acheive accuracy)
+     // reset the counter as close as possible when the rssi pin is triggered (to achieve accuracy)
     TCNT1 = 0;
     TIMSK1=1<<ICIE1 /* enable capture interrupt */ | 1<<TOIE1 /* enable timer overflow interrupt */; 
     TIFR1 |= 1 << TOV1; //clear the "pending overflow interupt" flag

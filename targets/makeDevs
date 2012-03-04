@@ -33,6 +33,7 @@ mknod $ROOTFS/dev/urandom c 1 9
 echo USB Serial
 for i in 0 1 2 3 4 5 6 7 8 9; do
   mknod $ROOTFS/dev/ttyUSB$i c 188 $i
+  mknod $ROOTFS/dev/ttyACM$i c 166 $i
 done
 
 echo Create Broadcom specific devices

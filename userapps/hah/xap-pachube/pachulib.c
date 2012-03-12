@@ -151,7 +151,7 @@ int send_data(int fd, char *buffer, unsigned int long_buffer)
 	int ret = 0;
 
 
-	info("\nSEND_DATA:\n%s\n",buffer);
+	info("send %d bytes\n%s\n", long_buffer, buffer);
 
 	while (long_buffer)	
 	{
@@ -159,7 +159,7 @@ int send_data(int fd, char *buffer, unsigned int long_buffer)
 
 		if (ret == -1)
 		{
-			err_strerror("Err! send");
+			err_strerror("Sending to pachube");
 			close(fd);
 			return FALSE;
 		}
@@ -170,20 +170,19 @@ int send_data(int fd, char *buffer, unsigned int long_buffer)
 }
 int read_data(int fd, char *buffer)
 {
-
 	int long_buffer = MSG_MAX;
 	int ret = 0;
 	
-	char * ptoB = buffer;
+	char *ptoB = buffer;
+        memset((void *)buffer, 0, MSG_MAX); // clear receiver buffer
 
 	while (long_buffer>0)
 	{
-		ret=recv(fd, ptoB,long_buffer, MSG_NOSIGNAL);
-		//printf("\nret %d, long %d\n",ret,long_buffer);
-		//printf("recibido %s\n",buffer);
+		ret=recv(fd, ptoB,long_buffer, MSG_WAITALL);
+		info("received %d bytes, bufsize %d bytes\n%s\n", ret, long_buffer, ptoB);
 		if (ret<0)
 		{
-			err_strerror("Err! recv");	
+			err_strerror("Receiving data from pachube");	
 			close(fd);
 			return FALSE;
 		}
@@ -193,10 +192,9 @@ int read_data(int fd, char *buffer)
 			close(fd);
 			if (long_buffer == MSG_MAX) //no-data
 			{
-				err_strerror("Err!! desconexion en recv");			
+				err_strerror("No data from pachube");			
 				return FALSE;
 			}
-			*ptoB='\0';
 			return TRUE;
 			
 		}
@@ -208,20 +206,11 @@ int read_data(int fd, char *buffer)
 }
 int recover_status(char *msg)
 {
-
-	
-	//Server return codes:
 	int return_code;
-
-	info("\n__READ_DATA:\n%s\nEND_DATA__\n",msg);
-
 	if (sscanf(msg,"HTTP/1.1 %d*",&return_code) != 1) return FALSE;
-
-	debug("HTTP return code : %d\n", return_code);
-
+	info("HTTP return code : %d\n", return_code);
 	if (return_code == RET_OK)
 	{
-		//printf("OK\n");	
 		return TRUE;
 	}
 /* TODO 
@@ -347,10 +336,12 @@ int create_environment(char *api_key, char *environment, unsigned int *env_id) /
 		sprintf(environment,"<eeml xmlns=\"http://www.eeml.org/xsd/005\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.eeml.org/xsd/005 http://www.eeml.org/xsd/005/005.xsd\"><environment><title>%s</title></environment></eeml>",DEFAULT_ENV);
 	}
 
-	sprintf(msg,"POST /api/feeds/ HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",HOST, api_key,strlen(environment));
+	snprintf(msg,sizeof(msg),"POST /api/feeds/ HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",HOST, api_key,strlen(environment));
 	//add body to msg:
-	sprintf(msg,"%s%s",msg,environment);
-
+	if(snprintf(msg,sizeof(msg),"%s%s",msg,environment) > MSG_MAX) {
+	  die("not sending due to buffer truncation\n%s", msg); // we need code intervention now so log and die
+	  return FALSE; // not reached
+	}
 
 	if (!connect_server(&fd)) return FALSE;
 

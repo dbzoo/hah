@@ -331,6 +331,8 @@ int create_environment(char *api_key, char *environment, unsigned int *env_id) /
 	char msg[MSG_MAX];
 	int fd;
 
+	if (!connect_server(&fd)) return FALSE;
+
 	if (environment == NULL) //default environment: default_title
 	{
 		sprintf(environment,"<eeml xmlns=\"http://www.eeml.org/xsd/005\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.eeml.org/xsd/005 http://www.eeml.org/xsd/005/005.xsd\"><environment><title>%s</title></environment></eeml>",DEFAULT_ENV);
@@ -342,8 +344,6 @@ int create_environment(char *api_key, char *environment, unsigned int *env_id) /
 	  die("not sending due to buffer truncation\n%s", msg); // we need code intervention now so log and die
 	  return FALSE; // not reached
 	}
-
-	if (!connect_server(&fd)) return FALSE;
 
 	if (!send_data(fd,msg,strlen(msg)+1)) return FALSE;
 
@@ -435,33 +435,30 @@ int update_environment(unsigned int env_id, char *api_key, char *environment,dat
 {
 	char msg[MSG_MAX];
 	int fd = 0;
-	
-	
-
 	char * format_str = data_format_tp_str[format]; 
-
-//printf("formato dice: %s , tipo: %d\n",format_str,format);
 
 	if ((format=!XML)&&(format!=CSV)) return FALSE; 
 
-	//add header to msg:
-	//TODO : xml now, more if needed in future..
-	sprintf(msg,"PUT /api/feeds/%d.%s HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,format_str,HOST, api_key,strlen(environment));
-	//add body to msg:
-	sprintf(msg,"%s%s",msg,environment);
-
 	if (!connect_server(&fd)) return FALSE;
 
-	if (!send_data(fd,msg,strlen(msg)+1)) return FALSE;
+	//add header to msg:
+	//TODO : xml now, more if needed in future..
+	sprintf(msg,"PUT /api/feeds/%d.%s HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,format_str,HOST,api_key,strlen(environment));
 
+	//add body to msg:
+	int bufsiz = strlen(msg)+strlen(environment)+1;
+	char *sendMsg = (char *)malloc(bufsiz);
+	strcpy(sendMsg, msg);
+	strcat(sendMsg, environment);
+
+	int ret = send_data(fd,sendMsg,bufsiz);
+	free(sendMsg);
+	if (!ret) return FALSE;
 	if (!read_data(fd, msg)) return FALSE;
-
 	if (!recover_status(msg)) return FALSE;
 
 	disconnect_server(fd);
-	
 	return TRUE;
-
 }
 
 //datastream functions

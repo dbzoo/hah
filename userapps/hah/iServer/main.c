@@ -59,6 +59,11 @@ Client;
 
 static struct queue *tx_queue;
 
+typedef struct {
+  Client *client;
+  char *msg;
+} ClientPacket;
+
 int yylex();
 void *yy_scan_buffer();
 YYSTYPE yylval;
@@ -175,26 +180,35 @@ void injectFrameSequence(char *buf, int frame)
  */
 void broadcastPacket(Client *c, char *msg)
 {
-  c->txFrame++;
-  if (opt_f) injectFrameSequence(msg, c->txFrame);
-  //Store a XAP packet to the queue for processing in the txLoop()
-  queue_push(tx_queue, mem_strdup(msg));
+  ClientPacket *p = (ClientPacket *)mem_malloc(sizeof(ClientPacket), M_NONE);
+  p->client = c;
+  p->msg = mem_strdup(msg);
+  queue_push(tx_queue, p);
 }
 
 /** UDP - Transmit thread
  */
 void *txLoop()
 {
-  char *msg;
+  ClientPacket *p;
+  char out[XAP_DATA_LEN];
   for(;;)
   {
     // Read data from Tx QUEUE - blocking.
-    info("Read from queue");
-    msg = queue_pop(tx_queue);
-    xapSend(msg);
-    mem_free(msg);
-    if(tx_queue->head) // more data?  Pace ourselves.
-      usleep(opt_c);
+    p = queue_pop(tx_queue);
+    p->client->txFrame++;
+    info("TX frame %d for client %s", p->client->txFrame, p->client->source);
+    if (opt_f) {
+      // inject assumes the buffer is large enough for memory shuffling.
+      strcpy(out, p->msg);
+      injectFrameSequence(out, p->client->txFrame);
+      xapSend(out);
+    } else {
+      xapSend(p->msg);
+    }
+    mem_free(p->msg);
+    mem_free(p);
+    usleep(opt_c); // pace
   }
   pthread_exit(NULL); /* never reached */
 }
@@ -554,7 +568,7 @@ void clientListener(int fd, void *data)
 Client *addClient(int fd, struct sockaddr_in *remote)
 {
   char *myip = inet_ntoa(remote->sin_addr);
-  Client *c = (Client *)calloc(1, sizeof(Client));
+  Client *c = (Client *)mem_malloc(sizeof(Client), M_ZERO);
   if(c == NULL)
   {
     alert("Out of memory - Adding client from %s", myip);

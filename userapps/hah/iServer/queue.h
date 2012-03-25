@@ -9,6 +9,7 @@ struct queue_node {
 struct queue {
 	struct queue_node *	head;
 	struct queue_node *	tail;
+        unsigned int length;
 
 	pthread_mutex_t		mutex;
 	pthread_cond_t		cond;

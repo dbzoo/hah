@@ -197,7 +197,7 @@ void *txLoop()
     // Read data from Tx QUEUE - blocking.
     p = queue_pop(tx_queue);
     p->client->txFrame++;
-    info("TX frame %d for client %s", p->client->txFrame, p->client->source);
+    info("TX frame %d for client %s : queue len %d", p->client->txFrame, p->client->source, tx_queue->length);
     if (opt_f) {
       // inject assumes the buffer is large enough for memory shuffling.
       strcpy(out, p->msg);

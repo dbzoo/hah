@@ -15,6 +15,7 @@ struct queue *queue_new(void)
 	queue		= mem_malloc(sizeof(struct queue), M_ZERO);
 	queue->head	= NULL;
 	queue->tail	= NULL;
+	queue->length = 0;
 
 	if (pthread_mutex_init(&queue->mutex, NULL)) {
 		mem_free(queue);
@@ -48,6 +49,7 @@ int queue_push(struct queue *queue, void *data)
 	if (queue->head == NULL)
 		queue->head = node;
 
+	queue->length++;
 	pthread_mutex_unlock(&queue->mutex);
 	pthread_cond_broadcast(&queue->cond);
 
@@ -73,6 +75,7 @@ void *queue_pop(struct queue *queue)
 		queue->tail = NULL;
 
 	data		= node->data;
+	queue->length--;
 	mem_free(node);
 
 	pthread_mutex_unlock(&queue->mutex);

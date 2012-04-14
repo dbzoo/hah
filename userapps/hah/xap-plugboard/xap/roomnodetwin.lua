@@ -47,6 +47,15 @@ struct {
    local li, mo, hu, te, lo, te2 = jeenode.bitslicer(data,8,1,7,-10,1,-10)
    te = te  / 10
    te2 = te2  / 10
+
+-- Add the temperature offset if one has been supplied
+   if self.cfg.toff then
+      te = te + self.cfg.toff
+   end
+   if self.cfg.toff2 then
+      te2 = te2 + self.cfg.toff2
+   end
+
    -- The keys here must match the key values from the self:add{key=x}
    Nodule.process(self,{light=li,moved=mo,humi=hu,temp=te,lobat=lo,temp2=te2})
 end

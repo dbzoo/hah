@@ -151,7 +151,7 @@ function grimreaper(_, config)
 	    print(string.format("Reaping %s alive=%s ttl=%s timeout=%s", 
 				tostring(v),
 				utils.choose(v.isalive == true,"true","false"),
-				v.cfg.ttl,
+				v.cfg.ttl, 
 				now-v.lastProcessed))
 	    
 	 end
@@ -181,7 +181,7 @@ function Nodule:build(id, port, target)
    self.lastProcessed = os.time()
    self.isalive = true
    if DEBUG then
-      print('build '.. tostring(self) .. "\t" .. "TTL=" .. tostring(self.cfg.ttl) .. "\tTOFF=" .. tostring(self.cfg.toff) .. "\tTOFF2=" .. tostring(self.cfg.toff2))
+      print('build '.. tostring(self))
    end
 end
 
@@ -269,18 +269,6 @@ function Nodule:process(m)
       local e = self[endpointname]
       if e then
 	 if e.type == bsc.STREAM then
-		-- Check for a temperature reading and add the offset 
-		-- to if it is available
-		if endpointname == "temp" then
-			if self.cfg.toff then
-			  v = v + self.cfg.toff
-			end
-		end
-		if endpointname == "temp2" then
-			if self.cfg.toff2 then
-			  v = v + self.cfg.toff2
-			end
-		end
 	    -- did its value just change?
 	    if e.text ~= v then
 	       e:setText(v)
@@ -295,10 +283,6 @@ function Nodule:process(m)
 	 end
       end
    end
-    if DEBUG then
-		print("\ttoff="..tostring(self.cfg.toff))
-		print("\ttoff2="..tostring(self.cfg.toff2))
-    end
 end
 
 function Nodule:__tostring()

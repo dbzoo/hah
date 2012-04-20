@@ -329,8 +329,8 @@ size_t unescape(const char *in, const char *data) {
       case '\\': ch = '\\'; break;
       case 'x' : // hex
 	for(oval=0, i=0; i<2 && (ch = *UCHAR(data))!=0 && isxdigit(ch); i++, data++) {
-	  oval = (oval << 8);
-	  if(ch > '0') {
+	  oval = (oval << 4);
+	  if(ch >= 'A') {
 	      oval = oval | (toupper(ch) - 'A' + 10);
 	  } else {
 	      oval = oval | (ch - '0'); 

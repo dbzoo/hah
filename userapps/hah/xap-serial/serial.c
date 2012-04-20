@@ -285,12 +285,11 @@ void xapSerialSetup(void *userData) {
  * write() failure will return EAGAIN; we increasing back-off until
  * the retry count is expired.
  */
-int sendSerialMsg(struct serialPort* p, char *msg) {
+int sendSerialMsg(struct serialPort* p, char *msg, size_t size) {
      const int retries = 6;  // sum(1..5)*300ms = 4.5sec
-     int i, rv, size;
+     int i, rv;
      info("send to %s '%s'", p->device, msg);
      for(i=1; i<retries; i++) {
-          size = strlen(msg);
           rv = write(p->fd, msg, size);
           if(rv == -1) {
 		  notice_strerror("Failed serial write %s: retry %d", p->device, retries);
@@ -307,8 +306,9 @@ int sendSerialMsg(struct serialPort* p, char *msg) {
      return -1;
 }
 
-char *unescape(const char *in, const char *data) {
-  char *result = in;
+size_t unescape(const char *in, const char *data) {
+  size_t len = 0;
+  char *result = (char *)in;
 #define UCHAR(cp) ((const unsigned char *)(cp))
 #define ISOCTAL(ch) (isdigit(ch) && (ch) != '8' && (ch) != '9')
 
@@ -358,9 +358,10 @@ char *unescape(const char *in, const char *data) {
       }
     }
     *result++ = ch;
+    len++;
   }
   *result = '\0';
-  return in;
+  return len;
 }
 
 void xapSerialTx(void *userData) {
@@ -374,8 +375,8 @@ void xapSerialTx(void *userData) {
 	}
 	// Unescaped data must be smaller...
 	char *unescaped = (char *)malloc(strlen(data));
-	unescape(unescaped, data);
-	sendSerialMsg(p, unescaped);
+	size_t len = unescape(unescaped, data);
+	sendSerialMsg(p, unescaped, len);
 	free(unescaped);
 }
 

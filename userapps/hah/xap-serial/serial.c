@@ -327,6 +327,17 @@ char *unescape(const char *in, const char *data) {
       case 't': ch = '\t'; break;
       case 'v': ch = '\v'; break;
       case '\\': ch = '\\'; break;
+      case 'x' : // hex
+	for(oval=0, i=0; i<2 && (ch = *UCHAR(data))!=0 && isxdigit(ch); i++, data++) {
+	  oval = (oval << 8);
+	  if(ch > '0') {
+	      oval = oval | (toupper(ch) - 'A' + 10);
+	  } else {
+	      oval = oval | (ch - '0'); 
+	  }
+	}
+	ch = oval;
+	break;
       case '0':  // octal
       case '1':
       case '2':

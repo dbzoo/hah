@@ -48,12 +48,12 @@ void echoPacket(void *userData) {
 			   xapGetValue("xap-header","class"));
 	char *target = xapGetValue("xap-header","target");
 	if(target) {
-		len += snprintf(&newMsg[len], XAP_DATA_LEN-len,"target=%s\n", target);
+		snprintf(&newMsg[len], XAP_DATA_LEN-len,"target=%s\n", target);
 	}
-	strlcat(&newMsg[len], "}\n", XAP_DATA_LEN-len);
+	strlcat(newMsg, "}\n", XAP_DATA_LEN);
 
 	parsedMsgToRawWithoutSection(xapBody, sizeof(xapBody),"xap-header");
-	strlcat(newMsg, xapBody, XAP_DATA_LEN-len);
+	strlcat(newMsg, xapBody, XAP_DATA_LEN);
 
 	xapSend(newMsg);
 }

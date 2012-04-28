@@ -79,6 +79,17 @@ void reapHubConnections(int interval, void *userData) {
 	}	
 }
 
+void stopHubConnection(int port) {
+	struct hubEntry *entry;
+	LL_FOREACH(hubList, entry) {
+		if (entry->port == port) {
+		  info("Disconnecting port %d due xap-hbeat.stop", entry->port);
+		  entry->is_alive = 0;
+		  return;
+		}
+	}	
+}
+
 /// Rx socket handler callback
 void xapRxBroadcast(int fd, void *userData) {
 	// fd is gXAP->rxSockfd
@@ -120,7 +131,13 @@ void xapRxBroadcast(int fd, void *userData) {
 					debug("Detected our own heartbeat not forwarding");
 					return;
 				}			
-				addOrUpdateHubEntry(iport, atoi(interval));
+
+				char *class = xapGetValueF(&f,"xap-hbeat","class");
+				if(class && strcmp(class,"xap-hbeat.stop") == 0) {
+				  stopHubConnection(iport);
+				} else {
+				  addOrUpdateHubEntry(iport, atoi(interval));
+				}
 			}
 		}
 	} else {

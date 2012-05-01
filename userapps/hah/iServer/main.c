@@ -443,7 +443,9 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
           xapAddFilterAction(&xAPtoClient, f, c);
 
           // QUEUE a xAPBSC.query
-          if(strcmp("source", filterType) == 0)
+	  // If this is a xap-header {source=} filter and the key
+	  // has a subaddress send a BSC query to it.
+          if(strcmp("source", filterType) == 0 && strchr(c->ident, ':'))
           {
             sendBscQuery(c, c->ident);
           }

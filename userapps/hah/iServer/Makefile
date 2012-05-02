@@ -1,9 +1,12 @@
-OBJECTS=tokenize.o main.o
+OBJECTS=tokenize.o main.o queue.o mem.o
 XAPLIB=../xaplib2
 CFLAGS=-I$(XAPLIB) -g
 
 all: $(OBJECTS)
 	$(CC) -o iServer $(OBJECTS) -L$(XAPLIB) -lxap2 -lpthread
+
+static: $(OBJECTS)
+	$(CC) -static -o iServer $(OBJECTS) -L$(XAPLIB) -lxap2 -lpthread
 
 tokenize.c: tokenize.l
 

@@ -148,7 +148,7 @@ The iServer is a TCP/xAP gateway used by the xAPFlash/Joggler HMI application
   </div>
 
   <div class="setting">
-    <div class="label">BSC Query pacing</div>
+    <div class="label">Transmit pacing</div>
 	 <input maxlength="5" size="5" name="pacing" value="<%= ini.pacing %>" onblur="valid_range(this,10,1000,'Port')"/>
 	 <span class="default">(Default: 20ms)</span>
   </div>

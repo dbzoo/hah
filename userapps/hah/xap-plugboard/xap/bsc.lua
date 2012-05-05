@@ -8,7 +8,7 @@
    acknowledge the work of the original author.
 --]]
 local utils = require('pl.utils')
-local class = require("pl.class").class
+local class = require("pl.class")
 local ljust = require("pl.stringx").ljust
 
 module("bsc", package.seeall)

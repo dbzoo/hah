@@ -433,6 +433,12 @@ clean: app_clean kernel_clean target_clean hosttools_clean
 	rm -fr $(INSTALL_DIR)/bin
 	rm -fr $(INSTALL_DIR)/sbin
 	rm -f $(INSTALL_DIR)/lib/*.*
+	rm -rf $(INSTALL_DIR)/usr/lib
+	rm -rf $(INSTALL_DIR)/usr/share/lua
+	rm -rf $(INSTALL_DIR)/usr/share/flash
+	rm -f $(INSTALL_DIR)/etc_ro_fs/plugboard/samples/*
+	rm -f $(INSTALL_DIR)/etc_ro_fs/plugboard/plugboard.lua
+	rm -f $(INSTALL_DIR)/etc_ro_fs/kloned.conf
 	rm -f $(IMAGES_DIR)/*
 	rm -rf $(OPENSOURCE_DIR)/curl-7.19.7 $(OPENSOURCE_DIR)/curl
 	rm -rf $(OPENSOURCE_DIR)/libxml2-2.7.6 $(OPENSOURCE_DIR)/libxml2

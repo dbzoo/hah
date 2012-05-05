@@ -13,8 +13,8 @@ local DEBUG = rawget(_G,'_DEBUG')
 module("xap", package.seeall)
 
 require("socket")
-local class = require("pl.class").class
-local List = require("pl.list").List
+local class = require("pl.class")
+local List = require("pl.List")
 local gframe
 defaultKeys={}
 
@@ -390,6 +390,9 @@ end
 function Filter:dispatch(frame)
    if self.callback and self:ismatch(frame) then
       gframe = frame
-      self.callback(frame, self.userdata)
+      local status,err = pcall(self.callback, frame, self.userdata)
+      if status == false then
+         error(err..'\nxAP Message being processed.\n'..tostring(frame))
+      end
    end
 end

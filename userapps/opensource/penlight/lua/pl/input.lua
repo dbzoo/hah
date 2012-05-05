@@ -1,15 +1,27 @@
--------------------------------------------------
--- Iterators for extracting words or numbers from an input source.
+--- Iterators for extracting words or numbers from an input source.
+--
+--    require 'pl'
+--    local total,n = seq.sum(input.numbers())
+--    print('average',total/n)
+--
+-- See @{06-data.md.Reading_Unstructured_Text_Data|here}
+--
+-- Dependencies: `pl.utils`
+-- @module pl.input
 local strfind = string.find
 local strsub = string.sub
 local strmatch = string.match
-local pairs,type,unpack,tonumber = pairs,type,unpack,tonumber
+local pairs,type,unpack,tonumber = pairs,type,unpack or table.unpack,tonumber
 local utils = require 'pl.utils'
 local patterns = utils.patterns
 local io = io
 local assert_arg = utils.assert_arg
 
+--[[
 module ('pl.input',utils._module)
+]]
+
+local input = {}
 
 --- create an iterator over all tokens.
 -- based on allwords from PiL, 7.1
@@ -17,7 +29,7 @@ module ('pl.input',utils._module)
 -- @param pattern
 -- @param fn  Optionally can pass a function to process each token as it/s found.
 -- @return an iterator
-function alltokens (getter,pattern,fn)
+function input.alltokens (getter,pattern,fn)
     local line = getter()  -- current line
     local pos = 1           -- current position in the line
     return function ()      -- iterator function
@@ -36,6 +48,7 @@ function alltokens (getter,pattern,fn)
         return nil            -- no more lines: end of traversal
    end
 end
+local alltokens = input.alltokens
 
 -- question: shd this _split_ a string containing line feeds?
 
@@ -43,7 +56,7 @@ end
 -- will return the string and thereafter return nil. If not specified then the source is assumed to be stdin.
 -- @param f a string or a file-like object (i.e. has a read() method which returns the next line)
 -- @return a getter function
-function create_getter(f)
+function input.create_getter(f)
   if f then
     if type(f) == 'string' then
       local ls = utils.split(f,'\n')
@@ -55,7 +68,7 @@ function create_getter(f)
        end
     else
       -- anything that supports the read() method!
-      if not f.read then utils.error('not a file-like object') end
+      if not f.read then error('not a file-like object') end
       return function() return f:read() end
     end
   else
@@ -66,16 +79,16 @@ end
 --- generate a sequence of numbers from a source.
 -- @param f A source
 -- @return An iterator
-function numbers(f)
-    return alltokens(create_getter(f),
+function input.numbers(f)
+    return alltokens(input.create_getter(f),
         '('..patterns.FLOAT..')',tonumber)
 end
 
 --- generate a sequence of words from a source.
 -- @param f A source
 -- @return An iterator
-function words(f)
-    return alltokens(create_getter(f),"%w+")
+function input.words(f)
+    return alltokens(input.create_getter(f),"%w+")
 end
 
 local function apply_tonumber (no_fail,...)
@@ -95,14 +108,14 @@ end
 -- By default, will fail if it cannot convert a field to a number.
 -- @param ids a list of field indices, or a maximum field index
 -- @param delim delimiter to parse fields (default space)
--- @param f a source (@see create_getter)
+-- @param f a source @see create_getter
 -- @param opts option table, {no_fail=true}
 -- @return an iterator with the field values
 -- @usage for x,y in fields {2,3} do print(x,y) end -- 2nd and 3rd fields from stdin
-function fields (ids,delim,f,opts)
+function input.fields (ids,delim,f,opts)
   local sep
   local s
-  local getter = create_getter(f)
+  local getter = input.create_getter(f)
   local no_fail = opts and opts.no_fail
   local no_convert = opts and opts.no_convert
   if not delim or delim == ' ' then
@@ -155,3 +168,6 @@ function fields (ids,delim,f,opts)
     return unpack(results)
   end
 end
+
+return input
+

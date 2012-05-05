@@ -305,8 +305,7 @@ klone: libcurl
 
 penlight:
 	install -m 755 -d $(INSTALL_DIR)/usr/share/lua/5.1/pl
-	install -m 644 $(OPENSOURCE_DIR)/penlight/lua/init.lua $(INSTALL_DIR)/usr/share/lua/5.1/pl
-	install -m 644 $(OPENSOURCE_DIR)/penlight/lua/pl/* $(INSTALL_DIR)/usr/share/lua/5.1/pl
+	install -m 644 $(OPENSOURCE_DIR)/penlight/lua/pl/*.lua $(INSTALL_DIR)/usr/share/lua/5.1/pl
 
 lua:
 	$(MAKE) -C $(OPENSOURCE_DIR)/lua linux CC=$(CC)

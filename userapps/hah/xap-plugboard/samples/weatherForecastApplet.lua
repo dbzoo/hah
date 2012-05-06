@@ -58,8 +58,8 @@ function getWeatherBody()
 current
 {
 location=%s
-condition=%s
 temp=%s
+condition=%s
 }
 ]], location, current.temp, current.condition)
 

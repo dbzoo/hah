@@ -58,33 +58,13 @@ void echoPacket(void *userData) {
 	xapSend(newMsg);
 }
 
-/// Display usage information and exit.
-static void usage(char *prog)
-{
-	printf("%s: [options]\n",prog);
-	printf("  -i, --interface IF     Default %s\n", interfaceName);
-	printf("  -d, --debug            0-7\n");
-	printf("  -h, --help\n\n");
-	exit(1);
-}
-
 int main(int argc, char* argv[]) {
-	int i;
 	printf("\nxAP echo - for xAP v1.2\n");
 	printf("Copyright (C) DBzoo 2012\n\n");
 
 	xAPFilter *filter = NULL;
 
-	for(i=0; i<argc; i++) {
-		if(strcmp("-i", argv[i]) == 0 || strcmp("--interface",argv[i]) == 0) {
-			interfaceName = argv[++i];
-		} else if(strcmp("-d", argv[i]) == 0 || strcmp("--debug", argv[i]) == 0) {
-			setLoglevel(atoi(argv[++i]));
-		} else if(strcmp("-h", argv[i]) == 0 || strcmp("--help", argv[i]) == 0) {
-			usage(argv[0]);
-		}
-	}
-
+	simpleCommandLine(argc, argv, &interfaceName);
 	xapInitFromINI("echo","dbzoo.livebox","Echo","00DF",interfaceName,inifile);
 
 	xapAddFilterAction(&echoPacket, filter, NULL);

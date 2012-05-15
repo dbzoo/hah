@@ -18,6 +18,7 @@
 #include <sys/ioctl.h>
 #include <ctype.h>
 #include <signal.h>
+#include <getopt.h>
 #include "minIni.h"
 #include "xap.h"
 
@@ -307,14 +308,23 @@ static void simpleUsage(char *prog, char *interfaceName)
 
 void simpleCommandLine(int argc, char *argv[], char **interfaceName)
 {
-        int i;
-        for(i=0; i<argc; i++) {
-                if(strcmp("-i", argv[i]) == 0 || strcmp("--interface",argv[i]) == 0) {
-                        *interfaceName = argv[++i];
-                } else if(strcmp("-d", argv[i]) == 0 || strcmp("--debug", argv[i]) == 0) {
-                        setLoglevel(atoi(argv[++i]));
-                } else if(strcmp("-h", argv[i]) == 0 || strcmp("--help", argv[i]) == 0) {
-	                simpleUsage(argv[0], *interfaceName);
-                }
-        }
+        int c;
+	static struct option long_options[] = {
+	  {"interface", 1, 0, 'i'},
+	  {"debug", 1, 0, 'd'},
+	  {"help", 0, 0, 'h'},
+	  {0, 0, 0, 0}
+	};
+	while(1) {
+               int option_index = 0;
+               c = getopt_long (argc, argv, "i:d:h",
+				long_options, &option_index);
+               if (c == -1)
+                   break;
+	       switch(c) {
+	       case 'i': *interfaceName = strdup(optarg); break;
+	       case 'd': setLoglevel(atoi(optarg)); break;
+	       case 'h': simpleUsage(argv[0], *interfaceName);  break;
+	       }
+	}
 }

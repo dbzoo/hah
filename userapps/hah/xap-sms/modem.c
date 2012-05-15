@@ -97,6 +97,36 @@ error:
         return 0;
 }
 
+static int getBaud() {
+    long n = ini_getl("sms", "baud", 19200, inifile);
+    unsigned int speed;
+
+    switch (n)
+      {
+      case 50: speed = B50; break;
+      case 75: speed = B75; break;
+      case 110: speed = B110; break;
+      case 134: speed = B134; break;
+      case 150: speed = B150; break;
+      case 200: speed = B200; break;
+      case 300: speed = B300; break;
+      case 600: speed = B600; break;
+      case 1200: speed = B1200; break;
+      case 1800: speed = B1800; break;
+      case 2400: speed = B2400; break;
+      case 4800: speed = B4800; break;
+      case 9600: speed = B9600; break;
+      case 19200: speed = B19200; break;
+      case 38400: speed = B38400; break;
+      case 57600: speed = B57600; break;
+      case 115200: speed = B115200; break;
+      default:
+	die("Invalid speed %d", n);
+      }
+
+    return speed;
+}
+
 int setup_serial_port()
 {
         struct termios newtio;
@@ -109,7 +139,7 @@ int setup_serial_port()
         die_if(g_serial_fd < 0, "Unable to open the serial port %s",serialPort);
 
         bzero(&newtio, sizeof(newtio));
-        newtio.c_cflag = B19200 | CRTSCTS | CS8 | CLOCAL | CREAD | O_NDELAY;
+        newtio.c_cflag = getBaud() | CRTSCTS | CS8 | CLOCAL | CREAD | O_NDELAY;
         // uncomment next line to disable hardware handshake
         newtio.c_cflag &= ~CRTSCTS;
         newtio.c_iflag = IGNPAR;

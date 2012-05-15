@@ -8,6 +8,7 @@
 static struct {
          char sms_enable[2];
 	 char sms_usbserial[16];
+	 char sms_baud[16];
          char serial_enable[2];
          char plugboard_enable[2];
 } ini;
@@ -26,6 +27,11 @@ static void submit_form() {
 	 const char *sms_usbserial = request_get_arg(request, "sms_usbserial");
 	 if(sms_usbserial && strcmp(sms_usbserial, ini.sms_usbserial)) {
 		  ini_puts("sms","usbserial", sms_usbserial, con.inifile);
+		  sms_restart = 1;
+	 }
+	 const char *sms_baud = request_get_arg(request, "sms_baud");
+	 if(sms_baud && strcmp(sms_baud, ini.sms_baud)) {
+		  ini_puts("sms","baud", sms_baud, con.inifile);
 		  sms_restart = 1;
 	 }
 
@@ -56,6 +62,7 @@ static void submit_form() {
 static void readIni() {
 	 ini_gets("sms","enable","0",ini.sms_enable,sizeof(ini.sms_enable),con.inifile);
 	 ini_gets("sms","usbserial","/dev/ttyUSB0",ini.sms_usbserial,sizeof(ini.sms_usbserial),con.inifile);
+	 ini_gets("sms","baud","19200",ini.sms_baud,sizeof(ini.sms_baud),con.inifile);
 	 ini_gets("serial","enable","0",ini.serial_enable,sizeof(ini.serial_enable),con.inifile);
 	 ini_gets("plugboard","enable","0",ini.plugboard_enable,sizeof(ini.plugboard_enable),con.inifile);
 }
@@ -110,11 +117,21 @@ addEvent(window,"load",function() {
     <input class="spaceradio" type="radio" value="0" name="sms_enable" onclick="show_layer_ext(this, 'idsms', false);"<% if(ini.sms_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
   </div>
   <div class="setting" id="idsms">
-   <div class="setting">
-    <div class="label">USB Serial Device</div>
-	<input type="text" name="sms_usbserial" value="<%= ini.sms_usbserial %>" maxlength="15" size="15"/>
-	 <span class="default">(Default: /dev/ttyUSB0)</span>
-   </div>
+    <div class="setting">
+       <div class="label">USB Serial Device</div>
+       <input type="text" name="sms_usbserial" value="<%= ini.sms_usbserial %>" maxlength="15" size="15"/>
+       <span class="default">(Default: /dev/ttyUSB0)</span>
+    </div>
+    <div class="setting">
+       <div class="label">Baud Rate</div>
+       <select name="sms_baud">
+          <option value="9600" <% if(strcmp(ini.sms_baud,"9600")==0) { %>selected="selected"<% } %>>9600</option>
+          <option value="19200" <% if(strcmp(ini.sms_baud,"19200")==0) { %>selected="selected"<% } %>>19200</option>
+          <option value="38400" <% if(strcmp(ini.sms_baud,"38400")==0) { %>selected="selected"<% } %>>38400</option>
+          <option value="57600" <% if(strcmp(ini.sms_baud,"57600")==0) { %>selected="selected"<% } %>>57600</option>
+          <option value="115200" <% if(strcmp(ini.sms_baud,"115200")==0) { %>selected="selected"<% } %>>115200</option>
+       </select>
+    </div>
   </div>
 
   <div class="setting">

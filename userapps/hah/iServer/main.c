@@ -441,16 +441,14 @@ void parseiServerMsg(Client *c, unsigned char *msg, int len)
           xAPFilter *f = NULL;
           xapAddFilter(&f, "xap-header", filterType, c->ident);
           xapAddFilterAction(&xAPtoClient, f, c);
-
-          // QUEUE a xAPBSC.query
-	  // If this is a xap-header {source=} filter and the key
-	  // has a subaddress send a BSC query to it.
-          if(strcmp("source", filterType) == 0 && strchr(c->ident, ':'))
+	}
+	// QUEUE a xAPBSC.query
+	// If this is a xap-header {source=} filter and the key
+	// has a subaddress send a BSC query to it.
+	if(strcmp("source", filterType) == 0 && strchr(c->ident, ':'))
           {
             sendBscQuery(c, c->ident);
           }
-
-        }
         // drop through
       default:
         c->state = ST_WAIT_FOR_MESSAGE;
@@ -543,11 +541,11 @@ void delClient(Client *c)
 void clientListener(int fd, void *data)
 {
   Client *c = (Client *)data;
-  static unsigned char buf[XAP_DATA_LEN+2];
+  static unsigned char buf[BUFSIZE+2];
   int bytes;
 
   // Drain the socket of data.
-  while( (bytes = recv(fd, buf, XAP_DATA_LEN, MSG_DONTWAIT)) > 0)
+  while( (bytes = recv(fd, buf, BUFSIZE, MSG_DONTWAIT)) > 0)
   {
     // yy_scan_buffer expects the last two bytes to be NULL for in-situ scanning.
     // however they are not scanned.

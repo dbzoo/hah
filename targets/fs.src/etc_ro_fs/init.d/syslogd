@@ -6,7 +6,7 @@
 case "$1" in
     start)
 	if ! pidof syslogd | sed "s/$$\$//" | grep -q [0-9] ; then
-	    syslogd
+	    syslogd -D -C16
 	    klogd -c 1
 	fi
         ;;

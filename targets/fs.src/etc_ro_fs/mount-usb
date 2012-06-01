@@ -13,7 +13,7 @@ insmod $base/fs/vfat/vfat.o
 # - EXT2
 insmod $base/fs/ext2/ext2.o
 # - EXT3
-insmod $base/fs/jdb/jdb.o
+insmod $base/fs/jbd/jbd.o
 insmod $base/fs/ext3/ext3.o
 
 mount /dev/sda1 /mnt/usb

@@ -57,8 +57,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#ifdef DEV
+#include <inc/gcalendar.h>
+#include <inc/internal_gcal.h>
+#else
 #include <libgcal/gcalendar.h>
 #include <libgcal/internal_gcal.h>
+#endif
 #include "xap.h"
 #include "svn_date.h"
 
@@ -391,18 +396,9 @@ void validatePollingFrequency(int newFreq) {
 void setupXAPini()
 {
 	xapInitFromINI("googlecal","dbzoo.livebox","GoogleCal","00DA",interfaceName,inifile);
-
 	validatePollingFrequency(ini_getl("googlecal","ufreq", DEF_POLL_FREQ, inifile));
-
         ini_gets("googlecal","user","",username,sizeof(username),inifile);
-        if(strlen(username) == 0) {
-                die("user has not been setup");
-        }
-
 	password = getINIPassword("googlecal","passwd", (char *)inifile);
-        if(strlen(password) == 0) {
-                die("passwd has not been setup");
-        }
 }
 
 /// Display usage information and exit.
@@ -446,6 +442,13 @@ int main(int argc, char *argv[])
                 } else if(strcmp("-f", argv[i]) == 0 || strcmp("--freq",argv[i]) == 0) {
 	                validatePollingFrequency(atoi(argv[++i]));
                 }
+        }
+
+        if(strlen(username) == 0) {
+                die("user has not been setup");
+        }
+        if(strlen(password) == 0) {
+                die("passwd has not been setup");
         }
 
         /* Create a gcal 'object' and authenticate with server */

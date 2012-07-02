@@ -90,7 +90,7 @@ function service(request)
 
    path = url.unescape( path )
 
-   local message = "HTTP/1.0 200/OK\r\n"
+   local message = "HTTP/1.0 200 OK\r\n"
    message = message .. "Server: xapCacheWebserverApplet" .. info.version .. "\r\n";
    message = message .. "Content-Type: text/html\r\n"
    message = message .. "Connection: close\r\n\r\n"

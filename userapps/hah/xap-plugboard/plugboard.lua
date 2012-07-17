@@ -56,7 +56,7 @@ local instance = nil
 
 if ini['xap'] then
    instance = ini.xap['instance']
-   if instance then instance = instance.."." end
+   if instance and #instance > 0 then instance = instance.."." end
 end
 
 if ini['plugboard'] then

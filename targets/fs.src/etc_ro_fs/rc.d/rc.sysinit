@@ -44,7 +44,7 @@ if [ ! -d /etc/www ]; then
   mkdir -p /etc/www
 fi
 
-if [ -f /etc/init.d/xS10syslogd ] then
+if [ -f /etc/init.d/xS10syslogd ]; then
   mv /etc/init.d/xS10syslogd /etc/init.d/S10syslogd
 fi
 

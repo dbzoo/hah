@@ -8,10 +8,14 @@ CFLAGS=-g -DLINUX -DIDENT -I$(INSTALL_DIR)/include
 CFLAGS+=-I../xaplib2 -I../../opensource/openssl/include
 LDFLAGS=-L$(INSTALL_DIR)/lib -lxap2 -lcurl -lm
 LDFLAGS+=-L../xaplib2
-OBJECTS=$(XAP).o tcurl.o oauth.o xmalloc.o hash.o
+MAIN=$(XAP).o 
+OBJECTS=tcurl.o oauth.o xmalloc.o hash.o
 
-xap-$(XAP): $(OBJECTS)
-	$(CC) -o xap-$(XAP) $(OBJECTS) $(LDFLAGS)
+xap-$(XAP): $(MAIN) $(OBJECTS)
+	$(CC) -o xap-$(XAP) $(MAIN) $(OBJECTS) $(LDFLAGS)
+
+deleteLastTweet: deleteLastTweet.o $(OBJECTS)
+	$(CC) -o deleteLastTweet deleteLastTweet.o $(OBJECTS) $(LDFLAGS)
 
 clean:
-	$(RM) -f xap-$(XAP) $(OBJECTS) core
+	$(RM) -f xap-$(XAP) $(OBJECTS) $(MAIN) core

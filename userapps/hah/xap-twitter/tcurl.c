@@ -233,7 +233,7 @@ int deleteTweetById( tcurl *c, long long id ) {
         int retVal = -1;
         if( isCurlInit(c) )
         {
-                snprintf(c->url, TWITCURL_URL_LEN, "http://twitter.com/statuses/destroy/%lld.xml", id);
+                snprintf(c->url, TWITCURL_URL_LEN, "http://api.twitter.com/1.1/statuses/destroy/%lld.json", id);
                 retVal = performDelete( c );
         }
         return retVal;

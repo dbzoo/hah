@@ -15,7 +15,7 @@ module("xap.roomnode", package.seeall)
 require("xap.bsc")
 jeenode = require("xap.jeenode")
 Nodule = jeenode.Nodule
-class = require("pl.class").class
+class = require("pl.class")
 
 class.RoomNode(Nodule)
 

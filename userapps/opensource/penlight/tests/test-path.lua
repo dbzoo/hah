@@ -1,4 +1,5 @@
 local path = require 'pl.path'
+asserteq = require 'pl.test'.asserteq
 
 function quote(s)
 	return '"'..s..'"'
@@ -18,3 +19,23 @@ testpath [[/bonzo/dog/cat/fred.stuff]]
 testpath [[../../alice/jones]]
 testpath [[alice]]
 testpath [[/path-to\dog\]]
+
+asserteq( path.isdir( "../docs" ), true )
+asserteq( path.isdir( "../docs/config.ld" ), false )
+
+asserteq( path.isfile( "../docs" ), false )
+asserteq( path.isfile( "../docs/config.ld" ), true )
+
+local norm = path.normpath
+local p = norm '/a/b'
+
+asserteq(norm '/a/fred/../b',p)
+asserteq(norm '/a//b',p)
+
+if path.is_windows then
+  asserteq(norm [[\a\.\b]],p)
+end
+
+asserteq(norm '1/2/../3/4/../5',norm '1/3/5')
+
+

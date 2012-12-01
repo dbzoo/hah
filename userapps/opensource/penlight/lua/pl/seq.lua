@@ -1,5 +1,8 @@
-------------------------------------------
---- Manipulating sequences as iterators.
+--- Manipulating iterators as sequences.
+-- See @{07-functional.md.Sequences|The Guide}
+--
+-- Dependencies: `pl.utils`, `debug`
+-- @module pl.seq
 
 local next,assert,type,pairs,tonumber,type,setmetatable,getmetatable,_G = next,assert,type,pairs,tonumber,type,setmetatable,getmetatable,_G
 local strfind = string.find
@@ -13,14 +16,13 @@ local function_arg = utils.function_arg
 local _List = utils.stdmt.List
 local _Map = utils.stdmt.Map
 local assert_arg = utils.assert_arg
+require 'debug'
 
-module("pl.seq",utils._module)
-
-local seq = _G.pl.seq
+local seq = {}
 
 -- given a number, return a function(y) which returns true if y > x
 -- @param x a number
-function greater_than(x)
+function seq.greater_than(x)
   return function(v)
     return tonumber(v) > x
   end
@@ -28,15 +30,15 @@ end
 
 -- given a number, returns a function(y) which returns true if y < x
 -- @param x a number
-function less_than(x)
+function seq.less_than(x)
   return function(v)
     return tonumber(v) < x
   end
 end
 
 -- given any value, return a function(y) which returns true if y == x
--- @param x
-function equal_to(x)
+-- @param x a value
+function seq.equal_to(x)
   if type(x) == "number" then
     return function(v)
       return tonumber(v) == x
@@ -49,8 +51,8 @@ function equal_to(x)
 end
 
 --- given a string, return a function(y) which matches y against the string.
--- @param a string
-function matching(s)
+-- @param s a string
+function seq.matching(s)
   return function(v)
      return strfind(v,s)
   end
@@ -61,7 +63,7 @@ end
 -- @param t a list-like table
 -- @usage sum(list(t)) is the sum of all elements of t
 -- @usage for x in list(t) do...end
-function list(t)
+function seq.list(t)
   assert_arg(1,t,'table')
   local key,value
   return function()
@@ -73,7 +75,7 @@ end
 --- return the keys of the table.
 -- @param t a list-like table
 -- @return iterator over keys
-function keys(t)
+function seq.keys(t)
   assert_arg(1,t,'table')
   local key,value
   return function()
@@ -82,17 +84,18 @@ function keys(t)
   end
 end
 
+local list = seq.list
 local function default_iter(iter)
   if type(iter) == 'table' then return list(iter)
   else return iter end
 end
 
-iter = default_iter
+seq.iter = default_iter
 
 --- create an iterator over a numerical range. Like the standard Python function xrange.
 -- @param start a number
 -- @param finish a number greater than start
-function range(start,finish)
+function seq.range(start,finish)
   local i = start - 1
   return function()
       i = i + 1
@@ -105,17 +108,20 @@ end
 -- @param iter a sequence
 -- @param condn a predicate function (must return either true or false)
 -- @param optional argument to be passed to predicate as second argument.
-function count(iter,condn,arg)
+-- @return count
+function seq.count(iter,condn,arg)
   local i = 0
-  foreach(iter,function(val)
-        if condn(v,arg) then i = i + 1 end
+  seq.foreach(iter,function(val)
+        if condn(val,arg) then i = i + 1 end
   end)
   return i
 end
 
 --- return the minimum and the maximum value of the sequence.
 -- @param iter a sequence
-function minmax(iter)
+-- @return minimum value
+-- @return maximum value
+function seq.minmax(iter)
   local vmin,vmax = 1e70,-1e70
   for v in default_iter(iter) do
     v = tonumber(v)
@@ -128,7 +134,7 @@ end
 --- return the sum and element count of the sequence.
 -- @param iter a sequence
 -- @param fn an optional function to apply to the values
-function sum(iter,fn)
+function seq.sum(iter,fn)
   local s = 0
   local i = 0
   for v in default_iter(iter) do
@@ -143,8 +149,8 @@ end
 -- @param iter a sequence
 -- @return a List
 -- @usage copy(list(ls)) is equal to ls
--- @usage copy(list {1,2,3},List) == List{1,2,3}
-function copy(iter)
+-- @usage copy(list {1,2,3}) == List{1,2,3}
+function seq.copy(iter)
     local res = {}
     for v in default_iter(iter) do
         tappend(res,v)
@@ -155,8 +161,11 @@ end
 
 --- create a table of pairs from the double-valued sequence.
 -- @param iter a double-valued sequence
+-- @param i1 used to capture extra iterator values
+-- @param i2 as with pairs & ipairs
+-- @usage copy2(ipairs{10,20,30}) == {{1,10},{2,20},{3,30}}
 -- @return a list-like table
-function copy2 (iter,i1,i2)
+function seq.copy2 (iter,i1,i2)
     local res = {}
     for v1,v2 in iter,i1,i2 do
         tappend(res,{v1,v2})
@@ -168,7 +177,7 @@ end
 -- A generalization of copy2 above
 -- @param iter a multiple-valued sequence
 -- @return a list-like table
-function copy_tuples (iter)
+function seq.copy_tuples (iter)
     iter = default_iter(iter)
     local res = {}
     local row = {iter()}
@@ -184,7 +193,7 @@ end
 -- @param l same as the first optional argument to math.random
 -- @param u same as the second optional argument to math.random
 -- @return a sequnce
-function random(n,l,u)
+function seq.random(n,l,u)
   local rand
   assert(type(n) == 'number')
   if u then
@@ -207,8 +216,8 @@ end
 --- return an iterator to the sorted elements of a sequence.
 -- @param iter a sequence
 -- @param comp an optional comparison function (comp(x,y) is true if x < y)
-function sort(iter,comp)
-    local t = copy(iter)
+function seq.sort(iter,comp)
+    local t = seq.copy(iter)
     tsort(t,comp)
     return list(t)
 end
@@ -217,7 +226,7 @@ end
 -- @param iter1 a sequence
 -- @param iter2 a sequence
 -- @usage for x,y in seq.zip(ls1,ls2) do....end
-function zip(iter1,iter2)
+function seq.zip(iter1,iter2)
     iter1 = default_iter(iter1)
     iter2 = default_iter(iter2)
     return function()
@@ -228,10 +237,11 @@ end
 --- A table where the key/values are the values and value counts of the sequence.
 -- This version works with 'hashable' values like strings and numbers. <br>
 -- pl.tablex.count_map is more general.
+-- @param iter a sequence
 -- @return a map-like table
 -- @return a table
 -- @see pl.tablex.count_map
-function count_map(iter)
+function seq.count_map(iter)
     local t = {}
     local v
     for s in default_iter(iter) do
@@ -246,10 +256,11 @@ end
 -- @param iter a sequence
 -- @param returns_table true if we return a table, not a sequence
 -- @return a sequence or a table; defaults to a sequence.
-function unique(iter,returns_table)
-  local t = count_map(iter)
+function seq.unique(iter,returns_table)
+  local t = seq.count_map(iter)
   local res = {}
   for k in pairs(t) do tappend(res,k) end
+  table.sort(res)
   if returns_table then
     return res
   else
@@ -257,10 +268,12 @@ function unique(iter,returns_table)
   end
 end
 
--- print out a sequence @iter, with a separator @sep (default space)
--- and maximum number of values per line @nfields (default 7)
--- @fmt is an optional format function to create a representation of each value.
-function printall(iter,sep,nfields,fmt)
+--- print out a sequence iter with a separator.
+-- @param iter a sequence
+-- @param sep the separator (default space)
+-- @param nfields maximum number of values per line (default 7)
+-- @param fmt optional format function for each value
+function seq.printall(iter,sep,nfields,fmt)
   local write = io.write
   if not sep then sep = ' ' end
   if not nfields then
@@ -288,7 +301,7 @@ end
 -- return an iterator running over every element of two sequences (concatenation).
 -- @param iter1 a sequence
 -- @param iter2 a sequence
-function splice(iter1,iter2)
+function seq.splice(iter1,iter2)
   iter1 = default_iter(iter1)
   iter2 = default_iter(iter2)
   local iter = iter1
@@ -309,17 +322,17 @@ end
 -- by a function. If you don't supply an argument, then the function will
 -- receive both values of a double-valued sequence, otherwise behaves rather like
 -- tablex.map.
--- @param iter a sequence of one or two values
 -- @param fn a function to apply to elements; may take two arguments
+-- @param iter a sequence of one or two values
 -- @param arg optional argument to pass to function.
-function map(fn,iter,arg)
-    fn = function_arg(fn)
+function seq.map(fn,iter,arg)
+    fn = function_arg(1,fn)
     iter = default_iter(iter)
     return function()
         local v1,v2 = iter()
         if v1 == nil then return nil end
-        if arg then return fn(v1,arg)
-        else return fn(v1,v2)
+        if arg then return fn(v1,arg) or false
+        else return fn(v1,v2) or false
         end
     end
 end
@@ -328,8 +341,8 @@ end
 -- @param iter a sequence of one or two values
 -- @param pred a boolean function; may take two arguments
 -- @param arg optional argument to pass to function.
-function filter (iter,pred,arg)
-    pred = function_arg(pred)
+function seq.filter (iter,pred,arg)
+    pred = function_arg(2,pred)
     return function ()
         local v1,v2
         while true do
@@ -345,26 +358,29 @@ function filter (iter,pred,arg)
 end
 
 --- 'reduce' a sequence using a binary function.
--- @param seq a sequence
 -- @param fun a function of two arguments
+-- @param iter a sequence
+-- @param oldval optional initial value
 -- @usage seq.reduce(operator.add,seq.list{1,2,3,4}) == 10
-function reduce (fun,seq,oldval)
-    if not oldval then
-        seq = default_iter(seq)
-        oldval = seq()
-        fun = function_arg(fun)
-    end
-    local val = seq()
-    if val==nil then return oldval
-    else return fun(oldval,reduce(fun,seq,val))
-    end
+-- @usage seq.reduce('-',{1,2,3,4,5}) == -13
+function seq.reduce (fun,iter,oldval)
+   fun = function_arg(1,fun)
+   iter = default_iter(iter)
+   if not oldval then
+       oldval = iter()
+   end
+   local val = oldval
+   for v in iter do
+       val = fun(val,v)
+   end
+   return val
 end
 
 --- take the first n values from the sequence.
 -- @param iter a sequence of one or two values
 -- @param n number of items to take
 -- @return a sequence of at most n items
-function take (iter,n)
+function seq.take (iter,n)
     local i = 1
     iter = default_iter(iter)
     return function()
@@ -379,7 +395,7 @@ end
 --- skip the first n values of a sequence
 -- @param iter a sequence of one or more values
 -- @param n number of items to skip
-function skip (iter,n)
+function seq.skip (iter,n)
     n = n or 1
     for i = 1,n do iter() end
     return iter
@@ -389,7 +405,7 @@ end
 -- enum(copy(ls)) is a roundabout way of saying ipairs(ls).
 -- @param iter a single or double valued sequence
 -- @return sequence of (i,v), i = 1..n and v is from iter.
-function enum (iter)
+function seq.enum (iter)
     local i = 0
     iter = default_iter(iter)
     return function  ()
@@ -404,8 +420,8 @@ end
 -- @param iter a sequence
 -- @param name the method name
 -- @param arg1 optional first extra argument
--- @param arg1 optional second extra argument
-function mapmethod (iter,name,arg1,arg2)
+-- @param arg2 optional second extra argument
+function seq.mapmethod (iter,name,arg1,arg2)
     iter = default_iter(iter)
     return function()
         local val = iter()
@@ -419,7 +435,7 @@ end
 --- a sequence of (last,current) values from another sequence.
 --  This will return S(i-1),S(i) if given S(i)
 -- @param iter a sequence
-function last (iter)
+function seq.last (iter)
     iter = default_iter(iter)
     local l = iter()
     if l == nil then return nil end
@@ -436,9 +452,9 @@ end
 --- call the function on each element of the sequence.
 -- @param iter a sequence with up to 3 values
 -- @param fn a function
-function foreach(iter,fn)
-  fn = function_arg(fn)
-  for i1,i2,i3 in default_iter(iter) do fn(i1,i2,i3) end
+function seq.foreach(iter,fn)
+    fn = function_arg(2,fn)
+    for i1,i2,i3 in default_iter(iter) do fn(i1,i2,i3) end
 end
 
 ---------------------- Sequence Adapters ---------------------
@@ -456,6 +472,7 @@ end
 
 
 -- can't directly look these up in seq because of the wrong argument order...
+local map,reduce,mapmethod = seq.map, seq.reduce, seq.mapmethod
 local overrides = {
     map = function(self,fun,arg)
         return map(fun,self,arg)
@@ -482,7 +499,7 @@ SMT = {
 setmetatable(seq,{
     __call = function(tbl,iter)
         if not callable(iter) then
-            if type(iter) == 'table' then iter = list(iter)
+            if type(iter) == 'table' then iter = seq.list(iter)
             else return iter
             end
         end
@@ -493,20 +510,21 @@ setmetatable(seq,{
 --- create a wrapped iterator over all lines in the file.
 -- @param f either a filename or nil (for standard input)
 -- @return a sequence wrapper
-function lines (f)
+function seq.lines (f)
     local iter = f and io.lines(f) or io.lines()
     return SW(iter)
 end
 
-function import ()
+function seq.import ()
     _G.debug.setmetatable(function() end,{
         __index = function(tbl,key)
             local s = overrides[key] or seq[key]
             if s then return s
             else
-                return function(s,...) return mapmethod(s,key,...) end
+                return function(s,...) return seq.mapmethod(s,key,...) end
             end
         end
     })
 end
 
+return seq

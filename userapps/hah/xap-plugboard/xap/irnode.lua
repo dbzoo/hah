@@ -11,7 +11,7 @@
 module("xap.irnode", package.seeall)
 
 jeenode = require("xap.jeenode")
-class = require("pl.class").class
+class = require("pl.class")
 
 class.IRNode()
 

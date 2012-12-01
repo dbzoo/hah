@@ -1,15 +1,23 @@
---if _VERSION == "Lua 5.2" then return print 'broken for Lua 5.2' end
-local asserteq = require 'pl.test' . asserteq
-local app = require 'pl.lapp'
 
+local test = require 'pl.test'
+local lapp = require 'pl.lapp'
 
+local k = 1
 function check (spec,args,match)
-    arg = args
-    local args = app(spec)
+    local args = lapp(spec,args)
     for k,v in pairs(args) do
         if type(v) == 'userdata' then args[k]:close(); args[k] = '<file>' end
     end
-    asserteq(args,match)
+    test.asserteq(args,match)
+end
+
+-- force Lapp to throw an error, rather than just calling os.exit()
+lapp.show_usage_error = 'throw'
+
+function check_error(spec,args,msg)
+    arg = args
+    local ok,err = pcall(lapp,spec)
+    test.assertmatch(err,msg)
 end
 
 local parmtest = [[
@@ -30,7 +38,7 @@ Various flags and option types
     -p          A simple optional flag, defaults to false
     -q,--quiet  A simple flag with long name
     -o  (string)  A required option with argument
-    <input> (default stdin)  Optional input file parameter
+    <input> (default stdin)  Optional input file parameter...
 ]]
 
 check(simple,
@@ -38,9 +46,48 @@ check(simple,
     {quiet=false,p=false,o='in',input='<file>'})
 
 check(simple,
-    {'-o','help','-q','tests/test-lapp.lua'},
-    {quiet=true,p=false,o='help',input='<file>',input_name='tests/test-lapp.lua'})
+    {'-o','help','-q','test-lapp.lua'},
+    {quiet=true,p=false,o='help',input='<file>',input_name='test-lapp.lua'})
 
+local longs = [[
+    --open (string)
+]]
+
+check(longs,{'--open','folder'},{open='folder'})
+
+local extras1 = [[
+    <files...> (string) A bunch of files
+]]
+
+check(extras1,{'one','two'},{files={'one','two'}})
+
+-- any extra parameters go into the array part of the result
+local extras2 = [[
+    <file> (string) A file
+]]
+
+check(extras2,{'one','two'},{file='one','two'})
+
+local extended = [[
+    --foo (string default 1)
+    -s,--speed (slow|medium|fast default medium)
+    -n (1..10 default 1)
+    -p print
+    -v verbose
+]]
+
+
+
+check(extended,{},{foo='1',speed='medium',n=1,p=false,v=false})
+check(extended,{'-pv'},{foo='1',speed='medium',n=1,p=true,v=true})
+check(extended,{'--foo','2','-s','fast'},{foo='2',speed='fast',n=1,p=false,v=false})
+check(extended,{'--foo=2','-s=fast','-n2'},{foo='2',speed='fast',n=2,p=false,v=false})
+
+check_error(extended,{'--speed','massive'},"value 'massive' not in slow|medium|fast")
+
+check_error(extended,{'-n','x'},"unable to convert to number: x")
+
+check_error(extended,{'-n','12'},"n out of range")
 
 
 

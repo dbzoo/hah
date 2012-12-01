@@ -13,8 +13,8 @@ local DEBUG = rawget(_G,'_DEBUG')
 module("xap", package.seeall)
 
 require("socket")
-local class = require("pl.class").class
-local List = require("pl.list").List
+local class = require("pl.class")
+local List = require("pl.List")
 local gframe
 defaultKeys={}
 

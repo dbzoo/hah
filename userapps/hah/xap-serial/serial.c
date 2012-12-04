@@ -292,7 +292,7 @@ int sendSerialMsg(struct serialPort* p, char *msg, size_t size) {
      for(i=1; i<retries; i++) {
           rv = write(p->fd, msg, size);
           if(rv == -1) {
-		  notice_strerror("Failed serial write %s: retry %d", p->device, retries);
+	       notice_strerror("Failed serial write %s: retry %d", p->device, i);
                if (errno == EAGAIN) { // would block..
                     usleep(300*1000*i);  // 300ms * i
                     continue;

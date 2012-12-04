@@ -1,56 +1,43 @@
 --[[
-	Fetch weather from GOOGLE and provide a forecast message
+        Fetch weather from Weather2.com and provide a forecast message
 --]]
 module(...,package.seeall)
-
 require("xap")
-require("pl.xml")
-local http = require("socket.http")
+local xml=require("pl.xml")
+local http=require("socket.http")
 
 info={
    version="1.0", description="Weather forecast"
 }
-local location="glasgow,uk"
-
-function math.round(number, decimals)
-    decimals = decimals or 0
-    return tonumber(("%."..decimals.."f"):format(number))
-end
-local tocelcius = function(f) return math.round((f-32)*5/9,1) end
+local location="wa5"
+local apikey="<InsertKey>"
 local current={}
 local forecast={}
 
 function lookupWeather()
-    local xmlstring = http.request("http://www.google.com/ig/api?weather="..location)
-    if(xmlstring == nil) then return end
-
+    local xmlstring = http.request("http://www.myweather2.com/developer/forecast.ashx?uac="..apikey.."&output=xml&query="..location)
+ 
+   if(xmlstring == nil) then return end
     local d = xml.parse(xmlstring)
     current = d:match [[
 <weather>
-  <current_conditions>
-    <condition data='$condition'/>
-    <temp_c data='$temp'/>
-  </current_conditions>
+<curren_weather>
+<temp>$temp</temp>
+<wind><speed>$speed</speed></wind>
+<humidity>$humidity</humidity>
+<pressure>$pressure</pressure>
+</curren_weather>
 </weather>
-]]
-
-    forecast = d:match [[
+    ]]
+  forecast = d:match [[	
 <weather>
-   {{<forecast_conditions>
-     <day_of_week data='$day'/>
-     <low data='$low'/>
-     <high data='$high'/>
-     <condition data='$condition'/>
-   </forecast_conditions>}}
+{{<forecast>
+<date>$day</date>
+<day_max_temp>$high</day_max_temp>
+<night_min_temp>$low</night_min_temp>
+</forecast>}}
 </weather>
 ]]
-
-    -- Damn google returns units in degrees F
-    -- Other countries like Spain, Germany etc are in C?!
-    for _,v in ipairs(forecast) do
-	 v.high = tocelcius(v.high)
-         v.low = tocelcius(v.low)
-    end
 end
 
 function getWeatherBody()
@@ -58,31 +45,30 @@ function getWeatherBody()
 current
 {
 location=%s
-temp=%s
-condition=%s
+temp=%d
+wind=%d
+humidity=%d
+pressure=%d
 }
-]], location, current.temp, current.condition)
-
+]], location, current.temp, current.speed, current.humidity, current.pressure)
     for i,v in ipairs(forecast) do
-    	msg = msg ..string.format([[
+        msg = msg ..string.format([[
 forecast.%d
 {
 low=%d
 high=%d
 day=%s
-condition=%s
 }
-]], i, v.low, v.high, v.day, v.condition)
-    end
+]], i, v.low, v.high, v.day)
+     end
     return msg
 end
-
 function sendWeather()
-	xap.sendShort([[
+        xap.sendShort([[
 xap-header
 {
 class=weather.forecast
-source=dbzoo.weather.station
+source=dbzoo.livebox.Plugboard:Weather
 }
 ]] .. getWeatherBody())
 end

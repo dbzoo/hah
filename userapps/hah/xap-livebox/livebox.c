@@ -35,7 +35,7 @@ static void cmdRelay (bscEndpoint *e)
 /// Handle xapBSC.cmd for the LCD endpoint.
 static void cmdLCD(bscEndpoint *e)
 {
-        char buf[30];
+        char buf[128]; // Allow for 20x4 LCD replacement + ctrl chars.
         snprintf(buf, sizeof(buf), "lcd %s", e->text);
         serialSend(buf);
 }

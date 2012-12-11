@@ -2,8 +2,8 @@
 
 XAP=livebox
 CFLAGS=-DIDENT -I$(INSTALL_DIR)/include
-#LDFLAGS=-L$(INSTALL_DIR)/lib -lxap2
-LDFLAGS=../xaplib2/libxap2.a
+LDFLAGS=-L$(INSTALL_DIR)/lib -lxap2
+#LDFLAGS=../xaplib2/libxap2.a
 
 #DEV
 #CFLAGS=-g -Wall -DIDENT -I../xaplib2

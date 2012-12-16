@@ -39,7 +39,7 @@ end
 -- num: binary length padding (8,16,32 etc..)
 -- return: a string of binary for the number
 function Dec2Bin(dec,num)
-   return stringx.ljust(dec2bin(dec),num,'0')
+   return stringx.rjust(dec2bin(dec),num,'0')
 end
 
 function Bin2Dec(num)

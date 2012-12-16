@@ -249,7 +249,7 @@ end
 function init()
    for k,v in pairsByKeys(_M) do
       if k:find("^test") then
-	 io.write("...."..string.rjust(k,40).."    ")
+	 io.write("...."..string.ljust(k,40).."    ")
 	 v()
 	 print("[ok]")
       end

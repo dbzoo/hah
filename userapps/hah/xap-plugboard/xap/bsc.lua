@@ -9,7 +9,7 @@
 --]]
 local utils = require('pl.utils')
 local class = require("pl.class")
-local ljust = require("pl.stringx").ljust
+local rjust = require("pl.stringx").rjust
 
 module("bsc", package.seeall)
 
@@ -63,7 +63,7 @@ function Endpoint:_init(endpoint)
       else
 	 id = endpoint.id -- reset the internal counter to the last set UID
       end
-      endpoint.uid = xap.defaultKeys.uid:sub(1,-3) .. ljust(tostring(endpoint.id),2,'0')
+      endpoint.uid = xap.defaultKeys.uid:sub(1,-3) .. rjust(tostring(endpoint.id),2,'0')
    end
    
    -- create xap.Filters for this endpoint

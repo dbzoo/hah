@@ -125,6 +125,7 @@ Serial.Setup
 
    local f = xap.Filter()
    f:add("xap-header","class","serial.comms")
+   f:add("xap-header","source",target)
    f:add("serial.received","port",t.port)
    f:callback(serialHandler, config)
 

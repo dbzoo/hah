@@ -374,7 +374,7 @@ void xapSerialTx(void *userData) {
 		return;
 	}
 	// Unescaped data must be smaller...
-	char *unescaped = (char *)malloc(strlen(data));
+	char *unescaped = (char *)malloc(strlen(data)+1);
 	size_t len = unescape(unescaped, data);
 	sendSerialMsg(p, unescaped, len);
 	free(unescaped);

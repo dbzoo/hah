@@ -41,11 +41,12 @@
 #define SERIAL  0   // set to 1 to also report readings on the serial port
 #define DEBUG   0   // set to 1 to display each loop() run and PIR trigger
 
-// SHT11 & ONE_WIRE are mutually exclusive.
-// for One WIRE we refer to the ARDUINO (D 4) PIN 6
+// SHT11, ONE_WIRE and DHT11 are mutually exclusive.
+// for One WIRE and DHT11 we refer to the ARDUINO (D 4) PIN 6
 // For the other we use JeeNode PORT mapping.... yeah confusing.
 
-#define ONE_WIRE_PIN  4   // PD4 - defined in a OneWire sensor is connected to port 1.
+#define DHT11PIN 4
+//#define ONE_WIRE_PIN  4   // PD4 - defined in a OneWire sensor is connected to port 1.
 //#define SHT11_PORT  1   // defined if SHT11 is connected to a port
 #define LDR_PORT    4   // defined if LDR is connected to a port's AIO pin
 //#define PIR_PORT    4   // defined if PIR is connected to a port's DIO pin
@@ -78,7 +79,7 @@ static byte myNodeID;       // node ID used for this unit
 // This defines the structure of the packets which get sent out by wireless:
 
 struct {
-  byte light;     // light sensor: 0..255
+byte light;     // light sensor: 0..255
 byte moved :
   1;  // motion detector: 0..1
 byte humi  :
@@ -102,6 +103,10 @@ OneWire oneWire(ONE_WIRE_PIN);
 // Pass our oneWire reference to Dallas Temperature. 
 DallasTemperature sensors(&oneWire);
 DeviceAddress deviceAddress;
+#endif
+
+#if DHT11PIN
+DHTxx dht(DHT11PIN);
 #endif
 
 #if SHT11_PORT
@@ -232,6 +237,15 @@ static void doMeasure() {
   sensors.requestTemperatures();
   payload.temp = sensors.getTempC(deviceAddress) * 10;
 #endif
+
+#if DHT11PIN
+  int t,h;
+  if(dht.reading(t, h)) {    
+    payload.temp = t;
+    // Convert from tenth's back to 0-100 range.
+    payload.humi = h/10;  
+  }
+#endif  
 }
 
 // periodic report, i.e. send out a packet and optionally report on serial port
@@ -240,9 +254,9 @@ static void doReport() {
   // the PIR (PCINT23) so when the RF12 is being used the entire PORT gets a PIN
   // CHANGE event PCIFR.
   // We need to capture this and mask it off so the PIR does not fire again.
-  
+#if PIR_PORT  
   PCICR &= ~(1 << PCIE2);  // disable the PD pin-change interrupt.     
-
+#endif
   rf12_sleep(RF12_WAKEUP);
   while (!rf12_canSend())
     rf12_recvDone();
@@ -254,9 +268,10 @@ static void doReport() {
   // are set (one), the MCU will jump to thecorresponding Interrupt Vector. 
   // The flag is cleared when the interrupt routine is executed. Alternatively,
   // the flag can be cleared by writing a logical one to it.
+#if PIR_PORT
   PCIFR = (1<<PCIF2);   //clear any pending interupt
-
   PCICR |= (1<<PCIE2);   // and re-enable the PIR interrupt
+#endif
 
 #if SERIAL
   Serial.print("ROOM ");
@@ -270,7 +285,7 @@ static void doReport() {
   Serial.print(' ');
   Serial.print((int) payload.lobat);
   Serial.println();
-  delay(2); // make sure tx buf is empty before going back to sleep
+  Serial.flush();
 #endif
 }
 
@@ -279,7 +294,7 @@ static void doTrigger() {
 #if DEBUG
   Serial.print("PIR ");
   Serial.print((int) payload.moved);
-  delay(2);
+  Serial.flush();
 #endif
 
   for (byte i = 0; i < RETRY_LIMIT; ++i) {
@@ -294,7 +309,7 @@ static void doTrigger() {
 #if DEBUG
       Serial.print(" ack ");
       Serial.println((int) i);
-      delay(2);
+      Serial.flush();
 #endif
       // reset scheduling to start a fresh measurement cycle
       scheduler.timer(MEASURE, MEASURE_PERIOD);
@@ -306,7 +321,7 @@ static void doTrigger() {
   scheduler.timer(MEASURE, MEASURE_PERIOD);
 #if DEBUG
   Serial.println(" no ack!");
-  delay(2);
+  Serial.flush();
 #endif
 }
 
@@ -357,7 +372,7 @@ void setup () {
 void loop () {
 #if DEBUG
   Serial.print('.');
-  delay(2);
+  Serial.flush();
 #endif
 
 #if PIR_PORT

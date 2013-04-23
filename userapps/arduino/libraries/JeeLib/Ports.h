@@ -49,6 +49,19 @@ protected:
     /// @return Arduino analog pin number of a Port's A pin (uint8_t).
     inline uint8_t anaPin() const
         { return 0; }
+#elif defined(__AVR_ATtiny84__)
+	/// @return Arduino digital pin number of a Port's D pin (uint8_t).
+    inline uint8_t digiPin() const
+        { return 12 - 2 * portNum; }
+	/// @return Arduino digital pin number of a Port's A pin (uint8_t).
+    inline uint8_t digiPin2() const
+        { return 11 - 2 * portNum; }
+	/// @return Arduino digital pin number of the I pin on all Ports (uint8_t).
+    static uint8_t digiPin3()
+        { return 3; }
+    /// @return Arduino analog pin number of a Port's A pin (uint8_t).
+    inline uint8_t anaPin() const
+        { return 11 - 2 * portNum; }
 #else
 	/// @return Arduino digital pin number of a Port's D pin (uint8_t).
     inline uint8_t digiPin() const
@@ -406,8 +419,8 @@ public:
     MemoryPlug (PortI2C& port)
         : DeviceI2C (port, 0x50), nextSave (0) {}
 
-    void load(word page, void* buf, byte offset =0, int count =256);
-    void save(word page, const void* buf, byte offset =0, int count =256);
+    void load(word page, byte offset, void* buf, int count);
+    void save(word page, byte offset, const void* buf, int count);
 };
 
 /// A memory stream can save and reload a stream of bytes on a MemoryPlug.
@@ -634,8 +647,9 @@ class DHTxx {
   byte pin;
 public:
   DHTxx (byte pinNum);
-  /// Results are returned in tenths of a degree and percent, respectively
-  bool reading (int& temp, int &humi);
+  /// Results are returned in tenths of a degree and percent, respectively.
+  /// Set "precise" to true for the more accurate DHT21 and DHT22 sensors.
+  bool reading (int& temp, int &humi, bool precise =false);
 };
 
 /// Interface for the Color Plug - see http://jeelabs.org/cp

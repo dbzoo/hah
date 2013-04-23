@@ -353,7 +353,7 @@ byte BlinkPlug::buttonCheck () {
     return lastState == 3 ? ALL_ON : lastState ? SOME_ON : ALL_OFF;
 }
 
-void MemoryPlug::load (word page, void* buf, byte offset, int count) {
+void MemoryPlug::load (word page, byte offset, void* buf, int count) {
     // also don't load right after a save, see http://forum.jeelabs.net/node/469
     while (millis() < nextSave)
         ;
@@ -369,7 +369,7 @@ void MemoryPlug::load (word page, void* buf, byte offset, int count) {
     stop();
 }
 
-void MemoryPlug::save (word page, const void* buf, byte offset, int count) {
+void MemoryPlug::save (word page, byte offset, const void* buf, int count) {
     // don't do back-to-back saves, last one must have had time to finish!
     while (millis() < nextSave)
         ;
@@ -383,7 +383,7 @@ void MemoryPlug::save (word page, const void* buf, byte offset, int count) {
         write(*p++);
     stop();
 
-    nextSave = millis() + 6;
+    nextSave = millis() + 10;
     // delay(5);
 }
 
@@ -396,7 +396,7 @@ long MemoryStream::position (byte writing) const {
 
 byte MemoryStream::get () {
     if (pos == 0) {
-        dev.load(curr, buffer);
+        dev.load(curr, 0, buffer, sizeof buffer);
         curr += step;
     }
     return buffer[pos++];
@@ -405,7 +405,7 @@ byte MemoryStream::get () {
 void MemoryStream::put (byte data) {
     buffer[pos++] = data;
     if (pos == 0) {
-        dev.save(curr, buffer);
+        dev.save(curr, 0, buffer, sizeof buffer);
         curr += step;
     }
 }
@@ -413,7 +413,7 @@ void MemoryStream::put (byte data) {
 word MemoryStream::flush () {
     if (pos != 0) {
         memset(buffer + pos, 0xFF, 256 - pos);
-        dev.save(curr, buffer);
+      dev.save(curr, 0, buffer, sizeof buffer);
     }
     return curr;
 }
@@ -949,7 +949,7 @@ DHTxx::DHTxx (byte pinNum) : pin (pinNum) {
   digitalWrite(pin, HIGH);
 }
 
-bool DHTxx::reading (int& temp, int &humi) {
+bool DHTxx::reading (int& temp, int &humi, bool precise) {
   pinMode(pin, OUTPUT);
   delay(10); // wait for any previous transmission to end
   digitalWrite(pin, LOW);
@@ -1013,12 +1013,10 @@ bool DHTxx::reading (int& temp, int &humi) {
   if (sum != data[5])
     return false;
   
-  word h = (data[1] << 8) | data[2];
-  humi = ((h >> 3) * 5) >> 4;     // careful with overflow
+  humi = precise ? (data[1] << 8) | data[2] : 10 * data[1];
 
-  int tmul = data[3] & 0x80 ? -5 : 5;
-  word t = ((data[3] & 0x7F) << 8) | data[4];
-  temp = ((t >> 3) * tmul) >> 4;  // careful with overflow
+  word t = precise ? ((data[3] & 0x7F) << 8) | data[4] : 10 * data[3];
+  temp = data[3] & 0x80 ? - t : t;
 
   return true;
 }
@@ -1172,6 +1170,10 @@ char Scheduler::poll() {
                     tasks[i] -= lowest;
                 }
             }
+        } else {
+            // must turn off timer or it might overflow if its poll-method
+            // is not called within 5535 ms, i.e. if no tasks are scheduled
+            ms100.set(0);
         }
         remaining = lowest;
     } else if (remaining == ~0U) //remaining == ~0 means nothing running

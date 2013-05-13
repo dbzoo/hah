@@ -30,41 +30,24 @@ int hysteresis;
 char *interfaceName = "eth0";
 
 enum {CC128, CLASSIC, ORIGINAL, EDF} model;
-int currentSensor = -1;
 
-#define ST_NONE 0
-#define ST_SENSOR 1
-#define ST_DATA 2
+enum {ST_NONE, ST_SENSOR, ST_CH1, ST_CH2, ST_CH3, ST_TEMPR, ST_TEMPRF, ST_IMP, ST_TYPE, ST_DATA};
 unsigned char state = ST_NONE;
 
-bscEndpoint *endpointList = NULL;
 bscEndpoint *currentTag = NULL;
-bscEndpoint *ccTotal = NULL; // Endpoint to sum the Wattage over all Channels
+bscEndpoint *endpointList = NULL;
 
 static int infoEventChannel(bscEndpoint *, char *);
 static int infoEventTemp(bscEndpoint *, char *);
 
-// CurrentCost branded units.
-// Lookup table that converts an XML tag into a bscEndpoint.
-// Once a tag is matched the next CDATA section will be its value.
-struct _ccTag
-{
-        char *xmltag;
-        int (*infoEvent)(bscEndpoint *, char *);
-        char *name;
-        char *subaddr;
-        int uid;
-}
-ccTag[] = {
-                  {"ch1", &infoEventChannel, "ch", "1", 1},
-                  {"ch2", &infoEventChannel, "ch", "2", 2},
-                  {"ch3", &infoEventChannel, "ch", "3", 3},
-                  {"tmpr", &infoEventTemp, "temp", NULL, 4},
-                  {"tmprF", &infoEventTemp, "tempF", NULL, 4},
-		  // ch.total is UID 5
-		  // sensors start at 10 0x0A
-                  {NULL, NULL, NULL, NULL}
-          };
+struct _msg {
+  char *tempr;
+  char *temprf;
+  int sensor;
+  int type;
+  char *ch1, *ch2, *ch3;
+  char *imp;
+} msg;
 
 /// BSC callback - Only emit info/event for Channels that adjust outside of the hysteresis amount.
 static int infoEventChannel(bscEndpoint *e, char *clazz)
@@ -92,7 +75,7 @@ static int infoEventTemp(bscEndpoint *e, char *clazz)
         if(strcmp(clazz, BSC_INFO_CLASS) == 0 || e->userData == NULL || strcmp(e->text, (char *)e->userData)) {
                 if(e->displayText == NULL)
                         e->displayText = (char *)malloc(15);
-                char unit = strcmp(e->name,"temp") == 0 ? 'C' : 'F'; // tmpr/tmprF
+                char unit = *(e->name + strlen(e->name) -1) == 'F' ? 'F' : 'C'; // tmpr/tmprF
                 snprintf(e->displayText, 15, "Temp %s%c", e->text, unit);
 
                 return 1;
@@ -116,7 +99,7 @@ static long loadSensorINI(char *key, int sensor, char *location, int size)
         return n;
 }
 
-/// BSC callback - For Sensors
+/// BSC callback - For Sensors (IAMS)
 static int sensorInfoEvent(bscEndpoint *e, char *clazz)
 {
         char unit[10];
@@ -153,107 +136,69 @@ static int sensorInfoEvent(bscEndpoint *e, char *clazz)
 	return 0;
 }
 
-static void findOrAddSensor(int channel)
-{
-        char sensor[6];
-	if(channel == 1) {
-	  snprintf(sensor, sizeof(sensor), "%d", currentSensor);
-	} else {
-	  snprintf(sensor, sizeof(sensor), "%d.%d", currentSensor, channel);
-	}
-	info(sensor);
+void updateEndpointValue(bscEndpoint *e, char *value) {
+	// If its different report it.
+	if(e->text == NULL || strcmp(value, e->text)) {
+		// Rotate the text data value through the user data field and free it on update.
+		if(e->userData)
+			free(e->userData);
+		e->userData = (void *)e->text;
+		e->text = strdup(value);
 
-        currentTag = bscFindEndpoint(endpointList, "sensor", sensor);
-        if(currentTag == NULL) {
-	        char stype[2] = {0}; // Analog/Digital & Reused for channel too
-                loadSensorINI("channels", currentSensor, stype, sizeof(stype));
-		int maxChannel = atoi(stype);
-		if(maxChannel == 0 || channel <= maxChannel) {
-		  unsigned char uid = (currentSensor-1)*3+channel+10;
-		  info("Adding new sensor uid=%02x",uid);
-		  // Add to the list we want to search and manage
-		  bscSetEndpointUID(uid);
-		  loadSensorINI("type", currentSensor, stype, sizeof(stype));
-		  int bscType = stype[0] == 'D' ? BSC_BINARY : BSC_STREAM;
-		  currentTag = bscAddEndpoint(&endpointList, "sensor", sensor, BSC_INPUT,
-					      bscType, NULL, &sensorInfoEvent);
-		  bscAddEndpointFilter(currentTag, INFO_INTERVAL);
+		debug("endpoint type %s", (e->type == BSC_BINARY ? "binary" : "analog"));
+		if(e->type == BSC_BINARY) {
+			// 0 is off, 500 is ON.  We'll use any value != 0 as ON.
+			bscSetState(e, atoi(e->text) ? BSC_STATE_ON : BSC_STATE_OFF);
+		} else {
+			bscSetState(e, BSC_STATE_ON);
 		}
-        }
-	
-	if(currentTag == NULL)  // Sensor never got creating!
-	  state = ST_NONE;
-}
-
-/// SAX element (TAG) callback
-static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
-{
-        struct _ccTag *p;
-
-        debug("<%s>", name);
-        if(strcmp("sensor", name) == 0) {
-                state = ST_SENSOR;
-                return;
-        }
-
-        if (currentSensor == 0) {
-                for(p=&ccTag[0]; p->xmltag; p++) {
-                        if(strcmp(name, p->xmltag) == 0) {
-                                state = ST_DATA;
-                                currentTag = bscFindEndpoint(endpointList, p->name, p->subaddr);
-                                // Dynamic endpoints. We defer creation until we see the tag in the XML
-                                if(currentTag == NULL) {
-                                        // Add to the list we want to search and manage
-                                        bscSetEndpointUID(p->uid);
-                                        currentTag = bscAddEndpoint(&endpointList, p->name, p->subaddr, BSC_INPUT, BSC_STREAM, NULL, p->infoEvent);
-                                        bscAddEndpointFilter(currentTag, INFO_INTERVAL);
-                                }
-                        }
-                }
-        } else if(strcmp(name,"ch1") == 0) {
-                state = ST_DATA;
-                findOrAddSensor(1);
-        } else if(strcmp(name,"ch2") == 0) {
-                state = ST_DATA;
-                findOrAddSensor(2);
-        } else if(strcmp(name,"ch3") == 0) {
-                state = ST_DATA;
-                findOrAddSensor(3);
-        }
-}
-
-/// SAX element (TAG) callback - EDF currentcost
-static void startElementEDFCB(void *ctx, const xmlChar *name, const xmlChar **atts)
-{
-        debug("<%s>", name);
-
-	if(strncmp("ch",name, 2) == 0) {
-	  char *ename, *subaddr;
-	  int (*infoEvent)(bscEndpoint *, char *);
-	    
-	  if(strncmp("chH",name, 3) == 0) { // <chH> is special
-	    ename = "ch";
-	    subaddr = "H";
-	    bscSetEndpointUID(1);
-	    infoEvent = &infoEventChannel;
-	  } else {
-	    ename = "sensor";
-	    subaddr = (char *)name+2;
-	    if(*subaddr == '0') subaddr++;
-	    // Sensors start at UID 0x0A.  <ch01> is first sensor
-	    bscSetEndpointUID(9 + atoi(subaddr));
-	    infoEvent = &sensorInfoEvent;
-	  }
-	  
-	  state = ST_DATA;
-	  currentTag = bscFindEndpoint(endpointList, ename, subaddr);
-	  if(currentTag == NULL) {
-	    currentTag = bscAddEndpoint(&endpointList, ename, subaddr, BSC_INPUT, BSC_STREAM, NULL, infoEvent);
-	    bscAddEndpointFilter(currentTag, INFO_INTERVAL);
-	  }
+		bscSendEvent(e);
 	}
 }
 
+/* 
+ Creation of a sensor should follow this pattern
+
+ sensor.n        Phase 1 - IAM's sensor
+ sensor.n.2      Phase 2
+ sensor.n.3      Phase 3
+ sensor.n.gas    Impulse GAS
+ sensor.n.water  Impulse Water
+ sensor.n.power  Impulse Electricity
+ sensor.n.temp   Temperature
+ sensor.n.tempF  Temperature Farenheit
+
+ We use the word phase here when talking about ch1/ch2/ch3
+*/
+static void updateSensor(int sensorId, char *eFormat, char *value, int (*infoEvent)(bscEndpoint *, char *), int uidOffset)
+{
+	bscEndpoint *e;
+        char subaddr[20];
+	snprintf(subaddr, sizeof(subaddr), eFormat, sensorId);
+	info(subaddr);
+
+        e = bscFindEndpoint(endpointList, "sensor", subaddr);
+        if(e == NULL) {
+		char stype[2]= {0,0};
+		unsigned char uid = (sensorId-1)*4+uidOffset+10;
+		info("Adding new sensor uid=%02x",uid);
+		// Add to the list we want to search and manage
+		bscSetEndpointUID(uid);
+		loadSensorINI("type", sensorId, stype, sizeof(stype));
+		int bscType = stype[0] == 'D' ? BSC_BINARY : BSC_STREAM;
+		e = bscAddEndpoint(&endpointList, "sensor", subaddr, BSC_INPUT, bscType, NULL, infoEvent);
+		bscAddEndpointFilter(e, INFO_INTERVAL);
+
+        }
+	updateEndpointValue(e, value);
+}
+
+static void freePtr(char **p) {
+	if(*p) {
+		free(*p);
+		*p = NULL;
+	}
+}
 
 // Duplicate a string removing any leading ZERO's
 char *dupZero(char *s) {
@@ -268,6 +213,39 @@ char *dupZero(char *s) {
 		s--;     // One is ok then.
 	}
 	return strdup(s);
+}
+
+/// SAX element (TAG) callback - EDF currentcost
+static void startElementEDFCB(void *ctx, const xmlChar *name, const xmlChar **atts)
+{
+        debug("<%s>", name);
+
+        if(strncmp("ch",name, 2) == 0) {
+          char *ename, *subaddr;
+          int (*infoEvent)(bscEndpoint *, char *);
+            
+          if(strncmp("chH",name, 3) == 0) { // <chH> is special
+            ename = "ch";
+            subaddr = "H";
+            bscSetEndpointUID(1);
+            infoEvent = &infoEventChannel;
+          } else {
+            ename = "sensor";
+            subaddr = (char *)name+2;
+            if(*subaddr == '0') subaddr++;
+            // Sensors start at UID 0x0A.  <ch01> is first sensor
+            bscSetEndpointUID(9 + atoi(subaddr));
+            infoEvent = &sensorInfoEvent;
+          }
+          
+          state = ST_DATA;
+          currentTag = bscFindEndpoint(endpointList, ename, subaddr);
+          if(currentTag == NULL) {
+            currentTag = bscAddEndpoint(&endpointList, ename, subaddr, BSC_INPUT, BSC_STREAM, NULL, infoEvent
+);
+            bscAddEndpointFilter(currentTag, INFO_INTERVAL);
+          }
+        }
 }
 
 /// SAX cdata callback - EDF currentcost
@@ -310,6 +288,42 @@ static void cdataBlockEDFCB(void *ctx, const xmlChar *ch, int len)
         state = ST_NONE;
 }
 
+static void endElementEDFCB(void *ctx, const xmlChar *name)
+{
+       debug("</%s>", name); 
+}
+
+/// SAX element (TAG) callback
+static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
+{
+        debug("<%s>", name);
+        if(strcmp("sensor", name) == 0) {
+                state = ST_SENSOR;
+        } else if(strcmp(name,"ch1") == 0) {
+                state = ST_CH1;
+        } else if(strcmp(name,"ch2") == 0) {
+                state = ST_CH2;
+        } else if(strcmp(name,"ch3") == 0) {
+                state = ST_CH3;
+        } else if(strcmp(name,"imp") == 0) {
+                state = ST_IMP;
+        } else if(strcmp(name,"tmpr") == 0) {
+                state = ST_TEMPR;
+        } else if(strcmp(name,"tmprF") == 0) {
+                state = ST_TEMPRF;
+        } else if(strcmp(name,"type") == 0) {
+                state = ST_TYPE;
+        } else if(strcmp(name,"msg") == 0) {
+		freePtr(&msg.ch1);
+		freePtr(&msg.ch2);
+		freePtr(&msg.ch3);
+		freePtr(&msg.tempr);
+		freePtr(&msg.temprf);
+		freePtr(&msg.imp);
+		msg.sensor = -1;
+	}
+}
+
 /// SAX cdata callback - Currentcost
 static void cdataBlockCB(void *ctx, const xmlChar *ch, int len)
 {
@@ -325,78 +339,103 @@ static void cdataBlockCB(void *ctx, const xmlChar *ch, int len)
         output[i] = 0;
 
         debug("%s", output);
+
         switch(state) {
-        case ST_SENSOR:
-                currentSensor = atoi(output);
-                break;
-        case ST_DATA:
-                // If its different report it.
-                if(currentTag->text == NULL || strcmp(output, currentTag->text)) {
-                        // Rotate the text data value through the user data field and free it on update.
-                        if(currentTag->userData)
-                                free(currentTag->userData);
-                        currentTag->userData = (void *)currentTag->text;
-
-                        // We do this to dump leading ZERO's
-                        currentTag->text = dupZero(output);
-
-                        debug("endpoint type %d", currentTag->type);
-                        if(currentTag->type == BSC_BINARY) {
-                                // 0 is off, 500 is ON.  We'll use any value != 0 as ON.
-                                bscSetState(currentTag, atoi(currentTag->text) ? BSC_STATE_ON : BSC_STATE_OFF);
-                        } else {
-                                bscSetState(currentTag, BSC_STATE_ON);
-                        }
-                        bscSendEvent(currentTag);
-
-			// Was this a new channel value?
-			if(strcmp("ch", currentTag->name) == 0) {
-
-			  // Sum all channels for ch.total
-			  int total = 0;
-			  int channelCount = 0;
-			  bscEndpoint *cce;
-			  LL_FOREACH(endpointList, cce) {
-			    if(strcmp("ch", cce->name) == 0 && strcmp("total", cce->subaddr)) {
-			      debug("ch.total adding %s.%s value %s", cce->name, cce->subaddr, cce->text);
-			      total += atoi(cce->text);
-			      channelCount ++;
-			    }
-			  }
-
-			  // Defer construction of this endpoint until we no there are more then 3 phases.
-			  if(channelCount > 1) {
-
-			    if(ccTotal == NULL) {
-			      // ch.total = ch.1 + ch.2 + ch.3
-			      bscSetEndpointUID(5);
-			      ccTotal = bscAddEndpoint(&endpointList, "ch", "total", BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
-			      bscAddEndpointFilter(ccTotal, INFO_INTERVAL);
-			      bscSetState(ccTotal, BSC_STATE_ON);
-			    }
-
-			    // roll previous total into userData for hystersis calculations.
-			    if(ccTotal->userData)
-			      free(ccTotal->userData);
-			    ccTotal->userData = (void *)ccTotal->text;
-			    
-			    char totalText[10];
-			    snprintf(totalText, sizeof(totalText),"%d", total);
-			    ccTotal->text = strdup(totalText);
-			    
-			    bscSendEvent(ccTotal);
-			  }
-			}
-                }
-                break;
+        case ST_SENSOR: msg.sensor = atoi(output); break;
+        case ST_TYPE: msg.type = atoi(output); break;
+        case ST_CH1: msg.ch1 = dupZero(output); break;
+        case ST_CH2: msg.ch2 = dupZero(output); break;
+        case ST_CH3: msg.ch3 = dupZero(output); break;
+        case ST_IMP: msg.imp = dupZero(output); break;
+        case ST_TEMPR: msg.tempr = strdup(output); break;
+        case ST_TEMPRF: msg.temprf = strdup(output); break;
         }
         state = ST_NONE;
 }
 
+static void updateWholeOfHouseEndpoint(char *addr, char *subaddr, char *value, int (*infoEvent)(bscEndpoint *, char *), int uidOffset) {
+	bscEndpoint *e;
+	static bscEndpoint *ccTotal = NULL; // Endpoint to sum the Wattage over all Channels
+
+	e = bscFindEndpoint(endpointList, addr, subaddr);
+	if(e == NULL) {
+		// Add to the list we want to search and manage
+		bscSetEndpointUID(uidOffset);
+		e = bscAddEndpoint(&endpointList, addr, subaddr, BSC_INPUT, BSC_STREAM, NULL, infoEvent);
+		bscAddEndpointFilter(e, INFO_INTERVAL);
+	}
+	updateEndpointValue(e, value);
+
+	// Was this a new channel value?  Update the PSEDUO channel: ch.total
+	if(strcmp("ch", addr) == 0) {
+		// Sum all channels for ch.total
+		int total = 0;
+		int channelCount = 0;
+		bscEndpoint *cce;
+		LL_FOREACH(endpointList, cce) {
+			if(strcmp("ch", cce->name) == 0 && strcmp("total", cce->subaddr)) {
+				debug("ch.total adding %s.%s value %s", cce->name, cce->subaddr, cce->text);
+				total += atoi(cce->text);
+				channelCount ++;
+			}
+		}
+		
+		// Defer construction of this endpoint until we no there are more then 3 phases.
+		if(channelCount > 1) {
+			
+			if(ccTotal == NULL) {
+				// ch.total = ch.1 + ch.2 + ch.3
+				bscSetEndpointUID(5);
+				ccTotal = bscAddEndpoint(&endpointList, "ch", "total", BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
+				bscAddEndpointFilter(ccTotal, INFO_INTERVAL);
+				bscSetState(ccTotal, BSC_STATE_ON);
+			}
+			
+			// roll previous total into userData for hystersis calculations.
+			if(ccTotal->userData)
+				free(ccTotal->userData);
+			ccTotal->userData = (void *)ccTotal->text;
+			
+			char totalText[10];
+			snprintf(totalText, sizeof(totalText),"%d", total);
+			ccTotal->text = strdup(totalText);
+			
+			bscSendEvent(ccTotal);
+		}
+	}
+}
 
 static void endElementCB(void *ctx, const xmlChar *name)
 {
-        debug("</%s>", name);
+	debug("</%s>", name);
+	if(strcmp("msg", name)) return;
+ 
+	if(msg.sensor == 0) { // Whole of house
+		if(msg.ch1) updateWholeOfHouseEndpoint("ch","1", msg.ch1, infoEventChannel, 1);
+		if(msg.ch2) updateWholeOfHouseEndpoint("ch","2", msg.ch2, infoEventChannel, 2);
+		if(msg.ch3) updateWholeOfHouseEndpoint("ch","3", msg.ch3, infoEventChannel, 3);
+		if(msg.tempr) updateWholeOfHouseEndpoint("temp", NULL, msg.tempr, infoEventTemp, 4);
+		if(msg.temprf) updateWholeOfHouseEndpoint("tempF", NULL, msg.temprf, infoEventTemp, 4);
+	} else if(msg.sensor > 0) {
+		if(msg.ch1) updateSensor(msg.sensor, "%d", msg.ch1, sensorInfoEvent, 1);
+		if(msg.ch2) updateSensor(msg.sensor, "%d.2", msg.ch2, sensorInfoEvent, 2);
+		if(msg.ch3) updateSensor(msg.sensor, "%d.3", msg.ch3, sensorInfoEvent, 3);
+
+		// Impulse meters and IAMS are mutally exclusive.
+		// That is [ ch1/ch2/ch3 and imp ] so we can reuse the endpoint of ch1.
+		if(msg.imp) updateSensor(msg.sensor, "%d", msg.imp, NULL, 1); 
+
+		// Do sensors have separate temperature readings
+		// OR 
+		// is this just the Whole House Sensor reporting in as part of a sensor update ?
+#if 0		
+		if(msg.tempr) updateSensor(msg.sensor, "sensor.%d.temp", msg.tempr, infoEventTemp, 4);
+		if(msg.temprf) updateSensor(msg.sensor, "sensor.%d.tempF", msg.temprf, infoEventTemp, 4);
+#else
+		if(msg.tempr) updateWholeOfHouseEndpoint("temp", NULL, msg.tempr, infoEventTemp, 4);
+		if(msg.temprf) updateWholeOfHouseEndpoint("tempF", NULL, msg.temprf, infoEventTemp, 4);
+#endif
+	}
 }
 
 /// Parse an Currentcost XML message.
@@ -411,15 +450,14 @@ void parseXml(char *data, int size)
 	if(model == EDF) {
 	  handler.startElement = startElementEDFCB;
 	  handler.characters = cdataBlockEDFCB;
+	  handler.endElement = endElementEDFCB;
 	} else {
 	  handler.startElement = startElementCB;
 	  handler.characters = cdataBlockCB;
+	  handler.endElement = endElementCB;
 	}
-        handler.endElement = endElementCB;
 
         state = ST_NONE;
-        currentSensor = 0;
-        currentTag = NULL;
 
         if(xmlSAXUserParseMemory(&handler, NULL, data, size) < 0) {
                 err("Document not parsed successfully.");
@@ -526,7 +564,7 @@ static void usage(char *prog)
         printf("%s: [options]\n",prog);
         printf("  -i, --interface IF     Default %s\n", interfaceName);
         printf("  -s, --serial DEV       Default %s\n", serialPort);
-        printf("  -m, --model [CLASSIC|CC128|ORIGINAL]  Default CLASSIC\n");
+        printf("  -m, --model [CLASSIC|CC128|ORIGINAL|EDF]  Default CLASSIC\n");
         printf("  -d, --debug            0-7\n");
         printf("  -h, --help\n");
         exit(1);

@@ -22,7 +22,7 @@ struct {
 int sensorCount = 0;
 
 struct {
-	char type[2]; // Analogue/Digital
+	char type[2]; // Analogue/Digital/Impulse
 	char desc[40];
         char unit[10];
         char hysteresis[4];
@@ -207,6 +207,7 @@ addEvent(window,"load",function() {
 <select name="type<% io_printf(out,"%d",i); %>">
 <option value="A" <% if(sensor[i].type[0] == 'A') { %> selected="selected"<% } %>/>Analog</option>
 <option value="D" <% if(sensor[i].type[0] == 'D') { %> selected="selected"<% } %>/>Digital</option>
+<option value="I" <% if(sensor[i].type[0] == 'I') { %> selected="selected"<% } %>/>Impulse</option>
 </select>
 </td>
          <td><input name="hysteresis<% io_printf(out,"%d",i); %>" maxlength="3" size="3" value="<%= sensor[i].hysteresis %>" onblur="is_digit(this,'Hysteresis')"/></td>

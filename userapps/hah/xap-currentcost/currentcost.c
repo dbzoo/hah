@@ -49,13 +49,21 @@ struct _msg {
   char *imp;
 } msg;
 
+// Hold this against each BSC endpoint as userdata.
+typedef struct {
+	char type;  // Analog, Digital, Impulse (ADI)
+	char *previousValue;
+	char *currentValue; // Used for impulse
+} UserData;
+
 /// BSC callback - Only emit info/event for Channels that adjust outside of the hysteresis amount.
 static int infoEventChannel(bscEndpoint *e, char *clazz)
 {
         info("%s Sensor 0 %s.%s = %s", clazz, e->name, e->subaddr, e->text);
         int old = 0;
-        if(e->userData)
-                old = atoi((char *)e->userData);
+	UserData *u = (UserData *)e->userData;
+        if(u->previousValue)
+		old = atoi(u->previousValue);
         int new = atoi(e->text);
         // Alway report INFO events so we can repond to xAPBSC.query + Timeouts.
         // xapBSC.event are only emitted based on the hystersis
@@ -72,7 +80,8 @@ static int infoEventChannel(bscEndpoint *e, char *clazz)
 static int infoEventTemp(bscEndpoint *e, char *clazz)
 {
         info("%s %s = %s", clazz, e->name, e->text);
-        if(strcmp(clazz, BSC_INFO_CLASS) == 0 || e->userData == NULL || strcmp(e->text, (char *)e->userData)) {
+	UserData *u = (UserData *)e->userData;
+        if(strcmp(clazz, BSC_INFO_CLASS) == 0 || u->previousValue == NULL || strcmp(e->text, u->previousValue)) {
                 if(e->displayText == NULL)
                         e->displayText = (char *)malloc(15);
                 char unit = *(e->name + strlen(e->name) -1) == 'F' ? 'F' : 'C'; // tmpr/tmprF
@@ -108,8 +117,9 @@ static int sensorInfoEvent(bscEndpoint *e, char *clazz)
         info("%s %s.%s", clazz, e->name, e->subaddr);
         // note: e->userData contains the previous value (it will be NULL for the 1st data value received)
         int old = 0;
-        if(e->userData)
-                old = atoi((char *)e->userData);
+	UserData *u = e->userData;
+        if(u->previousValue)
+		old = atoi(u->previousValue);
         int new = atoi(e->text);
         char i_hysteresis[4];
         n = loadSensorINI("hysteresis", atoi(e->subaddr), i_hysteresis, sizeof(i_hysteresis));
@@ -136,24 +146,65 @@ static int sensorInfoEvent(bscEndpoint *e, char *clazz)
 	return 0;
 }
 
+// Binary and Analog are straight forward
+// we keep the previous endpoint->text value in the userData->previousValue
+// For impulse meters we need to keep the DELTA in the endpoint->text
+// So the the current MeterReading and the previous MeterReading
+// are held in userData->previousValue and userData->impulseValue respectively.
 void updateEndpointValue(bscEndpoint *e, char *value) {
-	// If its different report it.
-	if(e->text == NULL || strcmp(value, e->text)) {
-		// Rotate the text data value through the user data field and free it on update.
-		if(e->userData)
-			free(e->userData);
-		e->userData = (void *)e->text;
-		e->text = strdup(value);
+	UserData *u = (UserData *)e->userData;
 
-		debug("endpoint type %s", (e->type == BSC_BINARY ? "binary" : "analog"));
-		if(e->type == BSC_BINARY) {
-			// 0 is off, 500 is ON.  We'll use any value != 0 as ON.
-			bscSetState(e, atoi(e->text) ? BSC_STATE_ON : BSC_STATE_OFF);
-		} else {
+	if(u->type == 'I') { // Impulse (Delta)
+		if(u->currentValue == NULL) { // Our first reading.
+			u->currentValue = strdup(value);
+		} else
+		  if(e->text == NULL // Never reported before
+		     || strcmp(value, u->currentValue) // or meter value change
+		     || (u->previousValue && strcmp(u->currentValue, u->previousValue))) // or 1st ZERO delta
+		    { 
+			if(u->previousValue) free(u->previousValue);
+			u->previousValue = u->currentValue;
+			u->currentValue = strdup(value); // Save new current value.
+
+			int newDelta = atoi(u->currentValue) - atoi(u->previousValue);
+			char delta[16];
+			snprintf(delta, sizeof(delta),"%d", newDelta);
+			if(e->text) free(e->text); // discard current endpoint value.
+			e->text = strdup(delta); // save new delta value.
 			bscSetState(e, BSC_STATE_ON);
+			bscSendEvent(e);
 		}
-		bscSendEvent(e);
+	} else { // Analogue and Digital
+		// If its different report it.
+		if(e->text == NULL || strcmp(value, e->text)) {
+			// Rotate the text data value through the user data field and free it on update.
+			if(u->previousValue) {
+				free(u->previousValue);
+			}
+			u->previousValue = (void *)e->text;
+			e->text = strdup(value);
+			
+			debug("endpoint type %s", (e->type == BSC_BINARY ? "binary" : "analog"));
+			if(e->type == BSC_BINARY) {
+				// 0 is off, 500 is ON.  We'll use any value != 0 as ON.
+				bscSetState(e, atoi(e->text) ? BSC_STATE_ON : BSC_STATE_OFF);
+			} else {
+				bscSetState(e, BSC_STATE_ON);
+			}		
+			bscSendEvent(e);
+		}
 	}
+}
+
+// Augment the bscAddEndpoint function so we always create our userdata struct.
+bscEndpoint *newBscEndpoint(char *name, char *subaddr, unsigned int type, int (*infoEvent)(bscEndpoint *self, char *clazz), char sensorType) {
+	bscEndpoint *e;
+	e = bscAddEndpoint(&endpointList, name, subaddr, BSC_INPUT, type, NULL, infoEvent);
+	UserData *u = (UserData *)calloc(1,sizeof(UserData));
+	e->userData = u;
+	u->type = sensorType;
+	bscAddEndpointFilter(e, INFO_INTERVAL);
+	return e;
 }
 
 /* 
@@ -185,9 +236,8 @@ static void updateSensor(int sensorId, char *eFormat, char *value, int (*infoEve
 		// Add to the list we want to search and manage
 		bscSetEndpointUID(uid);
 		loadSensorINI("type", sensorId, stype, sizeof(stype));
-		int bscType = stype[0] == 'D' ? BSC_BINARY : BSC_STREAM;
-		e = bscAddEndpoint(&endpointList, "sensor", subaddr, BSC_INPUT, bscType, NULL, infoEvent);
-		bscAddEndpointFilter(e, INFO_INTERVAL);
+		int bscType = stype[0] == 'D' ? BSC_BINARY : BSC_STREAM; // Analog/Impulse are both BSC_STREAM
+		e = newBscEndpoint("sensor", subaddr, bscType, infoEvent, stype[0]);
 
         }
 	updateEndpointValue(e, value);
@@ -241,9 +291,7 @@ static void startElementEDFCB(void *ctx, const xmlChar *name, const xmlChar **at
           state = ST_DATA;
           currentTag = bscFindEndpoint(endpointList, ename, subaddr);
           if(currentTag == NULL) {
-            currentTag = bscAddEndpoint(&endpointList, ename, subaddr, BSC_INPUT, BSC_STREAM, NULL, infoEvent
-);
-            bscAddEndpointFilter(currentTag, INFO_INTERVAL);
+		  currentTag = newBscEndpoint(ename, subaddr, BSC_STREAM, infoEvent,'A');
           }
         }
 }
@@ -267,10 +315,11 @@ static void cdataBlockEDFCB(void *ctx, const xmlChar *ch, int len)
         case ST_DATA:
                 // If its different report it.
                 if(currentTag->text == NULL || strcmp(output, currentTag->text)) {
+			UserData *u = (UserData *)currentTag->userData;
                         // Rotate the text data value through the user data field and free it on update.
-                        if(currentTag->userData)
-                                free(currentTag->userData);
-                        currentTag->userData = (void *)currentTag->text;
+                        if(u->previousValue)
+                                free(u->previousValue);
+                        u->previousValue = (void *)currentTag->text;
                         currentTag->text = dupZero(output);
 
                         debug("endpoint type %d", currentTag->type);
@@ -361,8 +410,7 @@ static void updateWholeOfHouseEndpoint(char *addr, char *subaddr, char *value, i
 	if(e == NULL) {
 		// Add to the list we want to search and manage
 		bscSetEndpointUID(uidOffset);
-		e = bscAddEndpoint(&endpointList, addr, subaddr, BSC_INPUT, BSC_STREAM, NULL, infoEvent);
-		bscAddEndpointFilter(e, INFO_INTERVAL);
+		e = newBscEndpoint(addr, subaddr, BSC_STREAM, infoEvent,'A');
 	}
 	updateEndpointValue(e, value);
 
@@ -386,15 +434,15 @@ static void updateWholeOfHouseEndpoint(char *addr, char *subaddr, char *value, i
 			if(ccTotal == NULL) {
 				// ch.total = ch.1 + ch.2 + ch.3
 				bscSetEndpointUID(5);
-				ccTotal = bscAddEndpoint(&endpointList, "ch", "total", BSC_INPUT, BSC_STREAM, NULL, &infoEventChannel);
-				bscAddEndpointFilter(ccTotal, INFO_INTERVAL);
+				ccTotal = newBscEndpoint("ch", "total", BSC_STREAM, &infoEventChannel,'A');
 				bscSetState(ccTotal, BSC_STATE_ON);
 			}
 			
 			// roll previous total into userData for hystersis calculations.
-			if(ccTotal->userData)
-				free(ccTotal->userData);
-			ccTotal->userData = (void *)ccTotal->text;
+			UserData *u = (UserData *)ccTotal->userData;
+			if(u->previousValue)
+				free(u->previousValue);
+			u->previousValue = (void *)ccTotal->text;
 			
 			char totalText[10];
 			snprintf(totalText, sizeof(totalText),"%d", total);
@@ -484,7 +532,7 @@ void serialInputHandler(int fd, void *data)
 			putchar('\n');
 		}
                 for(ch = &serial_buff[0], i=0; i < len; i++, ch++) {
-                        if(*ch == '\r' || *ch == '\n')
+                        if(isspace(*ch))
                                 continue;
                         // Prevent buffer overruns.
                         if(serial_cursor == sizeof(serial_xml)-1) {

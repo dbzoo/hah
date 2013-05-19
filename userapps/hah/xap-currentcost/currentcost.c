@@ -1,10 +1,10 @@
 /* $Id$
   Copyright (c) Brett England, 2009
-   
+
   No commercial use.
   No redistribution at profit.
   All derivative work must retain this message and
-  acknowledge the work of the original author.  
+  acknowledge the work of the original author.
  */
 #ifdef IDENT
 #ident "@(#) $Id$"
@@ -26,7 +26,7 @@
 
 const char *inifile = "/etc/xap-livebox.ini";
 char serialPort[20];
-int hysteresis;
+int hysteresis; // Whole of house
 char *interfaceName = "eth0";
 
 enum {CC128, CLASSIC, ORIGINAL, EDF} model;
@@ -54,6 +54,8 @@ typedef struct {
 	char type;  // Analog, Digital, Impulse (ADI)
 	char *previousValue;
 	char *currentValue; // Used for impulse
+	int hysteresis;
+	char *unit;
 } UserData;
 
 /// BSC callback - Only emit info/event for Channels that adjust outside of the hysteresis amount.
@@ -111,34 +113,25 @@ static long loadSensorINI(char *key, int sensor, char *location, int size)
 /// BSC callback - For Sensors (IAMS)
 static int sensorInfoEvent(bscEndpoint *e, char *clazz)
 {
-        char unit[10];
-        long n;
-
         info("%s %s.%s", clazz, e->name, e->subaddr);
-        // note: e->userData contains the previous value (it will be NULL for the 1st data value received)
         int old = 0;
 	UserData *u = e->userData;
         if(u->previousValue)
 		old = atoi(u->previousValue);
         int new = atoi(e->text);
-        char i_hysteresis[4];
-        n = loadSensorINI("hysteresis", atoi(e->subaddr), i_hysteresis, sizeof(i_hysteresis));
-        hysteresis = atoi(i_hysteresis);
 
         // Alway report INFO events so we can repond to xAPBSC.query + Timeouts.
         // xapBSC.event are only emitted based on the hystersis or if they have never been reported.
-        if(strcmp(clazz, BSC_INFO_CLASS) == 0 || new > old + hysteresis || new < old - hysteresis ||
+        if(strcmp(clazz, BSC_INFO_CLASS) == 0 || new > old + u->hysteresis || new < old - u->hysteresis ||
           	e->last_report == 0) {
-                n = loadSensorINI("unit", atoi(e->subaddr), unit, sizeof(unit));
-                if(n > 0) {
+                if(u->unit) {
                         if(e->displayText == NULL) { // Lazy malloc
                                 e->displayText = (char *)malloc(30);
                         }
-
                         if(e->type == BSC_BINARY) {
-                                snprintf(e->displayText, 30, "%s %s", unit, bscStateToString(e));
+                                snprintf(e->displayText, 30, "%s %s", u->unit, bscStateToString(e));
                         } else {
-                                snprintf(e->displayText, 30, "%s %s", e->text, unit);
+                                snprintf(e->displayText, 30, "%s %s", e->text, u->unit);
                         }
                 }
                 return 1;
@@ -161,7 +154,7 @@ void updateEndpointValue(bscEndpoint *e, char *value) {
 		  if(e->text == NULL // Never reported before
 		     || strcmp(value, u->currentValue) // or meter value change
 		     || (u->previousValue && strcmp(u->currentValue, u->previousValue))) // or 1st ZERO delta
-		    { 
+		    {
 			if(u->previousValue) free(u->previousValue);
 			u->previousValue = u->currentValue;
 			u->currentValue = strdup(value); // Save new current value.
@@ -183,14 +176,14 @@ void updateEndpointValue(bscEndpoint *e, char *value) {
 			}
 			u->previousValue = (void *)e->text;
 			e->text = strdup(value);
-			
+
 			debug("endpoint type %s", (e->type == BSC_BINARY ? "binary" : "analog"));
 			if(e->type == BSC_BINARY) {
 				// 0 is off, 500 is ON.  We'll use any value != 0 as ON.
 				bscSetState(e, atoi(e->text) ? BSC_STATE_ON : BSC_STATE_OFF);
 			} else {
 				bscSetState(e, BSC_STATE_ON);
-			}		
+			}
 			bscSendEvent(e);
 		}
 	}
@@ -203,11 +196,24 @@ bscEndpoint *newBscEndpoint(char *name, char *subaddr, unsigned int type, int (*
 	UserData *u = (UserData *)calloc(1,sizeof(UserData));
 	e->userData = u;
 	u->type = sensorType;
+
+	if(subaddr && isdigit(*subaddr)) {
+		int sensorId = atoi(e->subaddr);
+		char i_hysteresis[4];
+		long n;
+		n = loadSensorINI("hysteresis", sensorId, i_hysteresis, sizeof(i_hysteresis));
+		if(n>0) u->hysteresis = atoi(i_hysteresis);
+
+		char unit[10];
+		n = loadSensorINI("unit", sensorId, unit, sizeof(unit));
+		if(n > 0) u->unit = strdup(unit);
+	}
+
 	bscAddEndpointFilter(e, INFO_INTERVAL);
 	return e;
 }
 
-/* 
+/*
  Creation of a sensor should follow this pattern
 
  sensor.n        Phase 1 - IAM's sensor
@@ -254,7 +260,7 @@ static void freePtr(char **p) {
 char *dupZero(char *s) {
 	if(s == NULL || *s == '\0') // No string?
 		return NULL;
-	
+
 	while(*s && *s == '0')
 		s++;
 
@@ -273,7 +279,7 @@ static void startElementEDFCB(void *ctx, const xmlChar *name, const xmlChar **at
         if(strncmp("ch",name, 2) == 0) {
           char *ename, *subaddr;
           int (*infoEvent)(bscEndpoint *, char *);
-            
+
           if(strncmp("chH",name, 3) == 0) { // <chH> is special
             ename = "ch";
             subaddr = "H";
@@ -287,7 +293,7 @@ static void startElementEDFCB(void *ctx, const xmlChar *name, const xmlChar **at
             bscSetEndpointUID(9 + atoi(subaddr));
             infoEvent = &sensorInfoEvent;
           }
-          
+
           state = ST_DATA;
           currentTag = bscFindEndpoint(endpointList, ename, subaddr);
           if(currentTag == NULL) {
@@ -339,7 +345,7 @@ static void cdataBlockEDFCB(void *ctx, const xmlChar *ch, int len)
 
 static void endElementEDFCB(void *ctx, const xmlChar *name)
 {
-       debug("</%s>", name); 
+       debug("</%s>", name);
 }
 
 /// SAX element (TAG) callback
@@ -427,27 +433,27 @@ static void updateWholeOfHouseEndpoint(char *addr, char *subaddr, char *value, i
 				channelCount ++;
 			}
 		}
-		
+
 		// Defer construction of this endpoint until we no there are more then 3 phases.
 		if(channelCount > 1) {
-			
+
 			if(ccTotal == NULL) {
 				// ch.total = ch.1 + ch.2 + ch.3
 				bscSetEndpointUID(5);
 				ccTotal = newBscEndpoint("ch", "total", BSC_STREAM, &infoEventChannel,'A');
 				bscSetState(ccTotal, BSC_STATE_ON);
 			}
-			
+
 			// roll previous total into userData for hystersis calculations.
 			UserData *u = (UserData *)ccTotal->userData;
 			if(u->previousValue)
 				free(u->previousValue);
 			u->previousValue = (void *)ccTotal->text;
-			
+
 			char totalText[10];
 			snprintf(totalText, sizeof(totalText),"%d", total);
 			ccTotal->text = strdup(totalText);
-			
+
 			bscSendEvent(ccTotal);
 		}
 	}
@@ -457,7 +463,7 @@ static void endElementCB(void *ctx, const xmlChar *name)
 {
 	debug("</%s>", name);
 	if(strcmp("msg", name)) return;
- 
+
 	if(msg.sensor == 0) { // Whole of house
 		if(msg.ch1) updateWholeOfHouseEndpoint("ch","1", msg.ch1, infoEventChannel, 1);
 		if(msg.ch2) updateWholeOfHouseEndpoint("ch","2", msg.ch2, infoEventChannel, 2);
@@ -471,18 +477,13 @@ static void endElementCB(void *ctx, const xmlChar *name)
 
 		// Impulse meters and IAMS are mutally exclusive.
 		// That is [ ch1/ch2/ch3 and imp ] so we can reuse the endpoint of ch1.
-		if(msg.imp) updateSensor(msg.sensor, "%d", msg.imp, NULL, 1); 
+		if(msg.imp) updateSensor(msg.sensor, "%d", msg.imp, NULL, 1);
 
-		// Do sensors have separate temperature readings
-		// OR 
-		// is this just the Whole House Sensor reporting in as part of a sensor update ?
-#if 0		
-		if(msg.tempr) updateSensor(msg.sensor, "sensor.%d.temp", msg.tempr, infoEventTemp, 4);
-		if(msg.temprf) updateSensor(msg.sensor, "sensor.%d.tempF", msg.temprf, infoEventTemp, 4);
-#else
+		// Sensors don't have separate temperature readings
+		// but the CC unit will include the WHOLE OF HOUSE temp
+		// reading as part of a sensor payload.
 		if(msg.tempr) updateWholeOfHouseEndpoint("temp", NULL, msg.tempr, infoEventTemp, 4);
 		if(msg.temprf) updateWholeOfHouseEndpoint("tempF", NULL, msg.temprf, infoEventTemp, 4);
-#endif
 	}
 }
 
@@ -525,7 +526,7 @@ void serialInputHandler(int fd, void *data)
 	static int bstate = 0, estate = 0;
 
         debug("(fd:%d)(len:%d)(xml:%s)", fd, serial_cursor, serial_xml);
-        while((len = read(fd, serial_buff, sizeof(serial_buff))) > 0) {		
+        while((len = read(fd, serial_buff, sizeof(serial_buff))) > 0) {
 		if(getLoglevel() == LOG_DEBUG) {
 			for(i=0;i<len;i++)
 				putchar(serial_buff[i]);
@@ -550,7 +551,7 @@ void serialInputHandler(int fd, void *data)
 			  serial_cursor = 5;
 			  bstate = 0;
 			}
-			else 
+			else
 			  bstate = 0;
 
 			if (estate == 0 && *ch == '<') estate = 1;
@@ -561,9 +562,9 @@ void serialInputHandler(int fd, void *data)
 			else if (estate == 5 && *ch == '>') {
 			  parseXml(serial_xml, serial_cursor);
 			  serial_cursor = 0;
-			  serial_xml[0] = 0;			
+			  serial_xml[0] = 0;
 			  estate = 0;
-                        } else 
+                        } else
 			  estate = 0;
 		}
         }
@@ -623,7 +624,7 @@ void setupXap()
 {
         char defaultPort[20];
         strcpy(defaultPort, serialPort);
-  
+
         xapInitFromINI("currentcost","dbzoo.livebox","CurrentCost","00DC",interfaceName,inifile);
 
         hysteresis = ini_getl("currentcost", "hysteresis", 10, inifile);
@@ -644,7 +645,6 @@ void setupXap()
         } else if(strcasecmp(model_s,"EDF") == 0) {
                 info("Selecting EDF model");
                 model = EDF;
-	  
         } else {
                 info("Selecting CLASSIC model");
         }

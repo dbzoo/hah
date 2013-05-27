@@ -46,7 +46,7 @@ Online: http://www.gnu.org/licenses/gpl.txt
 #define IP_MAX 16
 #define HTTP_PORT 80
 #define HTTP  "http://"
-#define HOST  "www.pachube.com"
+#define HOST  "api.xively.com"
 #define API_KEY "pachube-api-key"
 #define MSG_MAX 1500 //TODO: look at it
 #define STR_LEN 200

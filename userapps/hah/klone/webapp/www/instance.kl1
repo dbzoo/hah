@@ -17,7 +17,7 @@ struct _daemon {
 	       {"bridge","Bridge","00D3",""},
 	       {"snoop","Snoop","00D4",""},
 	       {"serial","Serial","00D5",""},
-	       {"pachube","Pachube","00D7",""},
+	       {"xively","Xively","00D7",""},
 	       {"plugboard","Plugboard","00D8",""},
 	       {"twitter","Twitter","00D9",""},
 	       {"googlecal","Google Calendar","00DA",""},

@@ -8,7 +8,7 @@
 #define sizearray(x) (sizeof(x) / sizeof(x[0]))
 
 struct _datastream {
-	char feed[7];
+	char feed[10];
 	char id[4];
 	char tag[20];
 	char min[8];
@@ -23,7 +23,7 @@ struct _datastream {
 
 static struct {
 	 char apikey[129];
-	 char feedid[8];
+	 char feedid[10];
 	 int count;
 	 char ufreq[4];
 	 char ph_enable[2];
@@ -32,23 +32,23 @@ static struct {
 static void loadDynINI(char *key, int id, char *location, int size) {
 	 char buff[20];
 	 snprintf(buff,sizeof(buff),"%s%d",key, id);
-	 ini_gets("pachube", buff, "", location, size, con.inifile);
+	 ini_gets("xively", buff, "", location, size, con.inifile);
 }
 
 static void saveDynINI(char *key, int id, const char *value) {
 	 char buff[20];
 	 snprintf(buff,sizeof(buff),"%s%d",key, id);
-	 ini_puts("pachube", buff, value, con.inifile);
+	 ini_puts("xively", buff, value, con.inifile);
 }
 
 static void readIni() {
-	 ini_gets("pachube","enable","0",ini.ph_enable,sizeof(ini.ph_enable),con.inifile);
-	 ini_gets("pachube","apikey","",ini.apikey,sizeof(ini.apikey),con.inifile);
-	 ini_gets("pachube","feedid","",ini.feedid,sizeof(ini.feedid),con.inifile);
-	 ini_gets("pachube","ufreq","60",ini.ufreq,sizeof(ini.ufreq),con.inifile);
+	 ini_gets("xively","enable","0",ini.ph_enable,sizeof(ini.ph_enable),con.inifile);
+	 ini_gets("xively","apikey","",ini.apikey,sizeof(ini.apikey),con.inifile);
+	 ini_gets("xively","feedid","",ini.feedid,sizeof(ini.feedid),con.inifile);
+	 ini_gets("xively","ufreq","60",ini.ufreq,sizeof(ini.ufreq),con.inifile);
 
 	 // Comma separated list of ids
-	 ini.count = ini_getl("pachube", "count", 0, con.inifile);
+	 ini.count = ini_getl("xively", "count", 0, con.inifile);
 
 	 if(ini.count > sizearray(ds)) {
 		  ini.count = sizearray(ds);
@@ -80,22 +80,22 @@ static void submit_form() {
 	 if(ph_enable) {
 		  if((*ph_enable == '1' && ini.ph_enable[0] == '0') ||
 			 (*ph_enable == '0' && ini.ph_enable[0] == '1')) {
-			   ini_puts("pachube","enable",ph_enable,con.inifile);
+			   ini_puts("xively","enable",ph_enable,con.inifile);
 			   restart = 1;
 		  }
 	 }
 
 	 const char *apikey = request_get_arg(request,"apikey");
 	 if(apikey && strcmp(apikey,ini.apikey)) {
-		  ini_puts("pachube","apikey",apikey,con.inifile);
+		  ini_puts("xively","apikey",apikey,con.inifile);
 	 }
 	 const char *feedid = request_get_arg(request,"feedid");
 	 if(feedid && strcmp(feedid,ini.feedid)) {
-		  ini_puts("pachube","feedid",feedid,con.inifile);
+		  ini_puts("xively","feedid",feedid,con.inifile);
 	 }
 	 const char *ufreq = request_get_arg(request,"ufreq");
 	 if(ufreq && strcmp(ufreq,ini.ufreq)) {
-		  ini_puts("pachube","ufreq",ufreq,con.inifile);
+		  ini_puts("xively","ufreq",ufreq,con.inifile);
 	 }
 
 	 int i;
@@ -125,7 +125,7 @@ static void submit_form() {
 	 }
 
 	 if(restart) {
-	   system("/etc/init.d/xap restart pachube");
+	   system("/etc/init.d/xap restart xively");
 	 }
 }
 /**********************************************************************/
@@ -142,10 +142,10 @@ static void submit_form() {
   if(action && strcmp(action,"Add") == 0 && ini.count+1 < sizearray(ds)) {
 	   memset( &ds[ini.count], 0, sizeof(ds[i]) );
 	   ini.count++;
-	   ini_putl("pachube","count", ini.count, con.inifile);
+	   ini_putl("xively","count", ini.count, con.inifile);
   }
   if(action && strcmp(action,"Restart") == 0) {
-    system("/etc/init.d/xap restart pachube");
+    system("/etc/init.d/xap restart xively");
   }
 
   if(action && strncmp(action,"Del",3) == 0) {
@@ -172,7 +172,7 @@ static void submit_form() {
 	 }
 	 // now remove it from the list.
 	 ini.count--;
-	 ini_putl("pachube","count", ini.count, con.inifile);
+	 ini_putl("xively","count", ini.count, con.inifile);
   }
 %>
 <html>
@@ -215,10 +215,10 @@ addEvent(window,"load",function() {
 <input type="hidden" name="submit_button"/>
 <input type="hidden" name="action"/>
 <br/>
-<h2>Pachube Settings</h2><div>
+<h2>Xively Settings (aka Cosm/Pachube)</h2><div>
 
 <fieldset>
-  <legend>Pachube</legend>
+  <legend>Xively</legend>
   <div class="setting">
     <div class="label">Start service</div>
 	<input class="spaceradio" type="radio" value="1" name="ph_enable" onclick="show_layer_ext(this, 'idph', true);"<% if(ini.ph_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
@@ -236,7 +236,7 @@ addEvent(window,"load",function() {
 
   <div class="setting">
     <div class="label">Feed ID</div>
-  <input maxlength="8" size="8" name="feedid" value="<%= ini.feedid %>" onblur="isdigit(this,'Feed ID')"/> (Default if unassigned on a datastream)
+  <input maxlength="10" size="8" name="feedid" value="<%= ini.feedid %>" onblur="isdigit(this,'Feed ID')"/> (Default if unassigned on a datastream)
   </div>
   <div class="setting">
     <div class="label">Update Frequency</div>
@@ -252,7 +252,7 @@ addEvent(window,"load",function() {
 	   for(i=0; i<ini.count; i++) {
 %>
 	   <tr>
-         <td><input name="feed<% io_printf(out,"%d",i); %>" maxlength="6" size="1" value="<%= ds[i].feed %>" onblur="isdigit(this,'FEED')"/></td>
+         <td><input name="feed<% io_printf(out,"%d",i); %>" maxlength="10" size="1" value="<%= ds[i].feed %>" onblur="isdigit(this,'FEED')"/></td>
          <td><input name="id<% io_printf(out,"%d",i); %>" maxlength="4" size="1" value="<%= ds[i].id %>" onblur="isdigit(this,'ID')"/></td>
          <td><input name="tag<% io_printf(out,"%d",i); %>" maxlength="20" size="10" value="<%= ds[i].tag %>"/></td>
          <td><input name="min<% io_printf(out,"%d",i); %>" maxlength="7" size="1" value="<%= ds[i].min %>" onblur="isdigit(this,'MIN')"/></td>

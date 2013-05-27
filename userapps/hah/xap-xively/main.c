@@ -6,24 +6,24 @@
    All derivative work must retain this message and
    acknowledge the work of the original author.  
  
-   The PACHUBE adapter feeds data to the pachube service on a regular
+   The XIVELY adapter feeds data to the xively service on a regular
    basis.
  
-   It's internal cache of data to push to PACHUBE is updated by xAP
+   It's internal cache of data to push to XIVELY is updated by xAP
    messages being targetted at this service.
  
-   Message sent to us are not immediately forwarded to the PACHUBE
+   Message sent to us are not immediately forwarded to the XIVELY
    service until the next update cycle.
  
-   A Pachube update message looks like this:
+   A Xively update message looks like this:
  
 xap-header
 {
 v=12
 hop=1
 uid=FF00DA01
-class=pachube.update
-target=dbzoo.livebox.pachube
+class=xively.update
+target=dbzoo.livebox.xively
 source=dbzoo.acme.test
 }
 datastream
@@ -46,7 +46,7 @@ value=10.4
 #include "dscache.h"
 #include "xap.h"
 #include "mem.h"
-#include "pachube.h"
+#include "xively.h"
 
 #define OPTIONAL 0
 #define MANDATORY 1
@@ -59,7 +59,7 @@ char *g_apikey;
 static unsigned int g_feedid;  // default feed
 
 struct webFilter {
-  // for PACHUBE usage
+  // for XIVELY usage
   unsigned int feed;
   unsigned int id;
   char *min;
@@ -88,10 +88,10 @@ void broadcastUpdate(void *userData)
         updateDatastream(wf->feed, wf->id, wf->tag, f, wf->min, wf->max, wf->unit);
 }
 
-/** process an xAP pachube update message.
+/** process an xAP xively update message.
 * xapAddFilterAction callback
 */
-void pachubeUpdate(void *userData)
+void xivelyUpdate(void *userData)
 {
 	char *feed = xapGetValue("datastream","feed");
 	char *id = xapGetValue("datastream","id");
@@ -126,12 +126,12 @@ static char *getDynINI(char *key, unsigned int id, int mandatory)
         char value[129];
 
         sprintf(dkey,"%s%d",key,id);
-        long n = ini_gets("pachube", dkey, "", value, sizeof(value), inifile);
+        long n = ini_gets("xively", dkey, "", value, sizeof(value), inifile);
         // Brutal death if all is not perfect.
 	info("Loaded key %s=%s", dkey, value);
 	if(n == 0) {
 	  if(mandatory)
-	    die("INI file missing [pachube] %s=<value>", dkey);
+	    die("INI file missing [xively] %s=<value>", dkey);
 	  return NULL;
 	}
         return strdup(value);
@@ -143,20 +143,20 @@ void parseINI()
         char apikey[129];
         long feedid, n;
 
-        ini_gets("pachube","apikey","",apikey,sizeof(apikey),inifile);
+        ini_gets("xively","apikey","",apikey,sizeof(apikey),inifile);
         die_if(strlen(apikey) == 0, "apikey has not been setup\n");
 	g_apikey = strdup(apikey);
 
-        g_feedid = ini_getl("pachube","feedid", 0, inifile);
+        g_feedid = ini_getl("xively","feedid", 0, inifile);
         die_if(g_feedid == 0,"feedid has not been setup");
 
-        g_ufreq = ini_getl("pachube","ufreq",60,inifile);
+        g_ufreq = ini_getl("xively","ufreq",60,inifile);
 	if(g_ufreq < 6 || g_ufreq > 900) {
                 g_ufreq = 60; // default 60sec, 6 sec to 15 mins.
 		warning("Update frequency out of range using default %d sec", g_ufreq);
 	}
 
-        long filters = ini_getl("pachube","count",0,inifile);
+        long filters = ini_getl("xively","count",0,inifile);
         int i;
         char key[6];
 
@@ -190,24 +190,24 @@ void parseINI()
 int main(int argc, char *argv[])
 {
         int i;
-        printf("\nPachube Connector for xAP v12\n");
+        printf("\nXively Connector for xAP v12\n");
         printf("Copyright (C) DBzoo 2009-2010\n\n");
 
 	simpleCommandLine(argc, argv, &interfaceName);
-        xapInitFromINI("pachube","dbzoo.livebox","Pachube","00D7",interfaceName,inifile);
+        xapInitFromINI("xively","dbzoo.livebox","Xively","00D7",interfaceName,inifile);
         parseINI();
 
-        // Setup PACHUBE xAP service
+        // Setup XIVELY xAP service
         xAPFilter *f = NULL;
 	xapAddFilter(&f, "xap-header", "target", xapGetSource());
-        xapAddFilter(&f, "xap-header", "class", "pachube.update");
+        xapAddFilter(&f, "xap-header", "class", "xively.update");
         xapAddFilter(&f, "datastream", "id", XAP_FILTER_ANY);
         xapAddFilter(&f, "datastream", "tag", XAP_FILTER_ANY);
         xapAddFilter(&f, "datastream", "value", XAP_FILTER_ANY);
-        xapAddFilterAction(&pachubeUpdate, f, NULL);
+        xapAddFilterAction(&xivelyUpdate, f, NULL);
 
-        // Update the PACHUBE web service with our datastreams.
-        xapAddTimeoutAction(&pachubeWebUpdate,  g_ufreq, NULL);
+        // Update the XIVELY web service with our datastreams.
+        xapAddTimeoutAction(&xivelyWebUpdate,  g_ufreq, NULL);
 
         xapProcess();
 }

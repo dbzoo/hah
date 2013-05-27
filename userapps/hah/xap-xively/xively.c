@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "log.h"
-#include "pachube.h"
+#include "xively.h"
 #include "pachulib.h"
 #include "mem.h"
 

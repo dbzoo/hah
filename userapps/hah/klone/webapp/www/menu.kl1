@@ -9,10 +9,10 @@
 #include "menu.h"
 #include "login.h"
 
-// Use to conditionally enable the GRAPH L2-Tab only when pachube is also enabled.
-int isPachubeEnabled(session_t *s) {
+// Use to conditionally enable the GRAPH L2-Tab only when xively is also enabled.
+int isXivelyEnabled(session_t *s) {
   char ph_enable[2];
-  ini_gets("pachube","enable","0",ph_enable,sizeof(ph_enable),con.inifile);
+  ini_gets("xively","enable","0",ph_enable,sizeof(ph_enable),con.inifile);
   return ph_enable[0] == '1';
 }
 
@@ -36,8 +36,8 @@ MENU mymenu[] =
   {"Automation","Calendar","calendar.kl1", NULL},
   {"Automation","Twitter","twitter.kl1", NULL},
   {"Automation","iServer","iserver.kl1", NULL},
-  {"Automation","Pachube","pachube.kl1", NULL},
-  {"Automation","Graph","graph.kl1", isPachubeEnabled},
+  {"Automation","Xively","xively.kl1", NULL},
+  {"Automation","Graph","graph.kl1", isXivelyEnabled},
   {"Automation","Assists","assistance.kl1", NULL},
   {"GUI","xAPFlash","flashgui.kl1", NULL},
   {"Admin","Info","index.kl1", NULL},

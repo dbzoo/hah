@@ -17,7 +17,7 @@ static unsigned int *feeds;
 static unsigned int feeds_cnt = 0;
 
 /* Iterate over the datastream constructing an XML fragment in a
-** static buffer suitable for pushing to pachube as a data feed.
+** static buffer suitable for pushing to xively as a data feed.
 ** Expand the buffer if necessary.
 */
 static char *xmlDatastream(unsigned int feed) {
@@ -57,10 +57,10 @@ again:
      return xml;
 }
 
-/** Update the PACHUBE webservice with our datastreams.
+/** Update the XIVELY webservice with our datastreams.
 * xapAddTimeoutAction callback
 */
-void pachubeWebUpdate(int interval, void *userData)
+void xivelyWebUpdate(int interval, void *userData)
 {
 	// for each unique feed
 	int i;

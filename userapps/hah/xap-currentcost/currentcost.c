@@ -198,11 +198,11 @@ bscEndpoint *newBscEndpoint(char *name, char *subaddr, unsigned int type, int (*
 	u->type = sensorType;
 
 	if(subaddr && isdigit(*subaddr)) {
-		int sensorId = atoi(e->subaddr);
+		int sensorId = atoi(subaddr);
 		char i_hysteresis[4];
 		long n;
 		n = loadSensorINI("hysteresis", sensorId, i_hysteresis, sizeof(i_hysteresis));
-		if(n>0) u->hysteresis = atoi(i_hysteresis);
+		if(n > 0) u->hysteresis = atoi(i_hysteresis);
 
 		char unit[10];
 		n = loadSensorINI("unit", sensorId, unit, sizeof(unit));
@@ -219,11 +219,6 @@ bscEndpoint *newBscEndpoint(char *name, char *subaddr, unsigned int type, int (*
  sensor.n        Phase 1 - IAM's sensor
  sensor.n.2      Phase 2
  sensor.n.3      Phase 3
- sensor.n.gas    Impulse GAS
- sensor.n.water  Impulse Water
- sensor.n.power  Impulse Electricity
- sensor.n.temp   Temperature
- sensor.n.tempF  Temperature Farenheit
 
  We use the word phase here when talking about ch1/ch2/ch3
 */
@@ -517,7 +512,7 @@ void parseXml(char *data, int size)
 ///. Read the XML stream from the currentcost unit.
 void serialInputHandler(int fd, void *data)
 {
-        char serial_buff[128];
+        char serial_buff[256];
         static char serial_xml[4096]= {0};
         static int serial_cursor = 0;
         int i;

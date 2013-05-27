@@ -5,7 +5,7 @@
 
 . /etc/ini.conf
 
-subsystem="hub pachube livebox iserver web sms serial currentcost twitter googlecal plugboard"
+subsystem="hub xively livebox iserver web sms serial currentcost twitter googlecal plugboard"
 
 start_web() {
     rm -f /tmp/klone_sess*
@@ -64,13 +64,13 @@ stop_sms() {
     killall xap-sms
 }
 
-start_pachube() {
-    if [ `iniget $INI pachube enable 0` -eq 1 ] ;  then 
-	/usr/bin/xap-pachube -i $MYDEV >/var/log/xap-pachube.log 2>&1 &
+start_xively() {
+    if [ `iniget $INI xively enable 0` -eq 1 ] ;  then 
+	/usr/bin/xap-xively -i $MYDEV >/var/log/xap-xively.log 2>&1 &
     fi
 }
-stop_pachube() {
-    killall xap-pachube
+stop_xively() {
+    killall xap-xively
 }
 
 start_currentcost() {

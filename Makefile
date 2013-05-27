@@ -99,7 +99,7 @@ SUBDIRS_HAH = \
 	$(HAH_DIR)/xap-hub \
 	$(HAH_DIR)/xap-livebox \
 	$(HAH_DIR)/xap-snoop \
-	$(HAH_DIR)/xap-pachube \
+	$(HAH_DIR)/xap-xively \
 	$(HAH_DIR)/xap-sms \
 	$(HAH_DIR)/xap-currentcost \
 	$(HAH_DIR)/xap-googlecal \
@@ -115,7 +115,7 @@ SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIR
 OPENSOURCE_APPS = brctl dropbear iptables busybox ntpclient ini mtd lua \
 	lrexlib luafilesystem luasocket penlight avrdude
 INVENTEL_APPS = inventelbin sendarp ledctrl
-HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-pachube xap-sms iServer \
+HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-xively xap-sms iServer \
 	xap-currentcost xap-googlecal xap-twitter xap-serial klone xap-plugboard \
 	xap-flash
 
@@ -215,11 +215,11 @@ xap-serial: xaplib2
 	install -m 755 $(HAH_DIR)/xap-serial/xap-serial $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-serial
 
-xap-pachube: xaplib2
-	$(MAKE) -C $(HAH_DIR)/xap-pachube
+xap-xively: xaplib2
+	$(MAKE) -C $(HAH_DIR)/xap-xively
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
-	install -m 755 $(HAH_DIR)/xap-pachube/xap-pachube $(INSTALL_DIR)/usr/bin
-	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-pachube
+	install -m 755 $(HAH_DIR)/xap-xively/xap-xively $(INSTALL_DIR)/usr/bin
+	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-xively
 
 xap-currentcost: xaplib2 libxml2
 	$(MAKE) -C $(HAH_DIR)/xap-currentcost

@@ -14,6 +14,6 @@ struct datastream {
 };
 
 void updateDatastream(unsigned int feed, unsigned int id, char *tag, float value, char *min, char *max, char *unit);
-void pachubeWebUpdate(int interval, void *userData);
+void xivelyWebUpdate(int interval, void *userData);
 
 #endif

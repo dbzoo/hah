@@ -159,7 +159,7 @@ int send_data(int fd, char *buffer, unsigned int long_buffer)
 
 		if (ret == -1)
 		{
-			warning_strerror("Sending to pachube");
+			warning_strerror("Sending to xively");
 			close(fd);
 			return FALSE;
 		}
@@ -182,7 +182,7 @@ int read_data(int fd, char *buffer)
 		info("received %d bytes, bufsize %d bytes\n%s\n", ret, long_buffer, ptoB);
 		if (ret<0)
 		{
-			warning_strerror("Receiving data from pachube");	
+			warning_strerror("Receiving data from xively");	
 			close(fd);
 			return FALSE;
 		}
@@ -192,7 +192,7 @@ int read_data(int fd, char *buffer)
 			close(fd);
 			if (long_buffer == MSG_MAX) //no-data
 			{
-				warning_strerror("No data from pachube");			
+				warning_strerror("No data from xively");			
 				return FALSE;
 			}
 			return TRUE;
@@ -234,7 +234,7 @@ int recover_env_id_status(char *msg,unsigned int * env_id)
         int found = FALSE;
         char * tok = strtok(msg, "\n");
         while (tok != NULL) {
-                if (sscanf(tok,"Location: http://www.pachube.com/api/feeds/%d",env_id)==1)
+                if (sscanf(tok,"Location: http://api.xively.com/v2/feeds/%d",env_id)==1)
                 {
                         found = TRUE;
                         break;
@@ -261,7 +261,7 @@ int recover_trigger_id_status(char * msg,unsigned int * tr_id)
         int found = FALSE;
         char * tok = strtok(msg, "\n");
         while (tok != NULL) {
-                if (sscanf(tok,"Location: http://www.pachube.com/api/triggers/%d",tr_id)==1)
+                if (sscanf(tok,"Location: http://api.xively.com/v2/triggers/%d",tr_id)==1)
                 {
                         found = TRUE;
                         break;
@@ -338,7 +338,7 @@ int create_environment(char *api_key, char *environment, unsigned int *env_id) /
 		sprintf(environment,"<eeml xmlns=\"http://www.eeml.org/xsd/005\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.eeml.org/xsd/005 http://www.eeml.org/xsd/005/005.xsd\"><environment><title>%s</title></environment></eeml>",DEFAULT_ENV);
 	}
 
-	snprintf(msg,MSG_MAX,"POST /api/feeds/ HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",HOST, api_key,strlen(environment));
+	snprintf(msg,MSG_MAX,"POST /v2/feeds/ HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",HOST, api_key,strlen(environment));
 
 	//add body to msg:
 	if(strlcat(msg, environment, MSG_MAX) > MSG_MAX) {
@@ -368,7 +368,7 @@ int delete_environment(unsigned int env_id,char * api_key) //DELETE
 	int fd = 0;
 
 	//add header to msg
-	sprintf(msg,"DELETE /api/feeds/%d HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\n\r\n",env_id, HOST, api_key);
+	sprintf(msg,"DELETE /v2/feeds/%d HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\n\r\n",env_id, HOST, api_key);
 
 
 	if (!connect_server(&fd)) return FALSE;
@@ -404,7 +404,7 @@ int get_environment(unsigned int env_id, char * api_key, char *environment,data_
 
 	//add header to msg:
 	//TODO : xml now, more if needed in future..
-	sprintf(msg,"GET /api/feeds/%d.%s HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,format_str,HOST, api_key,0);
+	sprintf(msg,"GET /v2/feeds/%d.%s HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,format_str,HOST, api_key,0);
 
 	if (!connect_server(&fd)) return FALSE;
 
@@ -444,7 +444,7 @@ int update_environment(unsigned int env_id, char *api_key, char *environment,dat
 
 	//add header to msg:
 	//TODO : xml now, more if needed in future..
-	sprintf(msg,"PUT /api/feeds/%d.%s HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,format_str,HOST,api_key,strlen(environment));
+	sprintf(msg,"PUT /v2/feeds/%d.%s HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,format_str,HOST,api_key,strlen(environment));
 
 	//add body to msg:
 	int bufsiz = strlen(msg)+strlen(environment)+1;
@@ -474,7 +474,7 @@ int create_datastream(unsigned int env_id, char *api_key, char *environment) //P
 	int fd;
 
 	//add header to msg:
-	sprintf(msg,"POST /api/feeds/%d/datastreams/ HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id, HOST, api_key,strlen(environment) );
+	sprintf(msg,"POST /v2/feeds/%d/datastreams/ HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id, HOST, api_key,strlen(environment) );
 	//add body to msg:
 	sprintf(msg,"%s%s",msg,environment);
 
@@ -499,7 +499,7 @@ int delete_datastream(unsigned int env_id, int ds_id, char *api_key) //DELETE
 	int fd;
 
 	//add header to msg:
-	sprintf(msg,"DELETE /api/feeds/%d/datastreams/%d HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,ds_id, HOST, api_key, 0);
+	sprintf(msg,"DELETE /v2/feeds/%d/datastreams/%d HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,ds_id, HOST, api_key, 0);
 	//body no needed
 
 	if (!connect_server(&fd)) return FALSE;
@@ -527,8 +527,8 @@ int get_datastream(unsigned int env_id,int ds_id,char *api_key, char *datastream
 	if (!data_format_str(format,format_str)) return FALSE;
 
 	//TODO implement other data format while recovering
-	sprintf(msg,"GET /api/feeds/%d/datastreams/%d.xml HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\n\r\n",env_id,ds_id,HOST,api_key);
-//	sprintf(msg,"GET /api/feeds/%d/datastreams/%d.%s HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\n\r\n",env_id,ds_id,format_str, HOST,api_key);
+	sprintf(msg,"GET /v2/feeds/%d/datastreams/%d.xml HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\n\r\n",env_id,ds_id,HOST,api_key);
+//	sprintf(msg,"GET /v2/feeds/%d/datastreams/%d.%s HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\n\r\n",env_id,ds_id,format_str, HOST,api_key);
 		
 	//no body this time
 
@@ -566,7 +566,7 @@ int update_datastream(unsigned int env_id,int ds_id, char *api_key, char *datast
 	int fd;
 	
 	//header:
-	sprintf(msg,"PUT /api/feeds/%d/datastreams/%d.csv HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,ds_id,HOST, api_key,strlen(datastream));
+	sprintf(msg,"PUT /v2/feeds/%d/datastreams/%d.csv HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,ds_id,HOST, api_key,strlen(datastream));
 	//body:
 	sprintf(msg,"%s%s\r\n",msg,datastream);
 	
@@ -610,7 +610,7 @@ int create_trigger(trigger_tp * trigger,char *api_key) //POST
 //	printf("body %s\n",body);
 
 	//add header to msg:
-	sprintf(msg,"POST /api/triggers/ HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s",HOST, api_key, post_l, body);
+	sprintf(msg,"POST /v2/triggers/ HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s",HOST, api_key, post_l, body);
 
 	if (!connect_server(&fd)) return FALSE;
 
@@ -642,7 +642,7 @@ int get_all_triggers(data_format_tp format, char *api_key, char *trigger_list) /
 	
 	
 	//without the xml body
-	sprintf(msg,"GET /api/triggers/ HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",HOST, api_key, 0);
+	sprintf(msg,"GET /v2/triggers/ HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",HOST, api_key, 0);
 
 
 	if (!connect_server(&fd)) return FALSE;
@@ -708,7 +708,7 @@ sprintf(body,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<datastream-trigger>
 	int post_l = strlen(body);
 
 	//add header to msg:
-	sprintf(msg,"PUT /api/triggers/%d HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s",trigger->tr_id,HOST, api_key, post_l, body);
+	sprintf(msg,"PUT /v2/triggers/%d HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s",trigger->tr_id,HOST, api_key, post_l, body);
 
 
 
@@ -736,7 +736,7 @@ int get_trigger(int trigger_id, data_format_tp format, char *api_key, char *trig
 
 	if ((format=!XML)&&(format!=JSON)) return FALSE;
 
-	sprintf(msg,"GET /api/triggers/%d HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",trigger_id, HOST, api_key, 0);
+	sprintf(msg,"GET /v2/triggers/%d HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",trigger_id, HOST, api_key, 0);
 
 
 	if (!connect_server(&fd)) return FALSE;
@@ -773,7 +773,7 @@ int delete_trigger(int trigger_id, char *api_key) //DELETE
 	int fd = 0;
 
 	//add header to msg
-	sprintf(msg,"DELETE /api/triggers/%d HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\n\r\n",trigger_id, HOST, api_key);
+	sprintf(msg,"DELETE /v2/triggers/%d HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\n\r\n",trigger_id, HOST, api_key);
 
 
 	if (!connect_server(&fd)) return FALSE;
@@ -801,7 +801,7 @@ int get_historical_datastream_csv(int env_id,int ds_id, char *file_name) //GET
 
 	
 	sprintf(msg,"GET /feeds/%d/datastreams/%d/history.csv HTTP/1.1\r\nHost: %s\r\n\r\n",env_id,ds_id,HOST);
-//	sprintf(msg,"GET /api/feeds/%d/datastreams/%d.%s HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\n\r\n",env_id,ds_id,format_str, HOST,api_key);
+//	sprintf(msg,"GET /v2/feeds/%d/datastreams/%d.%s HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\n\r\n",env_id,ds_id,format_str, HOST,api_key);
 		
 	//no body this time
 
@@ -841,8 +841,8 @@ char msg[MSG_MAX];
 
 
 	
-	sprintf(msg,"GET /feeds/%d/datastreams/%d/archive.csv HTTP/1.1\r\nHost: %s\r\n\r\n",env_id,ds_id,HOST);
-//	sprintf(msg,"GET /api/feeds/%d/datastreams/%d.%s HTTP/1.1\r\nHost: %s\r\nX-PachubeApiKey: %s\r\n\r\n",env_id,ds_id,format_str, HOST,api_key);
+	sprintf(msg,"GET /v2/feeds/%d/datastreams/%d/archive.csv HTTP/1.1\r\nHost: %s\r\n\r\n",env_id,ds_id,HOST);
+//	sprintf(msg,"GET /v2/feeds/%d/datastreams/%d.%s HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\n\r\n",env_id,ds_id,format_str, HOST,api_key);
 		
 	//no body this time
 

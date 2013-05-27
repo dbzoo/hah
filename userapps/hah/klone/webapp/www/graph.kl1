@@ -22,14 +22,14 @@ static struct {
 static void loadDynINI(char *key, int id, char *location, int size) {
 	 char buff[100];
 	 sprintf(buff,"%s%d",key,id);
-	 ini_gets("pachube", buff, "", location, size, con.inifile);
+	 ini_gets("xively", buff, "", location, size, con.inifile);
 }
 
 static void readIni() {
-	 ini_gets("pachube","apikey","",ini.apikey,sizeof(ini.apikey),con.inifile);
-	 ini_gets("pachube","feedid","",ini.feedid,sizeof(ini.feedid),con.inifile);
+	 ini_gets("xively","apikey","",ini.apikey,sizeof(ini.apikey),con.inifile);
+	 ini_gets("xively","feedid","",ini.feedid,sizeof(ini.feedid),con.inifile);
 	 // Comma separated list of ids
-	 ini.count = ini_getl("pachube", "count", 0, con.inifile);
+	 ini.count = ini_getl("xively", "count", 0, con.inifile);
 
 	 if(ini.count > sizearray(ds)) {
 		  ini.count = sizearray(ds);
@@ -67,7 +67,7 @@ function drawVisualization(){
 	var headID = document.getElementsByTagName('head')[0];
 	var newScript = document.createElement('script');
 	newScript.type = 'text/javascript';
-	newScript.src = 'http://apps.pachube.com/history/archive_json.php?f=<%= ds[act].feed %>&d=<%= ds[act].id %>&callback=process';
+	newScript.src = 'http://apps.xively.com/history/archive_json.php?f=<%= ds[act].feed %>&d=<%= ds[act].id %>&callback=process';
 	headID.appendChild(newScript);
 }
 
@@ -104,11 +104,11 @@ google.setOnLoadCallback(drawVisualization);
 <div id="main">
 <div id="contents">
 <br/>
-<h2>Pachube Graphs</h2><div>
+<h2>Xively Graphs</h2><div>
 <%
 	 if(ini.count == 0) {
 %>
-  Pachube datastreams are not configured: <a href="/pachube.kl1">setup</a>
+  Xively datastreams are not configured: <a href="/xively.kl1">setup</a>
 </div>
 <br/>
 <%

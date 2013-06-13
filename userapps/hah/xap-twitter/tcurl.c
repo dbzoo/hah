@@ -17,6 +17,7 @@
 #include <errno.h>
 #include "oauth.h"
 #include "log.h"
+#include "jsmn.h"
 
 #ifdef IDENT
 #ident "@(#) $Id$"
@@ -242,7 +243,7 @@ int deleteTweetById( tcurl *c, long long id ) {
 int userGet(tcurl *c, char *userInfo, int isUserId) {
         int retVal;
         if( isCurlInit(c) && userInfo) {
-                strcpy(c->url, "http://twitter.com/users/show.xml");
+                strcpy(c->url, "http://twitter.com/users/show.json");
                 strcat(c->url, isUserId ? "?user_id=" : "?screen_name=");
                 strcat(c->url, userInfo);
                 retVal = performGet(c);
@@ -250,54 +251,94 @@ int userGet(tcurl *c, char *userInfo, int isUserId) {
         return retVal;
 }
 
+#define TOKEN_STRING(js, t, s) \
+	(strncmp(js+(t).start, s, (t).end - (t).start) == 0 \
+	 && strlen(s) == (t).end - (t).start)
+
+#define TOKEN_PRINT(t) \
+	info("start: %d, end: %d, type: %d, size: %d\n", \
+			(t).start, (t).end, (t).type, (t).size)
+
 // Get the latest tweet along with when it was published.  We assume for the authenticated user.
 int getLatestTweet(tcurl *c, char *content, int clen, long long *id)
 {
 	debug("Get tweet after this ID %lld", *id);
 
 	if (*id > 0) { // Get tweet after this POINT
-		snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1/statuses/user_timeline.xml?user_id=%s&since_id=%lld&trim_user=1&count=1", c->userid, *id);
+		snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1.1/statuses/user_timeline.json?user_id=%s&since_id=%lld&trim_user=1&count=1", c->userid, *id);
 	} else { // Get the latest
-		snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1/statuses/user_timeline.xml?user_id=%s&trim_user=1&count=1", c->userid);
+		snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1.1/statuses/user_timeline.json?user_id=%s&trim_user=1&count=1", c->userid);
 	}
 
 	if(performGet(c)) {
 		return -1;
 	}
         char *result = getLastWebResponse(c);
-	debug("Response from TWITTER '%s'", result);
-
-	// An empty STATUS response in XML is 75 characters.
-	if(strlen(result) < 76) {
-		return -1;
+	info("Response from TWITTER '%s'", result);
+	info(result);
+	if(strlen(result) == 2) { // Twitter returns: [] for no result.
+	  return -1;
 	}
 
-	char *bid = strstr(result,"<id>");
-	if(bid == NULL) {
-		err("Failed to find <id> tag");
-		return -1;
-	}
-	char *eid = strstr(result,"</id>");
-	if(eid == NULL) {
-		err("Failed to find </id> tag");
-		return -1;
-	}
-	char *btext = strstr(result,"<text>");
-	if(btext == NULL) {
-		err("Failed to find <text> tag");
-		return -1;
-	}
-	char *etext = strstr(result,"</text>");
-	if(etext == NULL) {
-		err("Failed to find </text> tag");
-		return -1;
+	int i;
+	jsmn_parser p;
+	jsmntok_t t[60];
+
+	jsmn_init(&p);
+	i = jsmn_parse(&p, result, t, 60);
+	if(i != JSMN_SUCCESS) {
+	  switch(i) {
+	  case JSMN_ERROR_NOMEM:
+	    err("Not enough tokens where provided to parse:");
+	    break;
+	  case JSMN_ERROR_INVAL:
+	    err("Invalid character inside JSON string.");
+	    break;
+	  case JSMN_ERROR_PART:
+	    err("The string is not a full JSON packet, more bytes expected.");
+	    break;
+	  default:
+	    crit("Unexpected JSON return code %d", i);
+	  }
+	  return -1;
 	}
 
-	*eid = 0;
-	*etext = 0;
-	*id = atoll(bid + 4);
-	strlcpy(content, btext + 6, clen);
-	info("Tweet: %lld %s", *id, content);
+	info("Looking for id and text token");
+	int found=0;
+	for(i=1; i<60 && found<2; i++) {
+	  //TOKEN_PRINT(t[i]);
+	  if(TOKEN_STRING(result, t[i], "id")) {
+	      info("Found ID token");
+	      i++;
+	      if(t[i].type != JSMN_PRIMITIVE) {
+		warning("Found ID but the next token was not a primitive");
+		continue;
+	      }
+	      *id = atoll(result+t[i].start);
+	      found ++;	      
+	  } else if(TOKEN_STRING(result, t[i], "text")) {
+	    info("Found text token");
+	    i++;
+	    if(t[i].type != JSMN_STRING) {
+	      warning("Found TEXT but the next token was not a string");
+	      continue;
+	    }
+	    if(t[i].end - t[i].start > clen) {
+	      err("Text found larger than buffer: Truncating");
+	      strncpy(content, result+t[i].start, clen);
+	    } else {
+	      strncpy(content, result+t[i].start, t[i].end - t[i].start);
+	    }
+	    found ++;
+	  }
+	}
+	
+	if(found)
+	  info("Tweet: %lld %s", *id, content);
+	else {
+	  err("Tokens where not found.");  
+	  return -1;
+	}
 
         return 0;
 }
@@ -310,7 +351,7 @@ int sendTweet(tcurl *c, char *tweet) {
                 char msg[140+8];
                 strcpy(msg, "status=");
                 strlcat(msg, tweet, sizeof(msg));
-                retVal = performPost( c, "http://api.twitter.com/1/statuses/update.xml", msg );
+                retVal = performPost( c, "http://api.twitter.com/1.1/statuses/update.json", msg );
         }
         return retVal;
 }

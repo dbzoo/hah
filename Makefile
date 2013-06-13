@@ -80,7 +80,8 @@ SUBDIRS_OPENSOURCE = \
 	$(OPENSOURCE_DIR)/luafilesystem \
 	$(OPENSOURCE_DIR)/luasocket \
 	$(OPENSOURCE_DIR)/penlight \
-	$(OPENSOURCE_DIR)/avrdude-5.10
+	$(OPENSOURCE_DIR)/avrdude-5.10 \
+	$(OPENSOURCE_DIR)/jsmn
 
 export BROADCOM_DIR=$(USERAPPS_DIR)/broadcom
 
@@ -113,7 +114,7 @@ SUBDIRS_HAH = \
 SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIRS_HAH)
 
 OPENSOURCE_APPS = brctl dropbear iptables busybox ntpclient ini mtd lua \
-	lrexlib luafilesystem luasocket penlight avrdude
+	lrexlib luafilesystem luasocket penlight avrdude jsmn
 INVENTEL_APPS = inventelbin sendarp ledctrl
 HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-xively xap-sms iServer \
 	xap-currentcost xap-googlecal xap-twitter xap-serial klone xap-plugboard \
@@ -163,6 +164,9 @@ prebuild:
 	mkdir -p $(INSTALL_DIR)/bin $(INSTALL_DIR)/lib
 
 hah:	$(HAH_APPS)
+
+jsmn:
+	$(MAKE) -C $(OPENSOURCE_DIR)/jsmn
 
 avrdude:
 	if [ ! -f $(OPENSOURCE_DIR)/avrdude-5.10.tar.gz ]; then \
@@ -284,7 +288,7 @@ xap-googlecal: xaplib2 libgcal libxml2 libcurl
 	install -m 755 $(HAH_DIR)/xap-googlecal/xap-googlecal $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-googlecal
 
-xap-twitter: xaplib2 libcurl
+xap-twitter: xaplib2 libcurl jsmn
 	$(MAKE) -C $(HAH_DIR)/xap-twitter
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/xap-twitter/xap-twitter $(INSTALL_DIR)/usr/bin

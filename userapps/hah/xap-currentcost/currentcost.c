@@ -521,7 +521,7 @@ void serialInputHandler(int fd, void *data)
 	static int bstate = 0, estate = 0;
 
         debug("(fd:%d)(len:%d)(xml:%s)", fd, serial_cursor, serial_xml);
-        while((len = read(fd, serial_buff, sizeof(serial_buff))) > 0) {
+        while((len = read(fd, serial_buff, sizeof(serial_buff)-1)) > 0) {
 		if(getLoglevel() == LOG_DEBUG) {
 			for(i=0;i<len;i++)
 				putchar(serial_buff[i]);

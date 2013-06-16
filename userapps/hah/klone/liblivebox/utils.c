@@ -94,4 +94,6 @@ char *iniGetDynLabel(char *name, int id) {
 		return iniGetDynKeyWithDefault("relay","relay%d.label",id,"Relay %d");
 	if(strcmp(name,"input") == 0) 
 		return iniGetDynKeyWithDefault("input","input%d.label",id,"Input %d");
+	if(strcmp(name,"urfrx") == 0) 
+                return iniGetDynKeyWithDefault("urfrx","rf%d.label",id,"RF %d");
 }

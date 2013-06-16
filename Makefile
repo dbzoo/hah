@@ -109,7 +109,8 @@ SUBDIRS_HAH = \
 	$(HAH_DIR)/xap-serial \
 	$(HAH_DIR)/klone \
 	$(HAH_DIR)/iServer \
-	$(HAH_DIR)/xap-flash
+	$(HAH_DIR)/xap-flash \
+	$(HAH_DIR)/xap-urfrx
 
 SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIRS_HAH)
 
@@ -118,7 +119,7 @@ OPENSOURCE_APPS = brctl dropbear iptables busybox ntpclient ini mtd lua \
 INVENTEL_APPS = inventelbin sendarp ledctrl
 HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-xively xap-sms iServer \
 	xap-currentcost xap-googlecal xap-twitter xap-serial klone xap-plugboard \
-	xap-flash
+	xap-flash xap-urfrx
 
 BUSYBOX_DIR = $(OPENSOURCE_DIR)/busybox
 
@@ -194,6 +195,12 @@ xap-hub: xaplib2
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
 	install -m 755 $(HAH_DIR)/xap-hub/xap-hub $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-hub
+
+xap-urfrx: xaplib2
+	$(MAKE) -C $(HAH_DIR)/xap-urfrx
+	install -m 755 -d $(INSTALL_DIR)/usr/bin
+	install -m 755 $(HAH_DIR)/xap-urfrx/xap-urfrx $(INSTALL_DIR)/usr/bin
+	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-urfrx
 
 xap-livebox: xaplib2
 	$(MAKE) -C $(HAH_DIR)/xap-livebox

@@ -1,0 +1,143 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+#include "utils.h"
+#include "comms.h"
+
+static struct {
+	int devicesrf;
+	char enable[2];
+	char usbserial[16];
+	
+} ini;
+
+static void readIni() {
+	ini_gets("urfrx","enable","0",ini.enable,sizeof(ini.enable),con.inifile);
+	ini.devicesrf = ini_getl("urfrx","devices", 0, con.inifile);
+	ini_gets("urfrx","usbserial","/dev/ttyUSB0",ini.usbserial,sizeof(ini.usbserial),con.inifile);
+}
+
+static void submit_form() {
+	int restart = 0;
+	 const char *urfrx_on = request_get_arg(request,"urfrx_on");
+	 if(urfrx_on) {
+		  if((*urfrx_on == '1' && ini.enable[0] == '0') ||
+			 (*urfrx_on == '0' && ini.enable[0] == '1')) {
+			   ini_puts("urfrx","enable",urfrx_on,con.inifile);
+			   restart = 1;
+		  }
+	 }
+
+	 const char *usbserial = request_get_arg(request, "usbserial");
+	 if(usbserial && strcmp(usbserial, ini.usbserial)) {
+		  ini_puts("urfrx","usbserial", usbserial, con.inifile);
+		  restart = 1;
+	 }
+
+	submit_statickey(request,"urfrx","devices");
+	readIni();
+
+	submit_dynkeys(request,"urfrx","rf%d.label", ini.devicesrf);
+	submit_dynkeys(request,"urfrx","rf%d.off", ini.devicesrf);
+	submit_dynkeys(request,"urfrx","rf%d.on", ini.devicesrf);
+
+	if(restart) {
+		system("/etc/init.d/xap restart urfrx");
+	}
+}
+
+%>
+<%
+REQUIRE_AUTH(SCRIPT_NAME);
+readIni();
+const char *action = request_get_arg(request,"action");
+if(action) {
+	if(strcmp(action,"apply") == 0) {
+		submit_form(out);
+	}
+}
+%>
+<html>
+<head>
+<%@include component/style.kl1%>
+<script type="text/javascript">
+function to_submit(F) {
+	F.save_button.value = "Saving";
+	F.action.value = "apply";
+	apply(F);
+}
+addEvent(window,"load",function() {
+	 show_layer_ext(document.frmControl.urfrx_on, 'idrf', 1 == <%= ini.enable %>);
+	 });
+</script>
+</head>
+<body class="gui">
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<br/>
+<%
+int i;
+%>
+<form name="frmControl" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="action" />
+<h2>Universal RF Receiver</h2>
+<fieldset>
+<legend>URF Rx</legend>
+
+  <div class="setting">
+    <div class="label">USB attached</div>
+	<input class="spaceradio" type="radio" value="1" name="urfrx_on" onclick="show_layer_ext(this, 'idrf', true);"<% if(ini.enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+    <input class="spaceradio" type="radio" value="0" name="urfrx_on" onclick="show_layer_ext(this, 'idrf', false);"<% if(ini.enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+
+  <div class="setting" id="idrf">
+
+   <div class="setting">
+    <div class="label">USB Serial Device</div>
+	<input type="text" name="usbserial" value="<%= ini.usbserial %>" maxlength="15" size="15"/>
+	 <span class="default">(Default: /dev/ttyUSB0)</span>
+   </div>
+  <div class="setting">
+    <div class="label">RF Devices</div>
+	<input class="num" type="text" name="urfrx.devices" onblur="valid_range(this,0,96); %>,'RF count')" value="<% io_printf(out,"%d",ini.devicesrf); %>" maxlength="2" size="2"/>
+  </div>
+
+<table><tr><th>Item</th><th>Label</th><th>On</th><th>Off</th></tr><%
+for(i=1; i<=ini.devicesrf; i++) {
+  io_printf(out,"<tr><td>RF %d</td>", i);
+  io_printf(out,"<td><input size=\"15\" type=\"text\" name=\"rf%d.label\" value=\"%s\"></td>\n", i, iniGetDynLabel("urfrx",i));
+  io_printf(out,"<td><input style=\"width:300px\" type=\"text\" name=\"rf%d.on\" value=\"%s\"></td>\n", i, iniGetDynKey("urfrx","rf%d.on", i));
+  io_printf(out,"<td><input style=\"width:300px\" type=\"text\" name=\"rf%d.off\" value=\"%s\"></td>\n", i, iniGetDynKey("urfrx","rf%d.off", i));
+  io_printf(out,"</tr>");
+}
+%></table>
+ </div>
+</fieldset>
+
+<br/>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)" />
+<input type="reset" value="Cancel Changes"/>
+<input type="submit" value="Refresh"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>
+

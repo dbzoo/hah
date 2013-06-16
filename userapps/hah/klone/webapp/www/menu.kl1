@@ -37,6 +37,7 @@ MENU mymenu[] =
   {"Automation","Twitter","twitter.kl1", NULL},
   {"Automation","iServer","iserver.kl1", NULL},
   {"Automation","Xively","xively.kl1", NULL},
+  {"Automation","URF Rx","urfrx.kl1", NULL},
   {"Automation","Graph","graph.kl1", isXivelyEnabled},
   {"Automation","Assists","assistance.kl1", NULL},
   {"GUI","xAPFlash","flashgui.kl1", NULL},

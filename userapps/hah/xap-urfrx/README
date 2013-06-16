@@ -1,0 +1,13 @@
+Development notes
+
+Compile up the xaplib2 tree static
+$ cd ../xaplib2
+$ make clean
+$ make libxap2.a
+
+To create test data
+$ make genurf
+$ genurf
+
+To feed into the program
+$ ./xap-urfrx -i eth0 -s urf.in

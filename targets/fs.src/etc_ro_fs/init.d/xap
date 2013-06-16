@@ -5,7 +5,7 @@
 
 . /etc/ini.conf
 
-subsystem="hub xively livebox iserver web sms serial currentcost twitter googlecal plugboard"
+subsystem="hub xively livebox iserver web sms serial currentcost twitter googlecal plugboard urfrx"
 
 start_web() {
     rm -f /tmp/klone_sess*
@@ -111,6 +111,16 @@ start_iserver() {
 }
 stop_iserver() {
     killall iServer
+}
+
+start_urfrx() {
+    if [ `iniget $INI urfrx enable 0` -eq 1 ] ;  then 
+	USBSERIAL=`iniget $INI urfrx usbserial /dev/ttyUSB0`
+	/usr/bin/xap-urfrx -i $MYDEV -s $USBSERIAL >/var/log/xap-urfrx.log 2>&1 &
+    fi
+}
+stop_urfrx() {
+    killall xap-urfrx
 }
 
 # Param 1: subsystem

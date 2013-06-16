@@ -236,7 +236,7 @@ addEvent(window,"load",function() {
 
   <div class="setting">
     <div class="label">Feed ID</div>
-  <input maxlength="10" size="8" name="feedid" value="<%= ini.feedid %>" onblur="isdigit(this,'Feed ID')"/> (Default if unassigned on a datastream)
+  <input maxlength="10" size="10" name="feedid" value="<%= ini.feedid %>" onblur="isdigit(this,'Feed ID')"/> (Default if unassigned on a datastream)
   </div>
   <div class="setting">
     <div class="label">Update Frequency</div>

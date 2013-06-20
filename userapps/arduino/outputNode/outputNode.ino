@@ -9,6 +9,7 @@
 #define RETRY_LIMIT     5   // maximum number of times to retry
 #define ACK_TIME        10  // number of milliseconds to wait for an ack
 #define REPORT_EVERY    5   // report every N measurement cycles
+#define NODEID          8   // MY NODE ID *** ADJUST PLEASE **
 
 // The scheduler makes it easy to perform various tasks at various times:
 
@@ -22,7 +23,6 @@ Scheduler scheduler (schedbuf, TASK_END);
 // Other variables used in various places in the code:
 
 static byte reportCount;    // count up until next report, i.e. packet send
-static byte myNodeID;       // node ID used for this unit
 
 // This defines the structure of the packets which get sent out by wireless:
 struct {
@@ -40,7 +40,7 @@ static byte waitForAck() {
     while (!ackTimer.poll(ACK_TIME)) {
         if (rf12_recvDone() && rf12_crc == 0 &&
                 // see http://talk.jeelabs.net/topic/811#post-4712
-                rf12_hdr == (RF12_HDR_DST | RF12_HDR_CTL | myNodeID))
+                rf12_hdr == (RF12_HDR_DST | RF12_HDR_CTL | NODEID))
             return 1;
     }
     return 0;
@@ -87,9 +87,14 @@ static void setPort (byte port, byte on) {
 // X = PORT
 // Y = STATE
 static void doIncoming() {
-       byte port = rf12_data[0] - '0';
-       if(port < 1 || port > 4) return;
-       byte state = rf12_data[1] -'0';
+       byte port = rf12_data[0];
+       if(port < 1 || port > 4) {
+#if SERIAL
+          Serial.println("Port out of range 1-4");
+#endif
+          return;
+       }
+       byte state = rf12_data[1];
        if(state > 1) state=1;       
        setPort(port, state);
 }
@@ -97,11 +102,11 @@ static void doIncoming() {
 void setup () {
     #if SERIAL || DEBUG
         Serial.begin(57600);
-        Serial.print("\n[outputNode.1]");
-        myNodeID = rf12_config();
-    #else
-        myNodeID = rf12_config(0); // don't report info on the serial port
+        Serial.print("\n[outputNode.1] i");
+        Serial.print(NODEID,DEC);
+        Serial.println(" g212 @ 868Mhz");
     #endif    
+    rf12_initialize(NODEID, RF12_868MHZ, 212);
     
     reportCount = REPORT_EVERY;     // report right away for easy debugging
     scheduler.timer(MEASURE, 0);    // start the measurement loop going
@@ -114,7 +119,7 @@ void loop () {
     #endif
   
       // process incoming data packet
-    if (rf12_recvDone() && rf12_crc == 0 && rf12_len >0 && rf12_hdr == (RF12_HDR_DST | myNodeID)) {
+    if (rf12_recvDone() && rf12_crc == 0 && rf12_len >0 && rf12_hdr == (RF12_HDR_DST | NODEID)) {
       #if SERIAL || DEBUG
         Serial.print("GOT");
         for (byte i = 0; i < rf12_len; ++i) {

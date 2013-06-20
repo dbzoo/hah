@@ -35,7 +35,8 @@ end
 function OutputNode:portCmd(e)
    -- The output port is the last character of the key (a little kludgy)
    local port = e.key:sub(-1)
-   self:sender(port ..","..string.byte( utils.choose(e.state=="off",0,1)))
+   local state = utils.choose(e.state=="off",0,1)
+   self:sender(port ..",".. state)
 end
 
 function OutputNode:process(data)

@@ -8,14 +8,14 @@
 static int reboot = 0;
 
 struct _datastream {
-         char feed[8];
+     char feed[10];
 	 char id[4];
 	 char tag[20];
 } ds[32];
 
 static struct {
-	 char apikey[65];
-	 char feedid[8];
+	 char apikey[129];
+	 char feedid[10];
 	 int count;
 } ini;
 
@@ -36,7 +36,7 @@ static void readIni() {
 	 }
 	 int i;
 	 for(i=0; i < ini.count; i++) {
-                  loadDynINI("feed", i, ds[i].feed, sizeof(ds[i].feed));
+          loadDynINI("feed", i, ds[i].feed, sizeof(ds[i].feed));
 		  loadDynINI("id", i, ds[i].id, sizeof(ds[i].id));
 		  loadDynINI("tag", i, ds[i].tag, sizeof(ds[i].tag));					 
                   if (strcmp(ds[i].feed, "") == 0) { 
@@ -52,47 +52,24 @@ static void readIni() {
   REQUIRE_AUTH(SCRIPT_NAME);
   readIni();
 int act = 0;
+char duration[] = "         ";	
+
 const char *action = request_get_arg(request,"action");
+const char *period = request_get_arg(request,"period");
 if(action) {
 	 act = atoi(action);
 }
+
+if(period) {
+	strcpy(duration, period);
+} else {
+	strcpy(duration, "24hours");
+}
+ 
 %>
 <html>
 <head>
 <%@include component/style.kl1%>
-<script type="text/javascript" src="http://www.google.com/jsapi"></script>
-<script type="text/javascript">
-	 google.load('visualization','1',{packages:['annotatedtimeline']});
-function drawVisualization(){
-	var headID = document.getElementsByTagName('head')[0];
-	var newScript = document.createElement('script');
-	newScript.type = 'text/javascript';
-	newScript.src = 'http://apps.xively.com/history/archive_json.php?f=<%= ds[act].feed %>&d=<%= ds[act].id %>&callback=process';
-	headID.appendChild(newScript);
-}
-
-function process(archive){
-	var d; var val;
-	var data = new google.visualization.DataTable();
-	data.addColumn('datetime', 'Date');
-	data.addColumn('number', 'Datastream value');
-	for ( var i in archive['time'] ) {
-		var thisrow = data.addRow();
-		var timestamp = archive['time'][i];
-		var ts_parts = timestamp.split('T');
-		var d_parts = ts_parts[0].split('-');
-		var t_parts = ts_parts[1].split(':');
-		d = new Date(parseInt(d_parts[0],10), parseInt(d_parts[1],10)-1 ,parseInt(d_parts[2],10), parseInt(t_parts[0],10),parseInt(t_parts[1],10), parseInt(t_parts[2],10) );
-		val = parseFloat(archive['value'][i]);
-		data.setValue(thisrow, 0, d);
-		data.setValue(thisrow, 1, val);
-	}
-	var chart = new google.visualization.AnnotatedTimeLine(document.getElementById('visualization'));
-	chart.draw(data, {displayAnnotations:true,thickness:1,displayExactValues:true,fill:20,colors:['#FF0066']}); 
-}
-
-google.setOnLoadCallback(drawVisualization);
-</script>
 </head>
 <body class="gui">
 
@@ -116,6 +93,7 @@ google.setOnLoadCallback(drawVisualization);
 %>
 <form name="graph" action="<%= SCRIPT_NAME %>" method="post">
 <p>	 Graph datastream: <select name="action" size="1" onChange="graph.submit()">
+
 <%
 int i=0;
 for(i=0;i<ini.count;i++) {  
@@ -125,12 +103,32 @@ for(i=0;i<ini.count;i++) {
 }
 %>
 </select>
+
+&nbsp&nbsp&nbspGraph duration: <select name="period" size="1" onChange="graph.submit()">
+
+<option value="6hours" <% if (strcmp(duration, "6hours") == 0 ) { io_printf(out, " selected"); } %>> 6 hours </option>
+<option value="12hours" <% if (strcmp(duration, "12hours") == 0 ) { io_printf(out, " selected"); } %>> 12 hours </option>
+<option value="24hours" <% if (strcmp(duration, "24hours") == 0 ) { io_printf(out, " selected"); } %>> 24 hours </option>
+<option value="5days" <% if (strcmp(duration, "5days") == 0 ) { io_printf(out, " selected"); } %>> 5 days </option>
+<option value="14days" <% if (strcmp(duration, "14days") == 0 ) { io_printf(out, " selected"); } %>> 14 days </option>
+<option value="31days" <% if (strcmp(duration, "31days") == 0 ) { io_printf(out, " selected"); } %>> 31 days </option>
+<option value="90days" <% if (strcmp(duration, "90days") == 0 ) { io_printf(out, " selected"); } %>> 90 days </option>
+<option value="180days" <% if (strcmp(duration, "180days") == 0 ) { io_printf(out, " selected"); } %>> 180 days </option>
+<option value="1year" <% if (strcmp(duration, "1year") == 0 ) { io_printf(out, " selected"); } %>> 1 year </option>
+</select>
 </p>
+
+</p>
+
 <fieldset>
 <%
-io_printf(out, "<legend>Feed %s : Datastream %s : %s </legend>", ds[act].feed, ds[act].id, ds[act].tag);
+io_printf(out, "<legend>  Feed %s : Datastream %s : %s : Duration %s </legend>", ds[act].feed, ds[act].id, ds[act].tag, duration);
 %>
-    <div id="visualization" style="width: 750px; height: 340px;"></div>
+    <div id="visualization" style="width: 750px; height: 340px;">
+	<%
+	io_printf(out, "<iframe seamless align=middle width=740 height=340 id=extFrame src=https://api.xively.com/v2/feeds/%s/datastreams/%s.png?detailed_grid=true&width=740&height=340&duration=%s&b=true&t=%s&interval=0&limit=1000&s=1&scale=auto></iframe>", ds[act].feed, ds[act].id, duration, ds[act].tag);
+	%>
+	</div>
 </fieldset>
 </div>
 <br/>

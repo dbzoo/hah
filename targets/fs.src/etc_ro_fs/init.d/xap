@@ -115,8 +115,8 @@ stop_iserver() {
 
 start_urfrx() {
     if [ `iniget $INI urfrx enable 0` -eq 1 ] ;  then 
-	USBSERIAL=`iniget $INI urfrx usbserial /dev/ttyUSB0`
-	/usr/bin/xap-urfrx -i $MYDEV -s $USBSERIAL >/var/log/xap-urfrx.log 2>&1 &
+	SERIALPORT=`iniget $INI urfrx serialport /dev/ttyUSB0`
+	/usr/bin/xap-urfrx -i $MYDEV -s $SERIALPORT >/var/log/xap-urfrx.log 2>&1 &
     fi
 }
 stop_urfrx() {

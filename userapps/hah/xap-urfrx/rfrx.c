@@ -31,6 +31,9 @@ const char *inifile = "/etc/xap-livebox.ini";
 static RFdecoder *decoderList;
 static bscEndpoint *endpointList;
 
+static unsigned char vSerial = 0;
+static char vSource[60]; // source for virtual serial data.
+
 RFdecoder *addDecoder(URFContext *ctx) {
   if(ctx == NULL) return NULL;
 
@@ -67,62 +70,86 @@ int setupSerialPort()
   return fd;
 }
 
-/* Decode a stream string of positive and negative integers and convert into their binary equiv
+/** Decode a stream string of positive and negative integers and convert into their binary equiv
  * and hand each to the decoder ring.
  */
-void serialInputHandler(int fd, void *data) {
+void processSerial(char *data, int len) {
   static char buff[10];
   static int buff_cnt = 0;
   int durState;
   int framecnt = 0;
   RFdecoder *decoder;
-  char serial[300];
-  int len, i;
+  int i;
 
+  for(i=0; i<len; i++) {
+    // Accumulate until its not a valid digit
+    if(isdigit(data[i]) || data[i] == '-') {
+      buff[buff_cnt++] = data[i];
+      if(buff_cnt > sizeof(buff)) {
+	alert("Buffer overflow");
+	buff_cnt--;
+      }
+      continue;
+    }
+    
+    if(data[i] == '\n') {
+      info("Reset RF decoders");
+      LL_FOREACH(decoderList, decoder) {
+	URFReset(decoder->ctx);
+      }
+    }
+    
+    if(buff_cnt == 0) continue;
+    
+    buff[buff_cnt] = 0;
+    buff_cnt = 0;
+    
+    // String to integer
+    if(sscanf(buff, "%d", &durState) == EOF) {
+      err("Bad String: %s", buff);
+      continue;
+    }
+    
+    // Hand to each decoder state machine
+    debug("Frame %d: %d", framecnt++, durState);
+    LL_FOREACH(decoderList, decoder) {
+      if(URFConsumer(decoder->ctx, durState ))
+	framecnt = 0;
+    }
+  }
+} 
+
+/** Handle serial data from a VIRTUAL serial port.
+ * xAP Filter Callback
+ */
+void vSerialHandler(void *uData) {
+  char *data = xapGetValue("serial.received","data");
+  if(data == NULL) return;
+
+  const char *magicString = "RFRX ";
+  const int len = strlen(magicString);
+  // Data coming from a virtual serial port will being with the magic string RFRX
+  // data=RFRX 10000,-382 etc...
+  if(strncmp(data, magicString, len)) return;
+
+  processSerial(data+len, strlen(data)-len);
+}
+
+/** Handle serial data from a REAL serial port.
+ * xAP Socket Listener Callback
+ */
+void serialInputHandler(int fd, void *uData) {
+  int len;
+  char serial[300];
+  
   while( (len = read(fd, serial, sizeof(serial)-1)) > 0) {
     if(getLoglevel() >= LOG_INFO) {
       serial[len] = 0;
       info(serial);
     }
-      for(i=0; i<len; i++) {
-	// Accumulate until its not a valid digit
-	if(isdigit(serial[i]) || serial[i] == '-') {
-	  buff[buff_cnt++] = serial[i];
-	  if(buff_cnt > sizeof(buff)) {
-	    alert("Buffer overflow");
-	    buff_cnt--;
-	  }
-	  continue;
-	}
-	
-	if(serial[i] == '\n') {
-	  info("Reset RF decoders");
-	  LL_FOREACH(decoderList, decoder) {
-	    URFReset(decoder->ctx);
-	  }
-	}
-	
-	if(buff_cnt == 0) continue;
-	
-	buff[buff_cnt] = 0;
-	buff_cnt = 0;
-	
-	// String to integer
-	if(sscanf(buff, "%d", &durState) == EOF) {
-	  err("Bad String: %s", buff);
-	  continue;
-	}
-	
-	// Hand to each decoder state machine
-	debug("Frame %d: %d", framecnt++, durState);
-	LL_FOREACH(decoderList, decoder) {
-	  if(URFConsumer(decoder->ctx, durState ))
-	    framecnt = 0;
-	}
-      }
-  }
-} 
-
+    processSerial(serial, len);
+  }  
+}
 
 static void usage(char *prog)
 {
@@ -145,6 +172,12 @@ void setupFromINI() {
   int devices, i;
   char rf[100];
   char buff[10];
+
+  // We can be driven via xap-serial inbound messages too
+  // instead of a direct serial port connection.
+  vSerial = ini_getl("urfrx", "vserial", 0, inifile);
+  if(vSerial) info("Virtual serial port enabled");
+  ini_gets("urfrx", "vsource", "dbzoo.livebox.serial", vSource, sizeof vSource, inifile);
 
   devices = ini_getl("urfrx", "devices", -1, inifile);
   for(i = 1; i <= devices; i++) {
@@ -189,7 +222,15 @@ int main(int argc, char **argv) {
   bscAddEndpointFilterList(endpointList, INFO_INTERVAL);
 
   if(strncmp(serialPort,"/dev/",5) == 0) {
-    xapAddSocketListener(setupSerialPort(), &serialInputHandler, NULL);
+    if(vSerial == 1) { // Setup for a virtual serial port (aka xap-serial)
+      xAPFilter *f = NULL;
+      xapAddFilter(&f, "xap-header", "class","serial.comms");
+      xapAddFilter(&f, "xap-header", "source", vSource);
+      xapAddFilter(&f, "serial.received", "port", serialPort);
+      xapAddFilterAction(&vSerialHandler, f, NULL);
+    } else {
+      xapAddSocketListener(setupSerialPort(), &serialInputHandler, NULL);
+    }
     xapProcess();
   } else {
     serialInputHandler(setupSerialPort(), NULL);

@@ -178,10 +178,15 @@ static uint8_t pctCompare(int newval, int oldval) {
   }
 }
 
+// The amount of interburst gap that must past before the arduino sketch 
+// considers a pulse stream as a candidate for watching.  microseonds
+// *MUST* align this value with that in the sketch
+#define LEADIN 10000
+
 int URFConsumer(URFContext *ctx, int durstate) {
   debug("URFconsumer got %d need %d - state %d", durstate, ctx->durState[ctx->curState], ctx->curState);
   // First frame from Arduino is a lead-in of at last 10ms (always ok as the 1st frame)
-  if((durstate <= -10000 && ctx->curState ==0) || pctCompare(durstate, ctx->durState[ctx->curState]) == 1) {
+  if((durstate <= -LEADIN && ctx->curState == 0) || pctCompare(durstate, ctx->durState[ctx->curState]) == 1) {
     ctx->curState++;
     debug("OK - %s (%d/%d)", ctx->e->name, ctx->curState, ctx->durStateLen);
     
@@ -194,6 +199,10 @@ int URFConsumer(URFContext *ctx, int durstate) {
     }
   } else {
     ctx->curState = 0;
+    if(durstate <= -LEADIN) { // It could be that what we got was the start of the next.
+      ctx->curState++;
+      debug("OK - %s (%d/%d)", ctx->e->name, ctx->curState, ctx->durStateLen);
+    }
   }
   return 0;
 }

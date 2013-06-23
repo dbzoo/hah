@@ -91,14 +91,6 @@ void processSerial(char *data, int len) {
       }
       continue;
     }
-    
-    if(data[i] == '\n') {
-      info("Reset RF decoders");
-      LL_FOREACH(decoderList, decoder) {
-	URFReset(decoder->ctx);
-      }
-    }
-    
     if(buff_cnt == 0) continue;
     
     buff[buff_cnt] = 0;
@@ -221,20 +213,41 @@ int main(int argc, char **argv) {
   // Register the endpoints for xapBSC.query/cmd callbacks too.
   bscAddEndpointFilterList(endpointList, INFO_INTERVAL);
 
-  if(strncmp(serialPort,"/dev/",5) == 0) {
-    if(vSerial == 1) { // Setup for a virtual serial port (aka xap-serial)
-      xAPFilter *f = NULL;
-      xapAddFilter(&f, "xap-header", "class","serial.comms");
-      xapAddFilter(&f, "xap-header", "source", vSource);
-      xapAddFilter(&f, "serial.received", "port", serialPort);
-      xapAddFilterAction(&vSerialHandler, f, NULL);
-    } else {
-      xapAddSocketListener(setupSerialPort(), &serialInputHandler, NULL);
-    }
+  if(vSerial == 1) { // Setup for a virtual serial port (aka xap-serial)
+    xAPFilter *f = NULL;
+    xapAddFilter(&f, "xap-header", "class","serial.comms");
+    xapAddFilter(&f, "xap-header", "source", vSource);
+    xapAddFilter(&f, "serial.received", "port", serialPort);
+    xapAddFilterAction(&vSerialHandler, f, NULL);
+
+    char buff[XAP_DATA_LEN];
+    snprintf(buff, sizeof(buff), "xap-header\n"
+	     "{\n"
+	     "v=12\n"
+	     "hop=1\n"
+	     "uid=%s\n"
+	     "class=Serial.Comms\n"
+	     "source=%s\n"
+	     "target=%s\n"
+	     "}\n"
+	     "Serial.Setup\n"
+	     "{\n"
+	     "port=%s\n"
+	     "baud=57600\n"
+	     "stop=1\n"
+	     "databits=8\n"
+	     "parity=\"none\"\n"
+	     "flow=\"none\"\n"
+	     "}\n", xapGetUID(), xapGetSource(), vSource, serialPort);
+    xapSend(buff);
+
+    xapProcess();
+  } else  if(strncmp(serialPort,"/dev/",5) == 0) {
+    xapAddSocketListener(setupSerialPort(), &serialInputHandler, NULL);
     xapProcess();
   } else {
     serialInputHandler(setupSerialPort(), NULL);
   }
-
+    
   return 0;
 }

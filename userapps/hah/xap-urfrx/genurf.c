@@ -21,7 +21,7 @@
 #include <stdint.h>
 #include "xap.h"
 
-void dump(struct URFContext *ctx, FILE *fd) {
+void dump(URFContext *ctx, FILE *fd) {
   info("transitions: %d\n", ctx->durStateLen);
 
   int i;

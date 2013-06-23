@@ -95,7 +95,7 @@ void xapSerialRx(int fd, void *userData)
         char serial_buff[512];
         int i, len;
 
-        static char cmd[128];
+        static char cmd[XAP_DATA_LEN];
         static int pos = 0;
 
         len = read(fd, serial_buff, sizeof(serial_buff));

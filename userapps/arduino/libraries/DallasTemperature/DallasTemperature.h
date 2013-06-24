@@ -1,6 +1,8 @@
 #ifndef DallasTemperature_h
 #define DallasTemperature_h
 
+#define DALLASTEMPLIBVERSION "3.7.2"
+
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
 // License as published by the Free Software Foundation; either
@@ -61,11 +63,14 @@ class DallasTemperature
 
   DallasTemperature(OneWire*);
 
-  // initalize bus
+  // initalise bus
   void begin(void);
 
   // returns the number of devices found on the bus
   uint8_t getDeviceCount(void);
+  
+  // Is a conversion complete on the wire?
+  bool isConversionComplete(void);
   
   // returns true if address is valid
   bool validAddress(uint8_t*);
@@ -89,20 +94,34 @@ class DallasTemperature
   // read device's power requirements
   bool readPowerSupply(uint8_t*);
 
-  // returns the current resolution, 9-12
+  // get global resolution
+  uint8_t getResolution();
+  
+  // set global resolution to 9, 10, 11, or 12 bits
+  void setResolution(uint8_t);
+
+  // returns the device resolution, 9-12
   uint8_t getResolution(uint8_t*);
 
   // set resolution of a device to 9, 10, 11, or 12 bits
-  void setResolution(uint8_t*, uint8_t);
-
-  // sends command for all devices on the bus to perform a temperature conversion
+  bool setResolution(uint8_t*, uint8_t);
+  
+  // sets/gets the waitForConversion flag
+  void setWaitForConversion(bool);
+  bool getWaitForConversion(void);
+  
+  // sets/gets the checkForConversion flag
+  void setCheckForConversion(bool);
+  bool getCheckForConversion(void);
+  
+  // sends command for all devices on the bus to perform a temperature conversion 
   void requestTemperatures(void);
    
   // sends command for one device to perform a temperature conversion by address
-  void requestTemperaturesByAddress(uint8_t*);
+  bool requestTemperaturesByAddress(uint8_t*);
 
   // sends command for one device to perform a temperature conversion by index
-  void requestTemperaturesByIndex(uint8_t);
+  bool requestTemperaturesByIndex(uint8_t);
 
   // returns temperature in degrees C
   float getTempC(uint8_t*);
@@ -118,6 +137,8 @@ class DallasTemperature
   
   // returns true if the bus requires parasite power
   bool isParasitePowerMode(void);
+  
+  bool isConversionAvailable(uint8_t*);
 
   #if REQUIRESALARMS
   
@@ -186,8 +207,14 @@ class DallasTemperature
 
   // used to determine the delay amount needed to allow for the
   // temperature conversion to take place
-  int conversionDelay;
-
+  uint8_t bitResolution;
+  
+  // used to requestTemperature with or without delay
+  bool waitForConversion;
+  
+  // used to requestTemperature to dynamically check if a conversion is complete
+  bool checkForConversion;
+  
   // count of devices on the bus
   uint8_t devices;
   
@@ -196,6 +223,8 @@ class DallasTemperature
 
   // reads scratchpad and returns the temperature in degrees C
   float calculateTemperature(uint8_t*, uint8_t*);
+  
+  void	blockTillConversionComplete(uint8_t*,uint8_t*);
   
   #if REQUIRESALARMS
 

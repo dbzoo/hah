@@ -3,11 +3,19 @@
 // License as published by the Free Software Foundation; either
 // version 2.1 of the License, or (at your option) any later version.
 
+// Version 3.7.2 modified on Dec 6, 2011 to support Arduino 1.0
+// See Includes...
+// Modified by Jordan Hochenbaum
+
 #include "DallasTemperature.h"
 
+#if ARDUINO >= 100
+    #include "Arduino.h"   
+#else
 extern "C" {
-  #include "WConstants.h"
+    #include "WConstants.h"
 }
+#endif
 
 DallasTemperature::DallasTemperature(OneWire* _oneWire)
   #if REQUIRESALARMS
@@ -17,10 +25,12 @@ DallasTemperature::DallasTemperature(OneWire* _oneWire)
   _wire = _oneWire;
   devices = 0;
   parasite = false;
-  conversionDelay = TEMP_9_BIT;
+  bitResolution = 9;
+  waitForConversion = true;
+  checkForConversion = true;
 }
 
-// initialize the bus
+// initialise the bus
 void DallasTemperature::begin(void)
 {
   DeviceAddress deviceAddress;
@@ -38,8 +48,7 @@ void DallasTemperature::begin(void)
 
       readScratchPad(deviceAddress, scratchPad);
 
-      if (deviceAddress[0] == DS18S20MODEL) conversionDelay = TEMP_12_BIT; // 750 ms
-      else if (scratchPad[CONFIGURATION] > conversionDelay) conversionDelay = scratchPad[CONFIGURATION];
+	  bitResolution = max(bitResolution, getResolution(deviceAddress));
 
       devices++;
     }
@@ -98,6 +107,26 @@ void DallasTemperature::readScratchPad(uint8_t* deviceAddress, uint8_t* scratchP
   _wire->select(deviceAddress);
   _wire->write(READSCRATCH);
 
+  // TODO => collect all comments &  use simple loop
+  // byte 0: temperature LSB  
+  // byte 1: temperature MSB
+  // byte 2: high alarm temp
+  // byte 3: low alarm temp
+  // byte 4: DS18S20: store for crc
+  //         DS18B20 & DS1822: configuration register
+  // byte 5: internal use & crc
+  // byte 6: DS18S20: COUNT_REMAIN
+  //         DS18B20 & DS1822: store for crc
+  // byte 7: DS18S20: COUNT_PER_C
+  //         DS18B20 & DS1822: store for crc
+  // byte 8: SCRATCHPAD_CRC
+  //
+  // for(int i=0; i<9; i++)
+  // {
+  //   scratchPad[i] = _wire->read();
+  // }
+
+  
   // read the response
 
   // byte 0: temperature LSB
@@ -167,32 +196,23 @@ bool DallasTemperature::readPowerSupply(uint8_t* deviceAddress)
   return ret;
 }
 
-// returns the current resolution, 9-12
-uint8_t DallasTemperature::getResolution(uint8_t* deviceAddress)
-{
-  if (deviceAddress[0] == DS18S20MODEL) return 9; // this model has a fixed resolution
 
-  ScratchPad scratchPad;
-  readScratchPad(deviceAddress, scratchPad);
-  switch (scratchPad[CONFIGURATION])
+// set resolution of all devices to 9, 10, 11, or 12 bits
+// if new resolution is out of range, it is constrained.
+void DallasTemperature::setResolution(uint8_t newResolution)
+{
+  bitResolution = constrain(newResolution, 9, 12);
+  DeviceAddress deviceAddress;
+  for (int i=0; i<devices; i++)
   {
-    case TEMP_12_BIT:
-      return 12;
-      break;
-    case TEMP_11_BIT:
-      return 11;
-      break;
-    case TEMP_10_BIT:
-      return 10;
-      break;
-    case TEMP_9_BIT:
-      return 9;
-      break;
+    getAddress(deviceAddress, i);
+	setResolution(deviceAddress, bitResolution);
   }
 }
 
 // set resolution of a device to 9, 10, 11, or 12 bits
-void DallasTemperature::setResolution(uint8_t* deviceAddress, uint8_t newResolution)
+// if new resolution is out of range, 9 bits is used. 
+bool DallasTemperature::setResolution(uint8_t* deviceAddress, uint8_t newResolution)
 {
   ScratchPad scratchPad;
   if (isConnected(deviceAddress, scratchPad))
@@ -218,67 +238,161 @@ void DallasTemperature::setResolution(uint8_t* deviceAddress, uint8_t newResolut
       }
       writeScratchPad(deviceAddress, scratchPad);
     }
+	return true;  // new value set
   }
+  return false;
 }
 
-// sends command for all devices on the bus to perform a temperature
-void DallasTemperature::requestTemperatures(void)
+// returns the global resolution
+uint8_t DallasTemperature::getResolution()
+{
+	return bitResolution;
+}
+
+// returns the current resolution of the device, 9-12
+// returns 0 if device not found
+uint8_t DallasTemperature::getResolution(uint8_t* deviceAddress)
+{
+  if (deviceAddress[0] == DS18S20MODEL) return 12;
+
+  ScratchPad scratchPad;
+  if (isConnected(deviceAddress, scratchPad))
+  {
+	switch (scratchPad[CONFIGURATION])
+    {
+      case TEMP_12_BIT:
+        return 12;
+        
+      case TEMP_11_BIT:
+        return 11;
+        
+      case TEMP_10_BIT:
+        return 10;
+        
+      case TEMP_9_BIT:
+        return 9;
+        
+	}
+  }
+  return 0;
+}
+
+
+// sets the value of the waitForConversion flag
+// TRUE : function requestTemperature() etc returns when conversion is ready
+// FALSE: function requestTemperature() etc returns immediately (USE WITH CARE!!)
+// 		  (1) programmer has to check if the needed delay has passed 
+//        (2) but the application can do meaningful things in that time
+void DallasTemperature::setWaitForConversion(bool flag)
+{
+	waitForConversion = flag;
+}
+
+// gets the value of the waitForConversion flag
+bool DallasTemperature::getWaitForConversion()
+{
+	return waitForConversion;
+}
+
+
+// sets the value of the checkForConversion flag
+// TRUE : function requestTemperature() etc will 'listen' to an IC to determine whether a conversion is complete
+// FALSE: function requestTemperature() etc will wait a set time (worst case scenario) for a conversion to complete
+void DallasTemperature::setCheckForConversion(bool flag)
+{
+	checkForConversion = flag;
+}
+
+// gets the value of the waitForConversion flag
+bool DallasTemperature::getCheckForConversion()
+{
+	return checkForConversion;
+}
+
+bool DallasTemperature::isConversionAvailable(uint8_t* deviceAddress)
+{
+	// Check if the clock has been raised indicating the conversion is complete
+  	ScratchPad scratchPad;
+  	readScratchPad(deviceAddress, scratchPad);
+	return scratchPad[0];
+}	
+
+
+// sends command for all devices on the bus to perform a temperature conversion
+void DallasTemperature::requestTemperatures()
 {
   _wire->reset();
   _wire->skip();
   _wire->write(STARTCONVO, parasite);
 
-  switch (conversionDelay)
-  {
-    case TEMP_9_BIT:
-      delay(94);
-      break;
-    case TEMP_10_BIT:
-      delay(188);
-      break;
-    case TEMP_11_BIT:
-      delay(375);
-      break;
-    case TEMP_12_BIT:
-    default:
-      delay(750);
-      break;
-  }
+  // ASYNC mode?
+  if (!waitForConversion) return; 
+  blockTillConversionComplete(&bitResolution, 0);
+
+  return;
 }
 
 // sends command for one device to perform a temperature by address
-void DallasTemperature::requestTemperaturesByAddress(uint8_t* deviceAddress)
+// returns FALSE if device is disconnected
+// returns TRUE  otherwise
+bool DallasTemperature::requestTemperaturesByAddress(uint8_t* deviceAddress)
 {
+
   _wire->reset();
   _wire->select(deviceAddress);
   _wire->write(STARTCONVO, parasite);
+  
+    // check device
+  ScratchPad scratchPad;
+  if (!isConnected(deviceAddress, scratchPad)) return false;
+  
+  
+  // ASYNC mode?
+  if (!waitForConversion) return true;   
+  uint8_t bitResolution = getResolution(deviceAddress);
+  blockTillConversionComplete(&bitResolution, deviceAddress);
+  
+  return true;
+}
 
-  switch (conversionDelay)
-  {
-    case TEMP_9_BIT:
-      delay(94);
-      break;
-    case TEMP_10_BIT:
-      delay(188);
-      break;
-    case TEMP_11_BIT:
-      delay(375);
-      break;
-    case TEMP_12_BIT:
-    default:
-      delay(750);
-      break;
-  }
+
+void DallasTemperature::blockTillConversionComplete(uint8_t* bitResolution, uint8_t* deviceAddress)
+{
+	if(deviceAddress != 0 && checkForConversion && !parasite)
+	{
+	  	// Continue to check if the IC has responded with a temperature
+	  	// NB: Could cause issues with multiple devices (one device may respond faster)
+	  	unsigned long start = millis();
+		while(!isConversionAvailable(0) && ((millis() - start) < 750));	
+	}
+	
+  	// Wait a fix number of cycles till conversion is complete (based on IC datasheet)
+	  switch (*bitResolution)
+	  {
+	    case 9:
+	      delay(94);
+	      break;
+	    case 10:
+	      delay(188);
+	      break;
+	    case 11:
+	      delay(375);
+	      break;
+	    case 12:
+	    default:
+	      delay(750);
+	      break;
+	  }
+
 }
 
 // sends command for one device to perform a temp conversion by index
-void DallasTemperature::requestTemperaturesByIndex(uint8_t deviceIndex)
+bool DallasTemperature::requestTemperaturesByIndex(uint8_t deviceIndex)
 {
   DeviceAddress deviceAddress;
   getAddress(deviceAddress, deviceIndex);
-  requestTemperaturesByAddress(deviceAddress);
+  return requestTemperaturesByAddress(deviceAddress);
 }
-
 
 // Fetch temperature for device index
 float DallasTemperature::getTempCByIndex(uint8_t deviceIndex)
@@ -291,7 +405,7 @@ float DallasTemperature::getTempCByIndex(uint8_t deviceIndex)
 // Fetch temperature for device index
 float DallasTemperature::getTempFByIndex(uint8_t deviceIndex)
 {
-  return DallasTemperature::toFahrenheit(getTempCByIndex(deviceIndex));
+  return toFahrenheit(getTempCByIndex(deviceIndex));
 }
 
 // reads scratchpad and returns the temperature in degrees C
@@ -323,10 +437,10 @@ float DallasTemperature::calculateTemperature(uint8_t* deviceAddress, uint8_t* s
       /*
 
       Resolutions greater than 9 bits can be calculated using the data from
-      the temperature, COUNT REMAIN and COUNT PER °C registers in the
-      scratchpad. Note that the COUNT PER °C register is hard-wired to 16
+      the temperature, COUNT REMAIN and COUNT PER Â°C registers in the
+      scratchpad. Note that the COUNT PER Â°C register is hard-wired to 16
       (10h). After reading the scratchpad, the TEMP_READ value is obtained
-      by truncating the 0.5°C bit (bit 0) from the temperature data. The
+      by truncating the 0.5Â°C bit (bit 0) from the temperature data. The
       extended resolution temperature can then be calculated using the
       following equation:
 
@@ -344,11 +458,12 @@ float DallasTemperature::calculateTemperature(uint8_t* deviceAddress, uint8_t* s
 // returns temperature in degrees C or DEVICE_DISCONNECTED if the
 // device's scratch pad cannot be read successfully.
 // the numeric value of DEVICE_DISCONNECTED is defined in
-// DallasTemperature.h.  it is a large negative number outside the
+// DallasTemperature.h. It is a large negative number outside the
 // operating range of the device
 float DallasTemperature::getTempC(uint8_t* deviceAddress)
 {
-  // TODO: Multiple devices (up to 64) on the same bus may take some time to negotiate a response
+  // TODO: Multiple devices (up to 64) on the same bus may take 
+  //       some time to negotiate a response
   // What happens in case of collision?
 
   ScratchPad scratchPad;
@@ -357,6 +472,8 @@ float DallasTemperature::getTempC(uint8_t* deviceAddress)
 }
 
 // returns temperature in degrees F
+// TODO: - when getTempC returns DEVICE_DISCONNECTED 
+//        -127 gets converted to -196.6 F
 float DallasTemperature::getTempF(uint8_t* deviceAddress)
 {
   return toFahrenheit(getTempC(deviceAddress));
@@ -529,6 +646,9 @@ bool DallasTemperature::alarmSearch(uint8_t* newAddr)
 }
 
 // returns true if device address has an alarm condition
+// TODO: can this be done with only TEMP_MSB REGISTER (faster)
+//       if ((char) scratchPad[TEMP_MSB] <= (char) scratchPad[LOW_ALARM_TEMP]) return true;
+//       if ((char) scratchPad[TEMP_MSB] >= (char) scratchPad[HIGH_ALARM_TEMP]) return true;
 bool DallasTemperature::hasAlarm(uint8_t* deviceAddress)
 {
   ScratchPad scratchPad;

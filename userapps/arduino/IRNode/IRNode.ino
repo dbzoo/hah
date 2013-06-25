@@ -1,4 +1,4 @@
-/* $Id: IRNode.pde 281 2011-10-07 19:33:20Z dbzoo.com $
+/* $Id$
  * IRNode: detect an IR signal and relay via RF
  *         decoded by the IRNode LUA HAH backend.
  * An IR detector/demodulator must be connected to the input RECV_PIN.

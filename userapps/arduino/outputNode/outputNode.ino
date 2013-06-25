@@ -1,4 +1,4 @@
-// OutputNode
+// $Id $
 #include <JeeLib.h>
 
 #define SERIAL  1   // set to 1 to also report readings on the serial port

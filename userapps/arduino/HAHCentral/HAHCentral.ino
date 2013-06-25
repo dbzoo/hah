@@ -14,6 +14,7 @@
 
 // RF receiver signal in pin
 // We don't require an RSSI - just pump all the noise in and we'll deal with it
+// PIN4 is the Digital pin of PORT 1
 #define RECV_PIN 4
 
 RFrecv rfrecv(RECV_PIN);

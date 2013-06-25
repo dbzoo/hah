@@ -1,4 +1,4 @@
-// $Id $
+// $Id$
 
 #include <JeeLib.h>
 #include <util/crc16.h>
@@ -6,7 +6,21 @@
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 
-// Hardcode our node ID so it won't ever chance once flashed.
+// Do we want this HAHCentral to also be a RF receiver.
+//#define CENTRAL_RF
+
+#ifdef CENTRAL_RF
+#include <RFRX.h>
+
+// RF receiver signal in pin
+// We don't require an RSSI - just pump all the noise in and we'll deal with it
+#define RECV_PIN 4
+
+RFrecv rfrecv(RECV_PIN);
+RFResults results;
+#endif
+
+// Hardcode our node ID so it won't ever change once flashed.
 #define NODE_ID 1
 
 static unsigned long now () {
@@ -100,6 +114,22 @@ static void handleInput (char c) {
     showHelp();
 }
 
+#ifdef CENTRAL_RF
+void dumpRaw(RFResults *results) {
+  unsigned int *buf = results->buf;
+  Serial.print("RFRX ");
+  for (int i = 0; i < results->len; i++) {
+     // yes I know it was unsigned int and I could loose precision.
+     // but a real pulse won't be using numbers > 32767
+    int val = (*buf)*USECPERTICK;
+    Serial.print(i%2 == 0 ? -val : val, DEC);
+    if(i < results->len-1) Serial.print(",");
+    buf++;
+  }
+  Serial.println("");
+}
+#endif
+
 void setup() {
   config.nodeId = NODE_ID;
   config.group = 212;
@@ -113,6 +143,12 @@ void setup() {
 
   // RF12_868MHZ, RF12_915MHZ, RF12_433MHZ
   rf12_initialize(config.nodeId, RF12_868MHZ, config.group);
+  
+#ifdef CENTRAL_RF
+    Serial.print("RF Receiver: pin ");
+    Serial.println(RECV_PIN, DEC);
+    rfrecv.enableRFIn();
+#endif
 }
 
 void loop() {
@@ -160,6 +196,12 @@ void loop() {
       header |= RF12_HDR_DST | dest;
     rf12_sendStart(header, testbuf, sendLen);
     cmd = 0;
-  }
+  }  
+#ifdef CENTRAL_RF
+    if(rfrecv.match(&results)) {
+    dumpRaw(&results);
+    rfrecv.resume();
+  };
+#endif
 }
 

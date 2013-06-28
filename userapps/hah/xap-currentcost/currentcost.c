@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <unistd.h>
@@ -574,6 +575,10 @@ int setupSerialPort()
 	  fd = open(serialPort, O_RDONLY | O_NDELAY);
 	  if (fd < 0) {
 	    die_strerror("Failed to open serial port %s", serialPort);
+	  }
+	  if(flock(fd, LOCK_EX | LOCK_NB) == -1) {
+	    close(fd);
+	    die_strerror("Serial port %s in use", serialPort);
 	  }
 	  cfmakeraw(&newtio);
 	  switch(model) {

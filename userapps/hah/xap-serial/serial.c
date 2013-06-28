@@ -18,6 +18,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
+#include <sys/file.h>
 #include <stdarg.h>
 #include "xap.h"
 #define INFO_INTERVAL 120
@@ -128,6 +129,7 @@ void closeSerialPort(char *port) {
 	struct serialPort *p = findDevice(port);
 	if(p) {
 		info("Closing port %s", port);
+		flock(p->fd, LOCK_UN);
 		close(p->fd);
 		xapDelSocketListener(xapFindSocketListenerByFD(p->fd));
 		LL_DELETE(serialList, p);
@@ -158,17 +160,22 @@ void xapSerialSetup(void *userData) {
 		serialError("Error opening Device %s", s_port);
 		return;
 	}
-	else
-	{
-		int mflgs;
-		if (((mflgs = fcntl(fd, F_GETFL, 0)) == -1) ||
-		    (fcntl(fd, F_SETFL, mflgs | O_NONBLOCK ) == -1))
-		{
-			log_write(LOG_ALERT, strerror(errno));
-			serialError("Error Setting O_NONBLOCK on device %s", s_port);
-			close(fd);
-		}
+
+	if(flock(fd, LOCK_EX | LOCK_NB) == -1) {
+	    serialError("Serial port %s in use", s_port);
+	    close(fd);
 	}
+
+	int mflgs;
+	if (((mflgs = fcntl(fd, F_GETFL, 0)) == -1) ||
+	    (fcntl(fd, F_SETFL, mflgs | O_NONBLOCK ) == -1))
+	  {
+	    log_write(LOG_ALERT, strerror(errno));
+	    serialError("Error Setting O_NONBLOCK on device %s", s_port);
+	    flock(fd, LOCK_UN);
+	    close(fd);
+	  }
+	
 
 	struct serialPort *p = (struct serialPort *)malloc(sizeof(struct serialPort));
 	p->fd = fd;

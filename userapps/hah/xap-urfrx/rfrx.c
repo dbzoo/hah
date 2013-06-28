@@ -18,6 +18,7 @@
 #include <termios.h>
 #include <stdlib.h>
 #include <sys/select.h>
+#include <sys/file.h>
 #include "log.h"
 #include "rfrx.h"
 #include "urfdecoder.h"
@@ -52,6 +53,10 @@ int setupSerialPort()
 	  fd = open(serialPort, O_RDONLY | O_NDELAY);
 	  if (fd < 0) {
 	    die_strerror("Failed to open serial port %s", serialPort);
+	  }
+	  if(flock(fd, LOCK_EX | LOCK_NB) == -1) {
+	    close(fd);
+	    die_strerror("Serial port %s in use", serialPort);
 	  }
 	  cfmakeraw(&newtio);
 	  newtio.c_cflag = B115200 | CS8 | CLOCAL | CREAD ;

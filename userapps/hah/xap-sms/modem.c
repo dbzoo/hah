@@ -7,6 +7,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <fcntl.h>
 #include <strings.h>
 #include <errno.h>
@@ -137,6 +138,11 @@ int setup_serial_port()
 
         g_serial_fd = open(serialPort, O_RDWR | O_NOCTTY );
         die_if(g_serial_fd < 0, "Unable to open the serial port %s",serialPort);
+
+	if(flock(g_serial_fd, LOCK_EX | LOCK_NB) == -1) {
+	  close(g_serial_fd);
+	  die_strerror("Serial port %s in use", serialPort);
+	}
 
         bzero(&newtio, sizeof(newtio));
         newtio.c_cflag = getBaud() | CRTSCTS | CS8 | CLOCAL | CREAD | O_NDELAY;

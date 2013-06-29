@@ -162,8 +162,10 @@ void xapSerialSetup(void *userData) {
 	}
 
 	if(flock(fd, LOCK_EX | LOCK_NB) == -1) {
+	    log_write(LOG_WARNING, "Serial port %s in use", s_port);
 	    serialError("Serial port %s in use", s_port);
 	    close(fd);
+	    return;
 	}
 
 	int mflgs;
@@ -174,6 +176,7 @@ void xapSerialSetup(void *userData) {
 	    serialError("Error Setting O_NONBLOCK on device %s", s_port);
 	    flock(fd, LOCK_UN);
 	    close(fd);
+	    return;
 	  }
 	
 

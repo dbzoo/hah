@@ -371,7 +371,11 @@ static void startElementCB(void *ctx, const xmlChar *name, const xmlChar **atts)
 		freePtr(&msg.tempr);
 		freePtr(&msg.temprf);
 		freePtr(&msg.imp);
-		msg.sensor = -1;
+		// No <sensor> tag for these models default to Whole of House.
+		if(model == ORIGINAL || model == CLASSIC)
+		  msg.sensor = 0;
+		else
+		  msg.sensor = -1;
 	}
 }
 
@@ -637,7 +641,7 @@ void setupXap()
                 info("Selecting CC128 model");
                 model = CC128;
         } else if(strcasecmp(model_s,"ORIGINAL") == 0) {
-                info("Selecting CLASSIC ORIGINAL model");
+                info("Selecting ORIGINAL model");
                 model = ORIGINAL;
 	} else if(strcasecmp(model_s,"CC128") == 0) {
                 info("Selecting CC128 model");
@@ -683,8 +687,11 @@ int main(int argc, char *argv[])
                                 info("Command line override selecting EDF model");
                                 model = EDF;
                         } else if(strcasecmp("ORIGINAL", argv[i]) == 0) {
-	                        info("Command line override selecting CLASSIC ORIGINAL model");
+	                        info("Command line override selecting ORIGINAL model");
 	                        model = ORIGINAL;
+                        } else if(strcasecmp("CLASSIC", argv[i]) == 0) {
+	                        info("Command line override selecting CLASSIC model");
+	                        model = CLASSIC;
                         }
                 }
         }

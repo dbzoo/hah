@@ -323,12 +323,14 @@ int getLatestTweet(tcurl *c, char *content, int clen, long long *id)
 	      warning("Found TEXT but the next token was not a string");
 	      continue;
 	    }
-	    if(t[i].end - t[i].start > clen) {
+	    int len = t[i].end - t[i].start;
+	    if (len > clen-1) {
+	      len = clen-1;
 	      err("Text found larger than buffer: Truncating");
-	      strncpy(content, result+t[i].start, clen);
-	    } else {
-	      strncpy(content, result+t[i].start, t[i].end - t[i].start);
 	    }
+	    strncpy(content, result+t[i].start, len);
+	    // strncpy does not null terminate if none found in the first (len) bytes.
+	    *(content+len+1) = '\0';
 	    found ++;
 	  }
 	}

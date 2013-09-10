@@ -330,7 +330,7 @@ int getLatestTweet(tcurl *c, char *content, int clen, long long *id)
 	    }
 	    strncpy(content, result+t[i].start, len);
 	    // strncpy does not null terminate if none found in the first (len) bytes.
-	    *(content+len+1) = '\0';
+	    *(content+len) = '\0';
 	    found ++;
 	  }
 	}

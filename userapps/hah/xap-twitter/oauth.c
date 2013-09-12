@@ -1,7 +1,7 @@
 /*
  * OAuth string functions in POSIX-C.
  *
- * Copyright 2007-2010 Robin Gareus <robin@gareus.org>
+ * Copyright 2007-2013 Robin Gareus <robin@gareus.org>
  * 
  * The base64 functions are by Jan-Henrik Haukeland, <hauk@tildeslash.com>
  * and un/escape_url() was inspired by libcurl's curl_escape under ISC-license
@@ -285,7 +285,7 @@ char *oauth_url_unescape(const char *string, size_t *olen) {
  * @return signature string
  */
 char *oauth_sign_plaintext (const char *m, const char *k) {
-  return(oauth_url_escape(k));
+  return(strdup(k));
 }
 
 /**
@@ -363,7 +363,10 @@ int oauth_split_post_paramters(const char *url, char ***argv, short qesc) {
     if(!strncasecmp("oauth_signature=",token,16)) continue;
     (*argv)=(char**) xrealloc(*argv,sizeof(char*)*(argc+1));
     while (!(qesc&2) && (tmp=strchr(token,'\001'))) *tmp='&';
-    (*argv)[argc]=oauth_url_unescape(token, NULL);
+    if (argc>0 || (qesc&4)) 
+      (*argv)[argc]=oauth_url_unescape(token, NULL);
+    else
+      (*argv)[argc]=xstrdup(token);
     if (argc==0 && strstr(token, ":/")) {
       // HTTP does not allow empty absolute paths, so the URL 
       // 'http://example.com' is equivalent to 'http://example.com/' and should
@@ -430,7 +433,7 @@ char *oauth_serialize_url (int argc, int start, char **argv) {
 char *oauth_serialize_url_sep (int argc, int start, char **argv, char *sep, int mod) {
   char  *tmp, *t1;
   int i;
-  int  first=0;
+  int first=1;
   int seplen=strlen(sep);
   char *query = (char*) xmalloc(sizeof(char)); 
   *query='\0';
@@ -443,6 +446,21 @@ char *oauth_serialize_url_sep (int argc, int start, char **argv, char *sep, int 
 
     if (i==start && i==0 && strstr(argv[i], ":/")) {
       tmp=xstrdup(argv[i]);
+#if 1 // encode white-space in the base-url
+      while ((t1=strchr(tmp,' '))) {
+# if 0
+        *t1='+';
+# else
+        size_t off = t1-tmp;
+        char *t2 = (char*) xmalloc(sizeof(char)*(3+strlen(tmp)));
+        strcpy(t2, tmp);
+        strcpy(t2+off+2, tmp+off);
+        *(t2+off)='%'; *(t2+off+1)='2'; *(t2+off+2)='0';
+        free(tmp);
+        tmp=t2;
+# endif
+#endif
+      }
       len+=strlen(tmp);
     } else if(!(t1=strchr(argv[i], '='))) {
     // see http://oauth.net/core/1.0/#anchor14
@@ -766,14 +784,36 @@ void oauth_sign_array2_process (int *argcp, char***argvp,
   // serialize URL - base-url 
   query= oauth_serialize_url_parameters(*argcp, *argvp);
 
-  // generate signature
-  okey = oauth_catenc(2, c_secret, t_secret);
+  // prepare data to sign
+  if (method == OA_RSA) {
+    size_t len = 1;
+    if (c_secret) {
+      len += strlen(c_secret);
+    }
+    if (t_secret) {
+      len += strlen(t_secret);
+    }
+    okey = (char*)xmalloc(len * sizeof(char));
+    *okey = '\0';
+    if (c_secret) {
+      okey = strcat(okey, c_secret);
+    }
+    if (t_secret) {
+      okey = strcat(okey, t_secret);
+    }
+  } else {
+    okey = oauth_catenc(2, c_secret, t_secret);
+  }
+
   odat = oauth_catenc(3, http_request_method, (*argvp)[0], query); // base-string
   free(http_request_method);
+
 #ifdef DEBUG_OAUTH
   fprintf (stderr, "\nliboauth: data to sign='%s'\n\n", odat);
   fprintf (stderr, "\nliboauth: key='%s'\n\n", okey);
 #endif
+
+  // generate signature
   switch(method) {
     case OA_RSA:
       sign = oauth_sign_rsa_sha1(odat,okey); // XXX okey needs to be RSA key!
@@ -850,6 +890,43 @@ char *oauth_body_hash_encode(size_t len, unsigned char *digest) {
   return sig_url;
 }
 
+
+/**
+ * compare two strings in constant-time (as to not let an
+ * attacker guess how many leading chars are correct:
+ * http://rdist.root.org/2010/01/07/timing-independent-array-comparison/ )
+ *
+ * @param a string to compare 
+ * @param b string to compare
+ * @param len_a length of string a
+ * @param len_b length of string b
+ *
+ * returns 0 (false) if strings are not equal, and 1 (true) if strings are equal.
+ */
+int oauth_time_independent_equals_n(const char* a, const char* b, size_t len_a, size_t len_b) {
+  int diff, i, j;
+  if (a == NULL) return (b == NULL);
+  else if (b == NULL) return 0;
+  else if (len_b == 0) return (len_a == 0);
+  diff = len_a ^ len_b;
+  j=0;
+  for (i=0; i<len_a; ++i) {
+    diff |= a[i] ^ b[j];
+    j = (j+1) % len_b;
+  }
+  return diff == 0;
+}
+int oauth_time_indepenent_equals_n(const char* a, const char* b, size_t len_a, size_t len_b) {
+  return oauth_time_independent_equals_n(a, b, len_a, len_b);
+}
+
+int oauth_time_independent_equals(const char* a, const char* b) {
+  return oauth_time_independent_equals_n (a, b, a?strlen(a):0, b?strlen(b):0);
+}
+
+int oauth_time_indepenent_equals(const char* a, const char* b) {
+  return oauth_time_independent_equals_n (a, b, a?strlen(a):0, b?strlen(b):0);
+}
 
 /**
  * xep-0235 - TODO

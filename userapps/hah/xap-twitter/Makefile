@@ -9,7 +9,7 @@ CFLAGS+=-I../xaplib2 -I../../opensource/openssl/include -I../../opensource/jsmn
 LDFLAGS=-L$(INSTALL_DIR)/lib -lxap2 -lcurl -ljsmn -lm
 LDFLAGS+=-L../xaplib2 -L../../opensource/jsmn
 MAIN=$(XAP).o 
-OBJECTS=tcurl.o oauth.o xmalloc.o hash.o
+OBJECTS=tcurl.o oauth.o xmalloc.o hash.o oauth_http.o
 
 xap-$(XAP): $(MAIN) $(OBJECTS)
 	$(CC) -o xap-$(XAP) $(MAIN) $(OBJECTS) $(LDFLAGS)

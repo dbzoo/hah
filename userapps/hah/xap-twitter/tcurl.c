@@ -105,7 +105,7 @@ int performGet(tcurl *c) {
 	if(req_url_signed) {
 		curl_easy_setopt( c->curlHandle, CURLOPT_HTTPGET, 1);
 		curl_easy_setopt( c->curlHandle, CURLOPT_URL, req_url_signed);
-		if(getLoglevel() == LOG_DEBUG) {
+		if(getLoglevel() >= LOG_DEBUG) {
 			curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
 		}
 
@@ -161,7 +161,7 @@ static int performPost(tcurl *c, char *url, char *msg) {
         curl_easy_setopt( c->curlHandle, CURLOPT_POST, 1 );
         curl_easy_setopt( c->curlHandle, CURLOPT_URL, url );
 	curl_easy_setopt( c->curlHandle, CURLOPT_POSTFIELDS, msg );
-	if(getLoglevel() == LOG_DEBUG) {
+	if(getLoglevel() >= LOG_DEBUG) {
 		curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
 	}
 
@@ -214,7 +214,7 @@ static int performDelete(tcurl *c) {
 
         curl_easy_setopt( c->curlHandle, CURLOPT_CUSTOMREQUEST, "DELETE");
         curl_easy_setopt( c->curlHandle, CURLOPT_URL, req_url_signed);
-	if(getLoglevel() == LOG_DEBUG)
+	if(getLoglevel() >= LOG_DEBUG)
 		curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );
 
         int ret = CURLE_OK == curl_easy_perform(c->curlHandle);
@@ -350,10 +350,30 @@ int sendTweet(tcurl *c, char *tweet) {
         int retVal = -1;
         if( isCurlInit(c) )
         {
-                char msg[140+8];
+                char *req_url;
+                char msg[200];
                 strcpy(msg, "status=");
                 strlcat(msg, tweet, sizeof(msg));
-                retVal = performPost( c, "http://api.twitter.com/1.1/statuses/update.json", msg );
+		
+		int argc = 2;
+		char *postarg = NULL;
+		char **argv = (char **)malloc(sizeof(char*) * 2);
+		argv[0] = strdup("https://api.twitter.com/1.1/statuses/update.json");
+		argv[1] = strdup(msg);
+
+		req_url = oauth_sign_array2(&argc,&argv,&postarg,OA_HMAC,NULL,
+					    CONSUMER_KEY, CONSUMER_SECRET, 
+					    c->oauthAccessKey, c->oauthAccessSecret);
+		free(argv[1]);
+		free(argv[0]);
+		free(argv);
+		char *result = oauth_http_post2(req_url, postarg, "Expect: \r\n");
+		// return NULL on error, otherwise reply content
+		if (result) {
+		  info("Response from TWITTER '%s'", result);
+		  free(result);
+		  retVal = 0;
+		}
         }
-        return retVal;
+        return retVal;  
 }

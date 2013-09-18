@@ -80,5 +80,5 @@ function init()
    -- lookup new sunrise/sunset forecast every hour.
    xap.Timer(lookupSun, 60*60):start(expireImmediately)
    -- report every 2 minutes.
-   xap.Timer(sendSunriseSunset, 2*60):start(expireImmediately)
+   xap.Timer(sendSunriseSunset, 2*60):start()
 end

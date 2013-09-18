@@ -17,10 +17,10 @@ function checkLightState(frame)
 
    if latch then
       -- relay is ON -- keep it on whilst there is no daylight
-      state = daylight == "off"
+      state = daylight == "no"
    else  
       -- relay is OFF -- keep it off whilst there is daylight
-      state = daylight == "on"
+      state = daylight == "yes"
    end
 
    if state ~= latch then

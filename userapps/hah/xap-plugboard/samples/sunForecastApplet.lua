@@ -70,7 +70,7 @@ forecast
 {
 sunrise=%s
 sunset=%s
-day=%s
+daylight=%s
 }
 ]], sunrise, sunset, daylight and "yes" or "no"))
 end

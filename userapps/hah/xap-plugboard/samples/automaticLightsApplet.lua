@@ -5,7 +5,6 @@
 
 module(...,package.seeall)
 require("xap")
-require("pl")
 require("xap.bsc")
 
 info = {version="0.02", description="Automatic Lights"}
@@ -13,7 +12,7 @@ relay = "dbzoo.livebox.Controller:relay.1"
 latch=false
 
 function checkLightState(frame)
-   local daylight = frame:getValue("forecast","day")
+   local daylight = frame:getValue("forecast","daylight")
 
    if latch then
       -- relay is ON -- keep it on whilst there is no daylight

@@ -10,7 +10,7 @@
 local storyboard = require "storyboard"
 local scene = storyboard.newScene()
 local widget = require "widget"
-local ui = require "hahlib.interface.ui"
+local url = require("socket.url")
 
 local xivelyFeed = 1358187855
 
@@ -42,8 +42,8 @@ function scene:createScene( event )
 		spinner:start()
 		local file = system.pathForFile( "XivelyChart.png", system.TemporaryDirectory )
 		os.remove( file )
-		local datastreamNumber = datastream[1].index - 1		
-		local httpaddress=("http://api.xively.com/v2/feeds/"..xivelyFeed.."/datastreams/"..datastreamNumber..".png?duration="..datastream[2].value.."&w="..graphBounds.width.."&h="..graphBounds.height.."&title="..datastream[1].value.."&b=true&g=true")
+		local datastreamNumber = datastream[1].index - 1
+		local httpaddress= "http://api.xively.com/v2/feeds/"..xivelyFeed.."/datastreams/"..datastreamNumber..".png?duration="..datastream[2].value.."&w="..graphBounds.width.."&h="..graphBounds.height.."&title="..url.escape(datastream[1].value).."&b=true&g=true"
 		display.loadRemoteImage( httpaddress, "GET", 
 								function(event)
 									spinner:stop()

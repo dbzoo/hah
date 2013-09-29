@@ -52,7 +52,7 @@ function setupInterface()
 	-- Setup the segment buttons
 	-- 3 labels means we need scene1.lua to scene3.lua
 	-- Quit is special
-	labels = { "Page 1", "Page 2", "Page 3", "Quit" }
+	labels = { "Page 1", "Page 2", "Page 3", "Page 4", "Quit" }
 	local segmentedControl = widget.newSegmentedControl
 	{
 	   left = 0,

@@ -108,7 +108,7 @@ local function xtonumber(s)
     return val
 end
 
-local types
+local types = {}
 
 local builtin_types = {string=true,number=true,['file-in']='file',['file-out']='file',boolean=true}
 

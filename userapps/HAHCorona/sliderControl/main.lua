@@ -34,7 +34,9 @@ function levelController(opt)
 			opt.listener(opt.states[idx])
 			local lvl = (idx-1)*(100/(#opt.states-1))
 			--print(string.format("bsc.sendLevel(%s, %s)", opt.xapTarget, lvl))
-			bscSend{target=opt.xapTarget, level=lvl}
+			if event.synthetic ~= true then
+			  bscSend{target=opt.xapTarget, level=lvl}
+			end
 		end
 	end
 end
@@ -72,7 +74,7 @@ function newHorizSliderWithFeedback(opt)
 	              local level = tonumber(frame:getValue("output.state.1","level"))
 				  horizontalSlider:setValue( level )
 				  -- Synthetic event to update internal state and fire text feedback.
-				  controller{value=level}
+				  controller{value=level, synthetic=true}
 			   end			
 			)
 	xap_server:addFilter(f)	

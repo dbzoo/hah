@@ -57,7 +57,7 @@ function newHorizSliderWithFeedback(opt)
 										listener = updateFeedback,
 										xapTarget = opt.xapTarget 
 									}
-										
+									
 	local horizontalSlider = widget.newSlider {
 		top=opt.top,
 		left=opt.left,
@@ -78,12 +78,17 @@ function newHorizSliderWithFeedback(opt)
 			   end			
 			)
 	xap_server:addFilter(f)	
+
+    local grp = display.newGroup()									
+	grp:insert(horizontalSlider)
+	grp:insert(textFeedback)
+	return grp	
 end
 
 ---- MAIN ----
 -- The text is use for feedback purposes
 state5={"OFF","25%","50%","75%","FULL"}
-state3={"OFF","50%","ON"}
+state3={"OFF","DIM","ON"}
 
 newHorizSliderWithFeedback {
   top=10,

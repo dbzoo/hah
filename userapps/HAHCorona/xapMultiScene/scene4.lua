@@ -44,6 +44,7 @@ function scene:createScene( event )
 		os.remove( file )
 		local datastreamNumber = datastream[1].index - 1
 		local httpaddress= "http://api.xively.com/v2/feeds/"..xivelyFeed.."/datastreams/"..datastreamNumber..".png?duration="..datastream[2].value.."&w="..graphBounds.width.."&h="..graphBounds.height.."&title="..url.escape(datastream[1].value).."&b=true&g=true"
+		httpaddress = string.gsub(httpaddress," ", "+")
 		display.loadRemoteImage( httpaddress, "GET", 
 								function(event)
 									spinner:stop()

@@ -8,14 +8,14 @@
 static int reboot = 0;
 
 struct _datastream {
-     char feed[10];
-	 char id[4];
-	 char tag[20];
+  char feed[12];
+  char id[4];
+  char tag[20];
 } ds[32];
 
 static struct {
 	 char apikey[129];
-	 char feedid[10];
+	 char feedid[12];
 	 int count;
 } ini;
 

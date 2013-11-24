@@ -13,14 +13,14 @@ static struct datastream *ds;
 static int dscnt = 0;
 
 // Unique list of Feeds to reduce HTTP rounds trips.
-static unsigned int *feeds;
+static unsigned long *feeds;
 static unsigned int feeds_cnt = 0;
 
 /* Iterate over the datastream constructing an XML fragment in a
 ** static buffer suitable for pushing to xively as a data feed.
 ** Expand the buffer if necessary.
 */
-static char *xmlDatastream(unsigned int feed) {
+static char *xmlDatastream(unsigned long feed) {
      static char *xml = NULL;
      static int xmllen = 1024;
      int i, j, len;
@@ -70,7 +70,7 @@ void xivelyWebUpdate(int interval, void *userData)
 }
 
 
-static int findDatastream(unsigned int feed, unsigned int id) {
+static int findDatastream(unsigned long feed, unsigned int id) {
      int i;
      for(i=0; i < dscnt; i++) {
           if(ds[i].id == id && ds[i].feed == feed) return i;
@@ -79,18 +79,18 @@ static int findDatastream(unsigned int feed, unsigned int id) {
 }
 
 // Add to the unique list of feeds being managed
-static void addFeed(unsigned int feed) {
+static void addFeed(unsigned long feed) {
 	int i;
 	for(i=0; i<feeds_cnt; i++) {
 		if(feeds[i] == feed) return;
 	}
-	info("Adding Feed %d", feed);
+	info("Adding Feed %lu", feed);
 	feeds_cnt++;
-	feeds = mem_realloc(feeds, sizeof(int)*feeds_cnt, M_NONE);
+	feeds = mem_realloc(feeds, sizeof(long)*feeds_cnt, M_NONE);
 	feeds[feeds_cnt-1] = feed;
 }
 
-void updateDatastream(unsigned int feed, unsigned int id, char *tag, float value, char *min, char *max, char *unit) {
+void updateDatastream(unsigned long feed, unsigned int id, char *tag, float value, char *min, char *max, char *unit) {
   int idx = findDatastream(feed, id);
      if(idx == -1) {
           info("NEW datastream");
@@ -106,6 +106,6 @@ void updateDatastream(unsigned int feed, unsigned int id, char *tag, float value
 	  ds[idx].unit = unit ? mem_strdup(unit, M_NONE) : NULL;
 	  addFeed(feed);
      }
-     info("feed=%d, id=%d, tag=%s, value=%.2f", ds[idx].feed, ds[idx].id, ds[idx].tag, value);
+     info("feed=%lu, id=%d, tag=%s, value=%.2f", ds[idx].feed, ds[idx].id, ds[idx].tag, value);
      ds[idx].value = value;
 }

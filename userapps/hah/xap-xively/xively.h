@@ -1,3 +1,3 @@
 /* $Id$
  */
-int pach_updateDatastreamXml(int feed, char *key, char *xml);
+int pach_updateDatastreamXml(unsigned long feed, char *key, char *xml);

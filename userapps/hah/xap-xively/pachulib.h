@@ -116,7 +116,7 @@ typedef struct
 typedef struct
 {
 
-	unsigned int env_id;
+	unsigned long env_id;
 	unsigned int ds_id;
 	unsigned int threshold;
 	trigger_op_tp type;
@@ -126,16 +126,16 @@ typedef struct
 
 /*Realtime data, AUTH*/
 //environmet related:
-int create_environment(char *api_key, char *environment, unsigned int *env_id); //POST
-int delete_environment(unsigned int env_id,char * api_key); //DELETE
-int get_environment(unsigned int env_id, char * api_key, char *environment,data_format_tp format); //GET
-int update_environment(unsigned int env_id, char *api_key, char *environment,data_format_tp format); //PUT
+int create_environment(char *api_key, char *environment, unsigned long *env_id); //POST
+int delete_environment(unsigned long env_id,char * api_key); //DELETE
+int get_environment(unsigned long env_id, char * api_key, char *environment,data_format_tp format); //GET
+int update_environment(unsigned long env_id, char *api_key, char *environment,data_format_tp format); //PUT
 
 //datastream functions
-int create_datastream(unsigned int env_id, char *api_key,char *environment); //POST
-int delete_datastream(unsigned int env_id, int ds_id, char *api_key); //DELETE
-int get_datastream(unsigned int env_id,int ds_id,char *api_key, char *datastream,data_format_tp format); //GET
-int update_datastream(unsigned int env_id,int ds_id, char *api_key, char *datastream,data_format_tp format); //PUT
+int create_datastream(unsigned long env_id, char *api_key,char *environment); //POST
+int delete_datastream(unsigned long env_id, int ds_id, char *api_key); //DELETE
+int get_datastream(unsigned long env_id,int ds_id,char *api_key, char *datastream,data_format_tp format); //GET
+int update_datastream(unsigned long env_id,int ds_id, char *api_key, char *datastream,data_format_tp format); //PUT
 
 //triggers functions:
 int create_trigger(trigger_tp * trigger, char *api_key); //POST
@@ -146,9 +146,9 @@ int get_trigger(int trigger_id, data_format_tp format, char *api_key, char *trig
 int delete_trigger(int trigger_id, char *api_key); //DELETE
 
 /*Historical data, NO_AUTH*/
-int get_historical_datastream_csv(int env_id,int ds_id, char *file_name); //GET
-int get_historical_datastream_png(int env_id,int ds_id, graph_tp graph,char *file_name); //GET
-int get_archive_datastream_csv(int env_id, int ds_id, char *file_name); //GET
+int get_historical_datastream_csv(unsigned long env_id,int ds_id, char *file_name); //GET
+int get_historical_datastream_png(unsigned long env_id,int ds_id, graph_tp graph,char *file_name); //GET
+int get_archive_datastream_csv(unsigned long env_id, int ds_id, char *file_name); //GET
 
 /*Collections: multiple feeds*/
 //NO_AUTH:

@@ -28,7 +28,7 @@ int send_data(int fd, char *buffer, unsigned int long_buffer);
 
 //http status codes:
 int recover_status(char *msg);
-int recover_env_id_status(char *msg,unsigned int * env_id);
+int recover_env_id_status(char *msg,unsigned long * env_id);
 int recover_trigger_id_status(char * msg,unsigned int * tr_id);
 int recover_env_from_http(char *msg, char *environment);
 int find_in_http(char *msg, char *tag, int * position);
@@ -223,7 +223,7 @@ int recover_status(char *msg)
 */
 	return FALSE;
 }
-int recover_env_id_status(char *msg,unsigned int * env_id)
+int recover_env_id_status(char *msg,unsigned long * env_id)
 {
 	if (msg == NULL) return FALSE; //strtok
 	
@@ -234,14 +234,14 @@ int recover_env_id_status(char *msg,unsigned int * env_id)
         int found = FALSE;
         char * tok = strtok(msg, "\n");
         while (tok != NULL) {
-                if (sscanf(tok,"Location: http://api.xively.com/v2/feeds/%d",env_id)==1)
+                if (sscanf(tok,"Location: http://api.xively.com/v2/feeds/%lu",env_id)==1)
                 {
                         found = TRUE;
                         break;
                 }
                 tok = strtok(NULL,"\n");
         }
-        if (found) notice("Environment id %d created\n",*env_id);
+        if (found) notice("Environment id %lu created\n",*env_id);
         
 
 	return found;
@@ -325,7 +325,7 @@ int recover_env_from_http(char *msg, char *environment)
 /**
 * create a new environment: if eeml data is NULL it creates a default one.
 **/
-int create_environment(char *api_key, char *environment, unsigned int *env_id) //POST
+int create_environment(char *api_key, char *environment, unsigned long *env_id) //POST
 {
 
 	char msg[MSG_MAX];
@@ -361,14 +361,14 @@ int create_environment(char *api_key, char *environment, unsigned int *env_id) /
 /**
 * delete an env_id environment
 */
-int delete_environment(unsigned int env_id,char * api_key) //DELETE
+int delete_environment(unsigned long env_id,char * api_key) //DELETE
 {
 
 	char msg[MSG_MAX];
 	int fd = 0;
 
 	//add header to msg
-	sprintf(msg,"DELETE /v2/feeds/%d HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\n\r\n",env_id, HOST, api_key);
+	sprintf(msg,"DELETE /v2/feeds/%lu HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\n\r\n",env_id, HOST, api_key);
 
 
 	if (!connect_server(&fd)) return FALSE;
@@ -389,7 +389,7 @@ int delete_environment(unsigned int env_id,char * api_key) //DELETE
 * get xml env_id environment information
 * returns xml body as string
 */
-int get_environment(unsigned int env_id, char * api_key, char *environment,data_format_tp format) //GET
+int get_environment(unsigned long env_id, char * api_key, char *environment,data_format_tp format) //GET
 {
 
 	char msg[MSG_MAX];
@@ -404,7 +404,7 @@ int get_environment(unsigned int env_id, char * api_key, char *environment,data_
 
 	//add header to msg:
 	//TODO : xml now, more if needed in future..
-	sprintf(msg,"GET /v2/feeds/%d.%s HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,format_str,HOST, api_key,0);
+	sprintf(msg,"GET /v2/feeds/%lu.%s HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,format_str,HOST, api_key,0);
 
 	if (!connect_server(&fd)) return FALSE;
 
@@ -432,7 +432,7 @@ int get_environment(unsigned int env_id, char * api_key, char *environment,data_
 /*
 * update enviroment: datastreams or info
 */
-int update_environment(unsigned int env_id, char *api_key, char *environment,data_format_tp format) //PUT
+int update_environment(unsigned long env_id, char *api_key, char *environment,data_format_tp format) //PUT
 {
 	char msg[MSG_MAX];
 	int fd = 0;
@@ -444,7 +444,7 @@ int update_environment(unsigned int env_id, char *api_key, char *environment,dat
 
 	//add header to msg:
 	//TODO : xml now, more if needed in future..
-	sprintf(msg,"PUT /v2/feeds/%d.%s HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,format_str,HOST,api_key,strlen(environment));
+	sprintf(msg,"PUT /v2/feeds/%lu.%s HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,format_str,HOST,api_key,strlen(environment));
 
 	//add body to msg:
 	int bufsiz = strlen(msg)+strlen(environment)+1;
@@ -467,14 +467,14 @@ int update_environment(unsigned int env_id, char *api_key, char *environment,dat
 //Creates a new datastream in environment [environment ID]. 
 //The body of the request should contain EEML of the environment to be created 
 //and at least one datastream. 
-int create_datastream(unsigned int env_id, char *api_key, char *environment) //POST
+int create_datastream(unsigned long env_id, char *api_key, char *environment) //POST
 {
 
 	char msg[MSG_MAX];
 	int fd;
 
 	//add header to msg:
-	sprintf(msg,"POST /v2/feeds/%d/datastreams/ HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id, HOST, api_key,strlen(environment) );
+	sprintf(msg,"POST /v2/feeds/%lu/datastreams/ HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id, HOST, api_key,strlen(environment) );
 	//add body to msg:
 	sprintf(msg,"%s%s",msg,environment);
 
@@ -492,14 +492,14 @@ int create_datastream(unsigned int env_id, char *api_key, char *environment) //P
 	return TRUE;
 
 }
-int delete_datastream(unsigned int env_id, int ds_id, char *api_key) //DELETE
+int delete_datastream(unsigned long env_id, int ds_id, char *api_key) //DELETE
 {
 
 	char msg[MSG_MAX];
 	int fd;
 
 	//add header to msg:
-	sprintf(msg,"DELETE /v2/feeds/%d/datastreams/%d HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,ds_id, HOST, api_key, 0);
+	sprintf(msg,"DELETE /v2/feeds/%lu/datastreams/%d HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,ds_id, HOST, api_key, 0);
 	//body no needed
 
 	if (!connect_server(&fd)) return FALSE;
@@ -516,7 +516,7 @@ int delete_datastream(unsigned int env_id, int ds_id, char *api_key) //DELETE
 	return TRUE;
 
 }
-int get_datastream(unsigned int env_id,int ds_id,char *api_key, char *datastream, data_format_tp format) //GET
+int get_datastream(unsigned long env_id,int ds_id,char *api_key, char *datastream, data_format_tp format) //GET
 {
 
 	char msg[MSG_MAX];
@@ -527,8 +527,8 @@ int get_datastream(unsigned int env_id,int ds_id,char *api_key, char *datastream
 	if (!data_format_str(format,format_str)) return FALSE;
 
 	//TODO implement other data format while recovering
-	sprintf(msg,"GET /v2/feeds/%d/datastreams/%d.xml HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\n\r\n",env_id,ds_id,HOST,api_key);
-//	sprintf(msg,"GET /v2/feeds/%d/datastreams/%d.%s HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\n\r\n",env_id,ds_id,format_str, HOST,api_key);
+	sprintf(msg,"GET /v2/feeds/%lu/datastreams/%d.xml HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\n\r\n",env_id,ds_id,HOST,api_key);
+//	sprintf(msg,"GET /v2/feeds/%lu/datastreams/%d.%s HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\n\r\n",env_id,ds_id,format_str, HOST,api_key);
 		
 	//no body this time
 
@@ -560,13 +560,13 @@ int get_datastream(unsigned int env_id,int ds_id,char *api_key, char *datastream
 
 
 }
-int update_datastream(unsigned int env_id,int ds_id, char *api_key, char *datastream,data_format_tp format) //PUT
+int update_datastream(unsigned long env_id,int ds_id, char *api_key, char *datastream,data_format_tp format) //PUT
 {
 	char msg[MSG_MAX];
 	int fd;
 	
 	//header:
-	sprintf(msg,"PUT /v2/feeds/%d/datastreams/%d.csv HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,ds_id,HOST, api_key,strlen(datastream));
+	sprintf(msg,"PUT /v2/feeds/%lu/datastreams/%d.csv HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",env_id,ds_id,HOST, api_key,strlen(datastream));
 	//body:
 	sprintf(msg,"%s%s\r\n",msg,datastream);
 	
@@ -602,7 +602,7 @@ int create_trigger(trigger_tp * trigger,char *api_key) //POST
 
 	//this time, body 1
 	//important: POST meth doesnt allow use \r\n 
-	sprintf(body,"trigger[url]=%s&trigger[trigger_type]=%s&trigger[threshold_value]=%d&trigger[environment_id]=%d&trigger[stream_id]=%d",trigger->url,type_str,trigger->threshold,trigger->env_id,trigger->ds_id);
+	sprintf(body,"trigger[url]=%s&trigger[trigger_type]=%s&trigger[threshold_value]=%d&trigger[environment_id]=%lu&trigger[stream_id]=%d",trigger->url,type_str,trigger->threshold,trigger->env_id,trigger->ds_id);
 
 
 	int post_l = strlen(body);
@@ -684,7 +684,7 @@ int update_trigger(trigger_tp *trigger, char *api_key)//PUT
 
 	//this time, body 1
 	//like post, 501 server error
-	sprintf(body,"trigger[url]=%s&trigger[trigger_type]=%s&trigger[threshold_value]=%d&trigger[environment_id]=%d&trigger[stream_id]=%d",trigger->url,type_str,trigger->threshold,trigger->env_id,trigger->ds_id);
+	sprintf(body,"trigger[url]=%s&trigger[trigger_type]=%s&trigger[threshold_value]=%d&trigger[environment_id]=%lu&trigger[stream_id]=%d",trigger->url,type_str,trigger->threshold,trigger->env_id,trigger->ds_id);
 	//like xml:
 
 /*<?xml version="1.0" encoding="UTF-8"?>
@@ -699,7 +699,7 @@ int update_trigger(trigger_tp *trigger, char *api_key)//PUT
   <stream-id>0</stream-id>
 </datastream-trigger>*/
 
-sprintf(body,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<datastream-trigger>\r\n<id type=\"integer\">%d</id>\r\n<url>%s</url>\r\n<trigger-type>%s</trigger-type><threshold-value type=\"float\">%d</threshold-value>\r\n<environment-id type=\"integer\">%d</environment-id>\r\n<stream-id>%d</stream-id>\r\n</datastream-trigger>",trigger->tr_id,trigger->url,type_str,trigger->threshold,trigger->env_id,trigger->ds_id);
+sprintf(body,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<datastream-trigger>\r\n<id type=\"integer\">%d</id>\r\n<url>%s</url>\r\n<trigger-type>%s</trigger-type><threshold-value type=\"float\">%d</threshold-value>\r\n<environment-id type=\"integer\">%lu</environment-id>\r\n<stream-id>%d</stream-id>\r\n</datastream-trigger>",trigger->tr_id,trigger->url,type_str,trigger->threshold,trigger->env_id,trigger->ds_id);
 
 
 
@@ -790,7 +790,7 @@ int delete_trigger(int trigger_id, char *api_key) //DELETE
 
 }
 /*Historical data, NO_AUTH*/
-int get_historical_datastream_csv(int env_id,int ds_id, char *file_name) //GET
+int get_historical_datastream_csv(unsigned long env_id,int ds_id, char *file_name) //GET
 {
 
 
@@ -800,7 +800,7 @@ int get_historical_datastream_csv(int env_id,int ds_id, char *file_name) //GET
 
 
 	
-	sprintf(msg,"GET /feeds/%d/datastreams/%d/history.csv HTTP/1.1\r\nHost: %s\r\n\r\n",env_id,ds_id,HOST);
+	sprintf(msg,"GET /feeds/%lu/datastreams/%d/history.csv HTTP/1.1\r\nHost: %s\r\n\r\n",env_id,ds_id,HOST);
 //	sprintf(msg,"GET /v2/feeds/%d/datastreams/%d.%s HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\n\r\n",env_id,ds_id,format_str, HOST,api_key);
 		
 	//no body this time
@@ -833,7 +833,7 @@ int get_historical_datastream_png(int env_id,int ds_id, graph_tp graph,char *fil
 
 }
 */
-int get_archive_datastream_csv(int env_id, int ds_id, char *file_name) //GET
+int get_archive_datastream_csv(unsigned long env_id, int ds_id, char *file_name) //GET
 {
 char msg[MSG_MAX];
 	int fd;
@@ -841,7 +841,7 @@ char msg[MSG_MAX];
 
 
 	
-	sprintf(msg,"GET /v2/feeds/%d/datastreams/%d/archive.csv HTTP/1.1\r\nHost: %s\r\n\r\n",env_id,ds_id,HOST);
+	sprintf(msg,"GET /v2/feeds/%lu/datastreams/%d/archive.csv HTTP/1.1\r\nHost: %s\r\n\r\n",env_id,ds_id,HOST);
 //	sprintf(msg,"GET /v2/feeds/%d/datastreams/%d.%s HTTP/1.1\r\nHost: %s\r\nX-ApiKey: %s\r\n\r\n",env_id,ds_id,format_str, HOST,api_key);
 		
 	//no body this time

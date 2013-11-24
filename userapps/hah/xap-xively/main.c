@@ -56,11 +56,11 @@ char *interfaceName = "eth0";
 char *inifile = "/etc/xap-livebox.ini";
 static unsigned int g_ufreq;
 char *g_apikey;
-static unsigned int g_feedid;  // default feed
+static unsigned long g_feedid;  // default feed
 
 struct webFilter {
   // for XIVELY usage
-  unsigned int feed;
+  unsigned long feed;
   unsigned int id;
   char *min;
   char *max;
@@ -106,9 +106,9 @@ void xivelyUpdate(void *userData)
                 warning("Invalid DATASTREAM section ID element: %s", id);
                 return;
         }
-	unsigned int feedn;
+	unsigned long feedn;
 	if(feed) { // If supplied it must be valid.
-	  feedn = atoi(feed);
+	  feedn = atol(feed);
 	  if(feedn <= 0) {
 	    warning("Invalid DATASTREAM feed ID: %s", feed);
 	    return;
@@ -168,7 +168,7 @@ void parseINI()
 	        free(id);
 
 	        id = getDynINI("feed",i,OPTIONAL);
-		wf->feed = id ? atoi(id) : g_feedid;
+		wf->feed = id ? atol(id) : g_feedid;
 		free(id);
 
 	        wf->min = getDynINI("min",i,OPTIONAL);
@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
 {
         int i;
         printf("\nXively Connector for xAP v12\n");
-        printf("Copyright (C) DBzoo 2009-2010\n\n");
+        printf("Copyright (C) DBzoo 2009-2013\n\n");
 
 	simpleCommandLine(argc, argv, &interfaceName);
         xapInitFromINI("xively","dbzoo.livebox","Xively","00D7",interfaceName,inifile);

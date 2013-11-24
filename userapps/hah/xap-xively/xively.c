@@ -20,10 +20,10 @@ static const char *eeml_head = "<eeml xmlns=\"http://www.eeml.org/xsd/005\""
 static const char *eeml_foot ="</environment></eeml>";
 
 /* Send a pre-formated XML datastream set to pachube */
-int pach_updateDatastreamXml(int feed, char *api, char *xml) {
+int pach_updateDatastreamXml(unsigned long feed, char *api, char *xml) {
      if(xml == NULL) return;
 
-     info("feed %d", feed);
+     info("feed %lu", feed);
 
      char *eeml = mem_malloc(strlen(eeml_head) + strlen(eeml_foot) + strlen(xml) + 1, M_NONE);
      strcpy(eeml, eeml_head);

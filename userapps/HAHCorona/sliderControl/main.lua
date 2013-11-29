@@ -13,30 +13,21 @@ local bscSend = require("hahlib.interface.bsc").bscSend
 local widget = require "widget"
 
 xap_server = xap.TCPServer{host="livebox.local"}
+--xap_server = xap.UDPServer()
 xap_server:start()
 
 function levelController(opt)
-  local previousValue = 0  
   return function(event)
-	  -- A level device can be set to a specific level at its native resolution using
-	  -- Level=45 for example (no % sign) or Level= 64/1023
-	  -- We will use discrete values of the range 0-100
-
-	  -- Quantize the level into the ranges available
-		local idx = 1
+	    -- Normalize the slider 0-100 value into the range 0->(states-1)
+		local idx = 0
 		if event.value > 0 then
-			idx = math.ceil(event.value / (100/#opt.states))
-		end
-
-		-- Only if the slider has moved into the next quantile
-		if previousValue ~= idx then
-			previousValue = idx
-			opt.listener(opt.states[idx])
-			local lvl = (idx-1)*(100/(#opt.states-1))
-			--print(string.format("bsc.sendLevel(%s, %s)", opt.xapTarget, lvl))
-			if event.synthetic ~= true then
-			  bscSend{target=opt.xapTarget, level=lvl}
-			end
+		   idx = math.ceil(event.value / (100/#opt.states))-1
+		end		
+		opt.listener(opt.states[idx+1])
+		if event.phase == "ended" then
+   		  local lvl = string.format("%s/%s", idx, #opt.states-1)
+		  bscSend{target=opt.xapTarget, level=lvl}
+		  print(string.format("bsc.sendLevel(%s, %s)", opt.xapTarget, lvl))
 		end
 	end
 end
@@ -71,10 +62,12 @@ function newHorizSliderWithFeedback(opt)
 	f:add("xap-header","source",opt.xapTarget)
 	f:add("xap-header","class","xAPBSC.event")
 	f:callback(function(frame)
-	              local level = tonumber(frame:getValue("output.state.1","level"))
-				  horizontalSlider:setValue( level )
+	              local xapLevel = frame:getValue("output.state.1","level")
+				  local step, range = xapLevel:match("(%d+)/(%d+)")
+				  local sliderlevel = (step / range) * 100				  
+				  horizontalSlider:setValue( sliderlevel )
 				  -- Synthetic event to update internal state and fire text feedback.
-				  controller{value=level, synthetic=true}
+				  controller{value=sliderlevel}
 			   end			
 			)
 	xap_server:addFilter(f)	
@@ -86,15 +79,16 @@ function newHorizSliderWithFeedback(opt)
 end
 
 ---- MAIN ----
--- The text is use for feedback purposes
-state5={"OFF","25%","50%","75%","FULL"}
+-- The text is used for feedback purposes
 state3={"OFF","DIM","ON"}
+state5={"OFF","25%","50%","75%","FULL"}
+state15={"OFF",1,2,3,4,5,6,7,8,9,10,11,12,13,"FULL"}
 
 newHorizSliderWithFeedback {
   top=10,
   left=10,
   width = display.actualContentWidth - 20,
-  states = state5,
+  states = state15,
   msg = "Lounge lights are %s",
   xapTarget="xap.dbzoo.Plugboard:LoungeLights"
 }

@@ -32,9 +32,9 @@ extern YYSTYPE yylval;
 "<"[xX][aA][pP]">"      { return(YY_START_XAP); }
 "</"[xX][aA][pP]">"	{ return(YY_END_XAP); }
 "log<code>"     { return(YY_LOGIN); }
-[^</\/]*	{/* ANY char using </ as a terminal */
-                 yylval.s = yytext; return YY_IDENT;
-                }
+.|\n	{/* ANY unmatched character */
+            yylval.s = yytext; return YY_IDENT;
+        }
 %%
 
 int yywrap(void)

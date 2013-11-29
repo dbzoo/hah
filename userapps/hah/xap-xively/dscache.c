@@ -90,7 +90,7 @@ static void addFeed(unsigned long feed) {
 	feeds[feeds_cnt-1] = feed;
 }
 
-void updateDatastream(unsigned long feed, unsigned int id, char *tag, float value, char *min, char *max, char *unit) {
+void updateDatastream(unsigned long feed, unsigned int id, char *tag, float value, char *min, char *max, char *unit, int now) {
   int idx = findDatastream(feed, id);
      if(idx == -1) {
           info("NEW datastream");
@@ -108,4 +108,8 @@ void updateDatastream(unsigned long feed, unsigned int id, char *tag, float valu
      }
      info("feed=%lu, id=%d, tag=%s, value=%.2f", ds[idx].feed, ds[idx].id, ds[idx].tag, value);
      ds[idx].value = value;
+
+     if(now) {  // Expire the timer forcing it to be called and reset.
+       xapTimeoutExpire(xapFindTimeoutByFunc(&xivelyWebUpdate));
+     }
 }

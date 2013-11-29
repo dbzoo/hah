@@ -80,12 +80,17 @@ void broadcastUpdate(void *userData)
 	die_if(wf == NULL, "callback object NULL!");
         char *value = xapGetValue(wf->section, wf->key);
 	float f;
+	int now = 0;
 	if(strcasecmp("on",value) == 0) { // Issue 27
 		f = 1;
+		now = 1; // A boolean state should never be cached.
+	} else if(strcasecmp("off",value) == 0) {
+		f = 0;
+		now = 1;
 	} else {
 		f = atof(value);
 	}
-        updateDatastream(wf->feed, wf->id, wf->tag, f, wf->min, wf->max, wf->unit);
+        updateDatastream(wf->feed, wf->id, wf->tag, f, wf->min, wf->max, wf->unit, now);
 }
 
 /** process an xAP xively update message.
@@ -100,6 +105,7 @@ void xivelyUpdate(void *userData)
         char *min = xapGetValue("datastream","min");
         char *max = xapGetValue("datastream","max");
         char *unit = xapGetValue("datastream","unit");
+        int now = atoi(xapGetValue("datastream","now"));
 
         unsigned int idn = atoi(id);
         if(idn <= 0 && strcmp("0",id)) {
@@ -116,7 +122,7 @@ void xivelyUpdate(void *userData)
 	} else { // missing?  Default to global feed id.
 	  feedn = g_feedid;
 	}
-        updateDatastream(feedn, idn, tag, atof(value), min, max, unit);
+        updateDatastream(feedn, idn, tag, atof(value), min, max, unit, now);
 }
 
 

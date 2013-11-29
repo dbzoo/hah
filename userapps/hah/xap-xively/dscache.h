@@ -13,7 +13,7 @@ struct datastream {
   char *unit;
 };
 
-void updateDatastream(unsigned long feed, unsigned int id, char *tag, float value, char *min, char *max, char *unit);
+void updateDatastream(unsigned long feed, unsigned int id, char *tag, float value, char *min, char *max, char *unit, int now);
 void xivelyWebUpdate(int interval, void *userData);
 
 #endif

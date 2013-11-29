@@ -30,6 +30,10 @@ void xapTimeoutReset(xAPTimeoutCallback *cb) {
 	cb->ttl = time(NULL) + cb->interval;
 }
 
+void xapTimeoutExpire(xAPTimeoutCallback *cb) {
+        cb->ttl = 0;
+}
+
 /** Remove a timeout and free the memory for the callback.
 */
 void *xapDelTimeoutAction(xAPTimeoutCallback *cb)

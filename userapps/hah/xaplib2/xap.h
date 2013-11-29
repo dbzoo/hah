@@ -126,6 +126,7 @@ void timeoutDispatch();
 void *xapDelTimeoutAction(xAPTimeoutCallback *);
 void *xapDelTimeoutActionByFunc(void (*func)(int, void *));
 void xapTimeoutReset(xAPTimeoutCallback *);
+void xapTimeoutExpire(xAPTimeoutCallback *);
 
 // rx.c
 void xapProcess();

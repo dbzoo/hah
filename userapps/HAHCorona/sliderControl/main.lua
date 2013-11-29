@@ -82,13 +82,13 @@ end
 -- The text is used for feedback purposes
 state3={"OFF","DIM","ON"}
 state5={"OFF","25%","50%","75%","FULL"}
-state15={"OFF",1,2,3,4,5,6,7,8,9,10,11,12,13,"FULL"}
+state16={"OFF",1,2,3,4,5,6,7,8,9,10,11,12,13,14,"FULL"}
 
 newHorizSliderWithFeedback {
   top=10,
   left=10,
   width = display.actualContentWidth - 20,
-  states = state15,
+  states = state16,
   msg = "Lounge lights are %s",
   xapTarget="xap.dbzoo.Plugboard:LoungeLights"
 }

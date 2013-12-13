@@ -2,7 +2,7 @@
  * Uses the dbzoo EthRelay v1.0 board.
 */
 #include <EtherCard.h>
-#include "XapEther.h"
+#include "xAPEther.h"
 #include "BscRelay.h"
 
 /* CONNECTIONS:

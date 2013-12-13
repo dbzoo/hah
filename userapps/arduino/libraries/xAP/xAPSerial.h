@@ -41,7 +41,6 @@ enum unframe_state {
 
 class XapSerial : public XapClass {
  public:
-  XapSerial(void);
   XapSerial(char *source, char *uid);
 
   // When a framed xAP message is received, parse and callback (func)

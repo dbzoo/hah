@@ -29,15 +29,11 @@
 #include "xAPSerial.h"
 #include <HardwareSerial.h>
 
-XapSerial::XapSerial(void) : XapClass() {
+XapSerial::XapSerial(char *source, char *uid) : XapClass(source,uid) {
      state = ST_START;
      p = NULL;
      xapRaw = NULL;
      xapRawSize = 0;
-}
-
-XapSerial::XapSerial(char *source, char *uid) : XapClass(source,uid) {
-  XapSerial();
 }
 
 void XapSerial::process(void (*func)()) {
@@ -51,14 +47,14 @@ void XapSerial::process(void (*func)()) {
 }
 
 void XapSerial::sendHeartbeat(void) {
-  Serial.print(STX, BYTE);
+  Serial.write(STX);
   Serial.println("xap-hbeat\n{\nv=12\nhop=1");
   Serial.print("uid=");  Serial.println(UID);
   Serial.println("class=xap-hbeat.alive");
   Serial.print("source="); Serial.println(SOURCE);
   Serial.print("interval="); Serial.println(XAP_HEARTBEAT/1000);
   Serial.print("}----");
-  Serial.print(ETX, BYTE);
+  Serial.write(ETX);
 }
 
 void XapSerial::setBuffer(byte *p, int s) {

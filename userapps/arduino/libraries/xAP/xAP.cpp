@@ -33,11 +33,7 @@
 XapClass::XapClass(char *source, char *uid) {
      SOURCE = source;
      UID = uid;
-     resetHeartbeat();
-}
-
-XapClass::XapClass(void) {
-     XapClass("dbzoo.arduino.demo","FFDB2000");
+     heartbeatTimeout = smillis();
 }
 
 void XapClass::heartbeat(void) {

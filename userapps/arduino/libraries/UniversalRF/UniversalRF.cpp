@@ -23,7 +23,7 @@ uint8_t UniversalRF::hexToByte(char c)
   if (!isxdigit(c)) {
     if(debug) {
       Serial.print("Invalid hex digit ");
-      Serial.println(c, BYTE);
+      Serial.write(c);
     }
     return (uint8_t) 0xff;
   }

@@ -7,7 +7,12 @@
    All derivative work must retain this message and
    acknowledge the work of the original author.
 */
-#include "WProgram.h"
+#if ARDUINO >= 100
+#include <Arduino.h> // Arduino 1.0
+#else
+#include <Wprogram.h> // Arduino 0022
+#endif
+
 #include <setjmp.h>
 #define MAXENCBITS 4
 

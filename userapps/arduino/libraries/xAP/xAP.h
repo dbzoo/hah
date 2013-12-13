@@ -29,7 +29,11 @@
 #ifndef XAP_H
 #define XAP_H
 
-#include "WProgram.h"
+#if ARDUINO >= 100
+#include <Arduino.h> // Arduino 1.0
+#else
+#include <Wprogram.h> // Arduino 0022
+#endif
 
 #define XAP_MSG_NONE 0
 #define XAP_MSG_HBEAT  1
@@ -51,13 +55,12 @@ struct xapmsg_buffer {
 class XapClass
 {
  public:
-  XapClass(void);
   XapClass(char *source, char *uid);
   char *getValue(char *section, char *key);    // Get the contents of a parsed xAP message by section/key.
   int getState(char *section, char *key);   // Get a BSC state value
   int isValue(char *section, char *key, char *value);   // does section/key have value ?
   int getType(void);               // The (TYPE) of the xAP message
-  int parseMsg(byte *buf, int size);  // Parse a raw XAP message; exposed for Ethernet shield users.
+  int parseMsg(uint8_t *buf, int size);  // Parse a raw XAP message; exposed for Ethernet shield users.
   int after(long);                    // Useful for managing TIMED events such as heartbeats and info
   void dumpParsedMsg();
   void heartbeat(void);
@@ -68,12 +71,12 @@ class XapClass
 
  private:
   struct xapmsg_buffer xapMsg[MAX_XAP_PAIRS];
-  byte xapMsgPairs;
+  uint8_t xapMsgPairs;
 
   long heartbeatTimeout;
 
   int decode_state(char *msg);
-  void rtrim(byte *msg, byte *p);
+  void rtrim(uint8_t *msg, uint8_t *p);
   void resetHeartbeat();
 };
 #endif

@@ -30,25 +30,20 @@
 #define XAPETHER_H
 
 #include "xAP.h"
-#include <../EtherCard/EtherCard.h>
+#include <EtherCard.h>
 
 #define XAP_PORT 3639
 
 class XapEther : public XapClass {
  public:
-  XapEther();
-  XapEther(byte *mac, byte *ip);
-  XapEther(char *source, char *uid, byte *mac, byte *ip);
-
-  void setBuffer(byte *buf, word len);
+  XapEther(char *source, char *uid);
+  
+  void broadcastUDP (uint16_t len);
   void process(word len, void (*callback)());
   void sendHeartbeat(void);
 
  private:
-  byte *xapbuf;
-  word xapbuflen;
+  uint8_t lanBroadcast[4];
 };
 
-extern EtherCard eth;
-extern BufferFiller bfill;
 #endif

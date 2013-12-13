@@ -397,9 +397,9 @@ void doCommand() {
       // Inform the client to pause sending us more data as it
       // can take a wee while and interrupts are disabled, due to
       // time critical functions, disabling the serial input buffer.
-      Serial.print(XOFF, BYTE);
+      Serial.write(XOFF);
       RF.transmit(arg);
-      Serial.print(XON, BYTE);      
+      Serial.write(XON);      
     } 
     else if(strcasecmp(inBuffer,"on") == 0) {
       relayOn(arg);
@@ -444,9 +444,9 @@ void readSerial() {
     break;
   case '\b':
     if(debug && inPtr > 0) {
-      Serial.print(8, BYTE);
+      Serial.write(8);
       Serial.print(' ');
-      Serial.print(8, BYTE);
+      Serial.write(8);
       inPtr--;
       inBuffer[inPtr] = '\0';
     }
@@ -457,7 +457,7 @@ void readSerial() {
       inPtr++;
       inBuffer[inPtr] = '\0';
       if(debug) {
-        Serial.print(inByte, BYTE);
+        Serial.write(inByte);
       }
     }
   }

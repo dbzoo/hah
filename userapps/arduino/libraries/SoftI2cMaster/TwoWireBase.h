@@ -19,7 +19,11 @@
  */
 #ifndef TWO_WIRE_BASE_H
 #define TWO_WIRE_BASE_H
-#include <Wprogram.h>
+#if ARDUINO >= 100
+#include <Arduino.h> // Arduino 1.0
+#else
+#include <Wprogram.h> // Arduino 0022
+#endif
 
 // R/W direction bit to OR with address for start or restart
 #define I2C_READ 1

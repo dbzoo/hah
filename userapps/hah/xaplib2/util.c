@@ -65,8 +65,9 @@ char *getINIPassword(char *section, char *key, char *inifile)
 	
 	char passwd[80];
 	strcpy(passwd, "{frob}");
-	strcat(passwd, rot47(inipasswd));
-	if(ini_puts(section, key, passwd, inifile) == 0) // Failed to frob.
-	  return strdup(inipasswd);	
-	return rot47(&inipasswd[6]);
+	char *p = rot47(inipasswd);
+	strcat(passwd, p);
+	ini_puts(section, key, passwd, inifile);
+	free(p);
+	return strdup(inipasswd);	
 }

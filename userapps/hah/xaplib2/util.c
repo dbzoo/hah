@@ -22,15 +22,16 @@ char *xapLowerString(char *str)
 
 char *rot47(char *s)
 {
-        char *p = s;
-        while(*p) {
-                if(*p >= '!' && *p <= 'O')
-                        *p = ((*p + 47) % 127);
-                else if(*p >= 'P' && *p <= '~')
-                        *p = ((*p - 47) % 127);
-                p++;
-        }
-        return s;
+  char *p = strdup(s);
+  char *ret = p;
+  while(*p) {
+    if(*p >= '!' && *p <= 'O')
+      *p = ((*p + 47) % 127);
+    else if(*p >= 'P' && *p <= '~')
+      *p = ((*p - 47) % 127);
+    p++;
+  }
+  return ret;
 }
 
 /** Convert a string into a series of hex characters representing the string
@@ -54,18 +55,18 @@ char *getINIPassword(char *section, char *key, char *inifile)
         long n;
         char inipasswd[64];
 
-        while(1) {
-                n = ini_gets(section, key,"",inipasswd, sizeof(inipasswd), inifile);
-                if (n == 0)
-                        return NULL;
-
-                if(strncmp("{frob}", inipasswd, 6) == 0) {
-                        return strdup(rot47(&inipasswd[6]));
-                }
-
-                char passwd[80];
-                strcpy(passwd, "{frob}");
-                strcat(passwd, rot47(inipasswd));
-                ini_puts(section, key, passwd, inifile);
-        }
+	n = ini_gets(section, key,"",inipasswd, sizeof(inipasswd), inifile);
+	if (n == 0)
+	  return NULL;
+	
+	if(strncmp("{frob}", inipasswd, 6) == 0) {
+	  return rot47(&inipasswd[6]);
+	}
+	
+	char passwd[80];
+	strcpy(passwd, "{frob}");
+	strcat(passwd, rot47(inipasswd));
+	if(ini_puts(section, key, passwd, inifile) == 0) // Failed to frob.
+	  return strdup(inipasswd);	
+	return rot47(&inipasswd[6]);
 }

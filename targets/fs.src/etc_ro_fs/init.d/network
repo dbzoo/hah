@@ -1,5 +1,10 @@
 #!/bin/sh
-. /etc/ini.conf
+
+INI="/etc/xap.d/system.ini"
+# Strange?  Try fallback.
+if [ ! -f $INI ]; then
+   INI = "/etc/xap-livebox.ini"
+fi
 
 case $1 in
     start)

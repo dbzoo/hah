@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. /etc/ini.conf
+INI="/etc/xap.d/system.ini"
 
 # Ethernet hardware
 insmod /lib/modules/bcm_enet.o

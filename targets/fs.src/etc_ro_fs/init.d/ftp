@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. /etc/ini.conf
+INI="/etc/xap.d/system.ini"
 
 ftppid() {
   pid=$(ps | fgrep -v awk | awk '/ftpd/ {print $1}')

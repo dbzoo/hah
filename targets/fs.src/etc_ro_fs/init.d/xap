@@ -3,8 +3,6 @@
 # /etc/init.d/xap start [component...]
 # /etc/init.d/xap stop [component...]
 
-. /etc/ini.conf
-
 subsystem="hub xively livebox iserver web sms serial currentcost twitter googlecal plugboard urfrx"
 
 start_web() {
@@ -37,6 +35,7 @@ stop_livebox() {
 }
 
 start_serial() {
+    INI="/etc/xap.d/xap-serial.ini"
     if [ `iniget $INI serial enable 0` -eq 1 ] ;  then 
 	/usr/bin/xap-serial -i $MYDEV >/var/log/xap-serial.log 2>&1 &
     fi
@@ -46,6 +45,7 @@ stop_serial() {
 }
 
 start_twitter() {
+    INI="/etc/xap.d/xap-twitter.ini"
     if [ `iniget $INI twitter enable 0` -eq 1 ] ;  then 
 	/usr/bin/xap-twitter -i $MYDEV >/var/log/xap-twitter.log 2>&1 &
     fi
@@ -55,6 +55,7 @@ stop_twitter() {
 }
 
 start_sms() {
+    INI="/etc/xap.d/xap-sms.ini"
     if [ `iniget $INI sms enable 0` -eq 1 ] ;  then 
 	USBSERIAL=`iniget $INI sms usbserial /dev/ttyUSB0`
 	/usr/bin/xap-sms -s $USBSERIAL -i $MYDEV >/var/log/xap-sms.log 2>&1 &
@@ -65,6 +66,7 @@ stop_sms() {
 }
 
 start_xively() {
+    INI="/etc/xap.d/xap-xively.ini"
     if [ `iniget $INI xively enable 0` -eq 1 ] ;  then 
 	/usr/bin/xap-xively -i $MYDEV >/var/log/xap-xively.log 2>&1 &
     fi
@@ -74,6 +76,7 @@ stop_xively() {
 }
 
 start_currentcost() {
+    INI="/etc/xap.d/xap-currentcost.ini"
     if [ `iniget $INI currentcost enable 0` -eq 1 ] ;  then 
 	USBSERIAL=`iniget $INI currentcost usbserial /dev/ttyUSB0`
 	/usr/bin/xap-currentcost -s $USBSERIAL -i $MYDEV >/var/log/xap-currentcost.log 2>&1 &
@@ -84,6 +87,7 @@ stop_currentcost() {
 }
 
 start_googlecal() {
+    INI="/etc/xap.d/xap-googlecal.ini"
     if [ `iniget $INI googlecal enable 0` -eq 1 ] ;  then 
 	/usr/bin/xap-googlecal -i $MYDEV >/var/log/xap-googlecal.log 2>&1 &
     fi
@@ -93,6 +97,7 @@ stop_googlecal() {
 }
 
 start_plugboard() {
+    INI="/etc/xap.d/plugboad.ini"
     if [ `iniget $INI plugboard enable 0` -eq 1 ] ;  then 
 	/usr/bin/xap-plugboard >/var/log/xap-plugboard.log 2>&1 &
 	pid=$!
@@ -105,6 +110,7 @@ stop_plugboard() {
 }
 
 start_iserver() {
+    INI="/etc/xap.d/iserver.ini"
     if [ `iniget $INI iserver enable 0` -eq 1 ] ;  then 
 	/usr/bin/iServer -i $MYDEV >/var/log/iserver.log 2>&1 &
     fi
@@ -114,6 +120,7 @@ stop_iserver() {
 }
 
 start_urfrx() {
+    INI="/etc/xap.d/xap-urfrx.ini"
     if [ `iniget $INI urfrx enable 0` -eq 1 ] ;  then 
 	SERIALPORT=`iniget $INI urfrx serialport /dev/ttyUSB0`
 	/usr/bin/xap-urfrx -i $MYDEV -s $SERIALPORT >/var/log/xap-urfrx.log 2>&1 &
@@ -148,6 +155,7 @@ subsystem() {
     echo "Subsystem $2 not found"
 }
 
+INI="/etc/xap.d/system.ini"
 if [ `iniget $INI network config_bridge 1` -eq 0 ] ;  then 
     MYDEV=eth0
 else

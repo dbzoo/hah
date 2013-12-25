@@ -19,7 +19,7 @@
 #include "xap.h"
 
 char *interfaceName = "br0";
-const char *inifile = "/etc/xap-livebox.ini";
+const char *inifile = "/etc/xap.d/xap-echo.ini";
 
 char newMsg[XAP_DATA_LEN];
 char xapBody[XAP_DATA_LEN];
@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
 	xAPFilter *filter = NULL;
 
 	simpleCommandLine(argc, argv, &interfaceName);
-	xapInitFromINI("echo","dbzoo.livebox","Echo","00DF",interfaceName,inifile);
+	xapInitFromINI("echo","dbzoo","Echo","00DF",interfaceName,inifile);
 
 	xapAddFilterAction(&echoPacket, filter, NULL);
 	xapProcess();

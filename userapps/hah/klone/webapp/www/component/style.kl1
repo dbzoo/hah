@@ -3,7 +3,7 @@
 
 static char style[15];
 %><%
-	 ini_gets("webserver","style", "elegant", style, sizeof (style), con.inifile);
+	 ini_gets("webserver","style", "elegant", style, sizeof (style), "/etc/xap.d/system.ini");
 %><title>Home Automation Hub</title>
 <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=iso-8859-1"/>
 <link type="text/css" rel="stylesheet" href="/style/<%=style%>/style.css"/>

@@ -9,6 +9,7 @@
 #define ACT_TOGGLE 2
 #define ACT_SETLCD 3
 
+static const char *inifile = "/etc/xap.d/xap-livebox.ini";
 static char *action_s[] = {"on","off","toggle","lcd"};
 
 static struct {
@@ -94,9 +95,9 @@ static void process_form() {
 }
 
 static void readIni() {
-   ini.devices1wire = ini_getl("1wire","devices", 0, con.inifile);
-   ini.devicesrf = ini_getl("rf","devices", 0, con.inifile);
-   ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), con.inifile);
+   ini.devices1wire = ini_getl("1wire","devices", 0, inifile);
+   ini.devicesrf = ini_getl("rf","devices", 0, inifile);
+   ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), inifile);
 }
 %>
 <%
@@ -222,9 +223,9 @@ function comboSubmit() {
 static char section[30];
 static char mode[30];
 static int section_num;
-for (i = 0; ini_getsection(i, section, sizeof(section), con.inifile) > 0; i++) {
+for (i = 0; ini_getsection(i, section, sizeof(section), inifile) > 0; i++) {
 	if(strncmp("ppe",section,3) != 0) continue;
-	if(ini_gets(section,"mode","",mode,sizeof(mode),con.inifile) == 0) continue;
+	if(ini_gets(section,"mode","",mode,sizeof(mode),inifile) == 0) continue;
 	if(strcasecmp("pin",mode) != 0) continue;
 	section_num = atoi(section+3);
 	if(section_num < 1 || section_num > 8) continue;

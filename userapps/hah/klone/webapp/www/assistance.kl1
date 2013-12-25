@@ -5,12 +5,16 @@
 
 #define sizearray(a)  (sizeof(a) / sizeof((a)[0]))
 
+static const char *sms = "/etc/xap.d/xap-sms.ini";
+static const char *serial = "/etc/xap.d/xap-serial.ini";
+static const char *plugboard = "/etc/xap.d/xap-plugboard.ini";
+
 static struct {
-         char sms_enable[2];
-	 char sms_usbserial[16];
-	 char sms_baud[16];
-         char serial_enable[2];
-         char plugboard_enable[2];
+	char sms_enable[2];
+	char sms_usbserial[16];
+	char sms_baud[16];
+	char serial_enable[2];
+	char plugboard_enable[2];
 } ini;
 
 static void submit_form() {
@@ -19,19 +23,19 @@ static void submit_form() {
 	 if(sms_enable) {
 		  if((*sms_enable == '1' && ini.sms_enable[0] == '0') ||
 			 (*sms_enable == '0' && ini.sms_enable[0] == '1')) {
-			   ini_puts("sms","enable",sms_enable,con.inifile);
+			   ini_puts("sms","enable",sms_enable, sms);
 			   sms_restart = 1;
 		  }
 	 }
 
 	 const char *sms_usbserial = request_get_arg(request, "sms_usbserial");
 	 if(sms_usbserial && strcmp(sms_usbserial, ini.sms_usbserial)) {
-		  ini_puts("sms","usbserial", sms_usbserial, con.inifile);
+		  ini_puts("sms","usbserial", sms_usbserial, sms);
 		  sms_restart = 1;
 	 }
 	 const char *sms_baud = request_get_arg(request, "sms_baud");
 	 if(sms_baud && strcmp(sms_baud, ini.sms_baud)) {
-		  ini_puts("sms","baud", sms_baud, con.inifile);
+		  ini_puts("sms","baud", sms_baud, sms);
 		  sms_restart = 1;
 	 }
 
@@ -43,7 +47,7 @@ static void submit_form() {
 	 if(serial_enable) {
 		  if((*serial_enable == '1' && ini.serial_enable[0] == '0') ||
 			 (*serial_enable == '0' && ini.serial_enable[0] == '1')) {
-			   ini_puts("serial","enable",serial_enable,con.inifile);
+			   ini_puts("serial","enable",serial_enable, serial);
 			   system("/etc/init.d/xap restart serial");
 		  }
 	 }
@@ -52,7 +56,7 @@ static void submit_form() {
 	 if(plugboard_enable) {
 		  if((*plugboard_enable == '1' && ini.plugboard_enable[0] == '0') ||
 			 (*plugboard_enable == '0' && ini.plugboard_enable[0] == '1')) {
-			   ini_puts("plugboard","enable",plugboard_enable,con.inifile);
+			   ini_puts("plugboard","enable",plugboard_enable, plugboard);
 			   system("/etc/init.d/xap restart plugboard");
 		  }
 	 }
@@ -60,11 +64,11 @@ static void submit_form() {
 }
 
 static void readIni() {
-	 ini_gets("sms","enable","0",ini.sms_enable,sizeof(ini.sms_enable),con.inifile);
-	 ini_gets("sms","usbserial","/dev/ttyUSB0",ini.sms_usbserial,sizeof(ini.sms_usbserial),con.inifile);
-	 ini_gets("sms","baud","19200",ini.sms_baud,sizeof(ini.sms_baud),con.inifile);
-	 ini_gets("serial","enable","0",ini.serial_enable,sizeof(ini.serial_enable),con.inifile);
-	 ini_gets("plugboard","enable","0",ini.plugboard_enable,sizeof(ini.plugboard_enable),con.inifile);
+	 ini_gets("sms","enable","0",ini.sms_enable,sizeof(ini.sms_enable), sms);
+	 ini_gets("sms","usbserial","/dev/ttyUSB0",ini.sms_usbserial,sizeof(ini.sms_usbserial), sms);
+	 ini_gets("sms","baud","19200",ini.sms_baud,sizeof(ini.sms_baud), sms);
+	 ini_gets("serial","enable","0",ini.serial_enable,sizeof(ini.serial_enable), serial);
+	 ini_gets("plugboard","enable","0",ini.plugboard_enable,sizeof(ini.plugboard_enable), plugboard);
 }
 %>
 <%

@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	xapInitFromINI("xap","dbzoo.livebox","Controller","00DB",interfaceName,inifile);
+	xapInitFromINI("xap","dbzoo","Controller","00DB",interfaceName,inifile);
 
 	setupSerialPort(serialPort, baud);
 

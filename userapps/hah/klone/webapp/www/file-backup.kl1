@@ -21,7 +21,7 @@
 	char buf[512];
 	struct stat sbuf;
 	// These should always be present
-	strcpy(buf,"cd / && tar cf - etc/xap-livebox.ini etc/crontabs etc/plugboard etc/www");
+	strcpy(buf,"cd / && tar cf - etc/xap.d etc/crontabs etc/plugboard etc/www");
 	if(stat("/etc/TZ", &sbuf) == 0) strcat(buf,"etc/TZ "); // optional backup if present.
 	strcat(buf,"| gzip -c >/tmp/hah-backup.tar.gz");
 	dbg_err_if(system(buf) < 0);

@@ -18,7 +18,7 @@
 #include <stdlib.h>
 
 char *interfaceName = "eth0";
-const char *inifile = "/etc/xap-livebox.ini";
+const char *inifile = "/etc/xap.d/xap-sms.ini";
 
 const char *XAP_CLASS = "sms.message";
 #define SEND_INTERVAL 60  // in seconds
@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
         printf("Copyright (C) DBzoo, 2009-2010\n\n");
 
         simpleCommandLine(argc, argv, &interfaceName);
-        xapInitFromINI("sms","dbzoo.livebox","SMS","00DD",interfaceName,inifile);
+        xapInitFromINI("sms","dbzoo","SMS","00DD",interfaceName,inifile);
 
         // SMS inbound from phone
 	int fd = setup_serial_port();

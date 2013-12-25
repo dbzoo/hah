@@ -37,7 +37,7 @@
 #include "bsc.h"
 #include "tcurl.h"
 
-char *inifile = "/etc/xap-livebox.ini";
+char *inifile = "/etc/xap.d/xap-twitter.ini";
 char *interfaceName = "eth0";
 
 static int freq; // calendar sync frequency
@@ -106,7 +106,7 @@ void tweetService(void *userData)
 
 void setupXAPini()
 {
-        xapInitFromINI("twitter","dbzoo.livebox","Twitter","00D9",interfaceName,inifile);
+        xapInitFromINI("twitter","dbzoo","Twitter","00D9",interfaceName,inifile);
 
         //Rate limit exceeded. Clients may not make more than 150 requests per hour.
         freq = ini_getl("twitter","ufreq", 30, inifile);

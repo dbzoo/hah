@@ -8,7 +8,7 @@
 #include "xap.h"
 #include "tcurl.h"
 
-char *inifile = "/etc/xap-livebox.ini";
+char *inifile = "/etc/xap.d/xap-twitter.ini";
 char *interfaceName = "eth0";
 
 char *CONSUMER_KEY;

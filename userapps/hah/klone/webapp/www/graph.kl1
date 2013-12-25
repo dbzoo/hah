@@ -7,6 +7,8 @@
 #define sizearray(x) (sizeof(x) / sizeof(x[0]))
 static int reboot = 0;
 
+const char *inifile = "/etc/xap.d/xap-xively.ini";
+
 struct _datastream {
   char feed[12];
   char id[4];
@@ -22,14 +24,14 @@ static struct {
 static void loadDynINI(char *key, int id, char *location, int size) {
 	 char buff[100];
 	 sprintf(buff,"%s%d",key,id);
-	 ini_gets("xively", buff, "", location, size, con.inifile);
+	 ini_gets("xively", buff, "", location, size, inifile);
 }
 
 static void readIni() {
-	 ini_gets("xively","apikey","",ini.apikey,sizeof(ini.apikey),con.inifile);
-	 ini_gets("xively","feedid","",ini.feedid,sizeof(ini.feedid),con.inifile);
+	 ini_gets("xively","apikey","",ini.apikey,sizeof(ini.apikey),inifile);
+	 ini_gets("xively","feedid","",ini.feedid,sizeof(ini.feedid),inifile);
 	 // Comma separated list of ids
-	 ini.count = ini_getl("xively", "count", 0, con.inifile);
+	 ini.count = ini_getl("xively", "count", 0, inifile);
 
 	 if(ini.count > sizearray(ds)) {
 		  ini.count = sizearray(ds);

@@ -44,6 +44,12 @@ if [ ! -d /etc/www ]; then
   mkdir -p /etc/www
 fi
 
+# Migrate to new xap.d/ directory structure
+if [ ! -d /etc/xap.d ]; then
+  mkdir -p /etc/xap.d
+  /usr/bin/ini-migrate
+fi
+
 if [ -f /etc/init.d/xS10syslogd ]; then
   mv /etc/init.d/xS10syslogd /etc/init.d/S10syslogd
 fi

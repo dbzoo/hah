@@ -24,7 +24,7 @@
 #define INFO_INTERVAL 120
 
 char *interfaceName = "eth0";
-const char inifile[] = "/etc/xap-livebox.ini";
+const char inifile[] = "/etc/xap.d/xap-serial.ini";
 
 struct serialPort {
 	char *device;  //  ie. /dev/ttyUSB0
@@ -397,7 +397,7 @@ int main(int argc, char *argv[])
 	printf("Copyright (C) DBzoo, 2008-2010\n\n");
 	
 	simpleCommandLine(argc, argv, &interfaceName);
-	xapInitFromINI("serial","dbzoo.livebox","Serial","00D5",interfaceName,inifile);
+	xapInitFromINI("serial","dbzoo","Serial","00D5",interfaceName,inifile);
 
 	xAPFilter *f = NULL;
 

@@ -5,7 +5,6 @@
 #define _CONST_H_
 
 typedef struct {
-	 char *inifile;
 	 char *build;
 } const_t;
 

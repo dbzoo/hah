@@ -7,6 +7,7 @@
 
 #define sizearray(x) (sizeof(x) / sizeof(x[0]))
 static int reboot = 0;
+static const char *inifile = "/etc/xap.d/xap-googlecal.ini";
 
 static struct {
 	 char user[64];
@@ -16,10 +17,10 @@ static struct {
 } ini;
 
 static void readIni() {
-	 ini_gets("googlecal","enable","0",ini.enable,sizeof(ini.enable),con.inifile);
-	 ini_gets("googlecal","user","",ini.user,sizeof(ini.user),con.inifile);
-	 ini_gets("googlecal","passwd","",ini.passwd,sizeof(ini.passwd),con.inifile);
-	 ini_gets("googlecal","ufreq","60",ini.ufreq,sizeof(ini.ufreq),con.inifile);
+	 ini_gets("googlecal","enable","0",ini.enable,sizeof(ini.enable),inifile);
+	 ini_gets("googlecal","user","",ini.user,sizeof(ini.user),inifile);
+	 ini_gets("googlecal","passwd","",ini.passwd,sizeof(ini.passwd),inifile);
+	 ini_gets("googlecal","ufreq","60",ini.ufreq,sizeof(ini.ufreq),inifile);
 }
 
 static void submit_form() {
@@ -31,24 +32,24 @@ static void submit_form() {
 		 if((*enable == '1' && ini.enable[0] == '0') ||
 		    (*enable == '0' && ini.enable[0] == '1')) 
 		     {
-			 ini_puts("googlecal","enable",enable,con.inifile);
+			 ini_puts("googlecal","enable",enable,inifile);
 			 restart=1;
 		     }
 	     }
 
 	 const char *user = request_get_arg(request,"user");
 	 if(user && strcmp(user,ini.user)) {
-		  ini_puts("googlecal","user",user,con.inifile);
+		  ini_puts("googlecal","user",user,inifile);
 		  restart = 1;
 	 }
 	 const char *passwd = request_get_arg(request,"passwd");
 	 if(passwd && strlen(passwd) > 0 && strcmp(passwd,ini.passwd)) {
-		  ini_puts("googlecal","passwd",passwd,con.inifile);
+		  ini_puts("googlecal","passwd",passwd,inifile);
 		  restart = 1;
 	 }
 	 const char *ufreq = request_get_arg(request,"ufreq");
 	 if(ufreq && strcmp(ufreq,ini.ufreq)) {
-		  ini_puts("googlecal","ufreq",ufreq,con.inifile);
+		  ini_puts("googlecal","ufreq",ufreq,inifile);
 		  restart = 1;
 	 }
 

@@ -5,6 +5,8 @@
 #include "utils.h"
 #include "comms.h"
 
+static const char *inifile = "/etc/xap.d/xap-urfrx.ini";
+
 static struct {
 	int devicesrf;
 	char enable[2];
@@ -14,11 +16,11 @@ static struct {
 } ini;
 
 static void readIni() {
-	ini_gets("urfrx","enable","0",ini.enable,sizeof(ini.enable),con.inifile);
-	ini.devicesrf = ini_getl("urfrx","devices", 0, con.inifile);
-	ini_gets("urfrx","serialport","/dev/ttyUSB0",ini.serialport,sizeof(ini.serialport),con.inifile);
-	ini_gets("urfrx","vserial","0",ini.vSerial,sizeof(ini.vSerial),con.inifile);
-	ini_gets("urfrx","vsource","dbzoo.livebox.serial",ini.vSource,sizeof(ini.vSource),con.inifile);
+	ini_gets("urfrx","enable","0",ini.enable,sizeof(ini.enable),inifile);
+	ini.devicesrf = ini_getl("urfrx","devices", 0, inifile);
+	ini_gets("urfrx","serialport","/dev/ttyUSB0",ini.serialport,sizeof(ini.serialport),inifile);
+	ini_gets("urfrx","vserial","0",ini.vSerial,sizeof(ini.vSerial),inifile);
+	ini_gets("urfrx","vsource","dbzoo.livebox.serial",ini.vSource,sizeof(ini.vSource),inifile);
 }
 
 static void submit_form() {
@@ -27,27 +29,27 @@ static void submit_form() {
 	 if(vSerial) {
 		  if((*vSerial == '1' && ini.vSerial[0] == '0') ||
 			 (*vSerial == '0' && ini.vSerial[0] == '1')) {
-			   ini_puts("urfrx","vserial",vSerial,con.inifile);
+			   ini_puts("urfrx","vserial",vSerial,inifile);
 			   restart = 1;
 		  }
 	 }
 	 const char *vSource = request_get_arg(request,"vSource");
 	 if(vSource && strcmp(vSource, ini.vSource)) {
-		 ini_puts("urfrx","vsource",vSource,con.inifile);
+		 ini_puts("urfrx","vsource",vSource,inifile);
 		 restart = 1;
 	 }
 	 const char *urfrx_on = request_get_arg(request,"urfrx_on");
 	 if(urfrx_on) {
 		  if((*urfrx_on == '1' && ini.enable[0] == '0') ||
 			 (*urfrx_on == '0' && ini.enable[0] == '1')) {
-			   ini_puts("urfrx","enable",urfrx_on,con.inifile);
+			   ini_puts("urfrx","enable",urfrx_on,inifile);
 			   restart = 1;
 		  }
 	 }
 
 	 const char *serialport = request_get_arg(request, "serialport");
 	 if(serialport && strcmp(serialport, ini.serialport)) {
-		  ini_puts("urfrx","serialport", serialport, con.inifile);
+		  ini_puts("urfrx","serialport", serialport, inifile);
 		  restart = 1;
 	 }
 

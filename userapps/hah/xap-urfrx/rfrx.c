@@ -28,7 +28,7 @@
 #define INFO_INTERVAL 120
 static char *interfaceName = "br0";
 static char *serialPort = "/dev/ttyUSB0";
-const char *inifile = "/etc/xap-livebox.ini";
+const char *inifile = "/etc/xap.d/xap-urfrx.ini";
 static RFdecoder *decoderList;
 static bscEndpoint *endpointList;
 
@@ -212,7 +212,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  xapInitFromINI("xap","dbzoo.livebox","urfrx","00EE",interfaceName,inifile);
+  xapInitFromINI("xap","dbzoo","urfrx","00EE",interfaceName,inifile);
   setupFromINI();
 
   // Register the endpoints for xapBSC.query/cmd callbacks too.

@@ -20,7 +20,7 @@ INI file processing
 // Applicable for Firmware Version 1 only.
 #define MAXCHANNEL 16
 
-const char *inifile = "/etc/xap-livebox.ini";
+const char *inifile = "/etc/xap.d/xap-livebox.ini";
 static long rfdelay;
 struct unassignedROMID *unassignedROMIDList = NULL;
 

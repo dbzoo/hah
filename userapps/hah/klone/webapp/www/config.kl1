@@ -5,6 +5,7 @@
 #include "utils.h"
 #include "comms.h"
 
+static const char *inifile = "/etc/xap.d/xap-livebox.ini";
 int AVRmajor, AVRminor;
 
 static struct {
@@ -16,11 +17,11 @@ static struct {
 } ini;
 
 static void readIni() {
-	 ini.devices1wire = ini_getl("1wire","devices", 0, con.inifile);
-	 ini.devicesrf = ini_getl("rf","devices", 0, con.inifile);
-	 ini.rfdelay = ini_getl("rf","delay", 500, con.inifile);
-	 ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), con.inifile);
-	 ini.timeout_1wire = ini_getl("1wire","timeout", 0, con.inifile);
+	 ini.devices1wire = ini_getl("1wire","devices", 0, inifile);
+	 ini.devicesrf = ini_getl("rf","devices", 0, inifile);
+	 ini.rfdelay = ini_getl("rf","delay", 500, inifile);
+	 ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), inifile);
+	 ini.timeout_1wire = ini_getl("1wire","timeout", 0, inifile);
 }
 
 static void submit_form() {

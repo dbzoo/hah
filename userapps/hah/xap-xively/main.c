@@ -53,7 +53,7 @@ value=10.4
 
 char *interfaceName = "eth0";
 
-char *inifile = "/etc/xap-livebox.ini";
+char *inifile = "/etc/xap.d/xap-xively.ini";
 static unsigned int g_ufreq;
 char *g_apikey;
 static unsigned long g_feedid;  // default feed
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
         printf("Copyright (C) DBzoo 2009-2013\n\n");
 
 	simpleCommandLine(argc, argv, &interfaceName);
-        xapInitFromINI("xively","dbzoo.livebox","Xively","00D7",interfaceName,inifile);
+        xapInitFromINI("xively","dbzoo","Xively","00D7",interfaceName,inifile);
         parseINI();
 
         // Setup XIVELY xAP service

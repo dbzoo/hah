@@ -5,6 +5,7 @@
 
 #define sizearray(a)  (sizeof(a) / sizeof((a)[0]))
 static int reboot = 0;
+static const char *inifile = "/etc/xap.d/xap-currentcost.ini";
 
 static struct {
 	 char cc_enable[2];
@@ -37,13 +38,13 @@ static const char *getdynkey(char *key, int id ) {
 static void loadDynINI(char *key, int id, char *location, int size) {
 	 char buff[100];
 	 sprintf(buff,"%s%d",key,id);
-	 ini_gets("currentcost", buff, "", location, size, con.inifile);
+	 ini_gets("currentcost", buff, "", location, size, inifile);
 }
 
 static void saveDynINI(char *key, int id, const char *value) {
 	 char buff[100];
 	 sprintf(buff,"%s%d",key,id);
-	 ini_puts("currentcost", buff, value, con.inifile);
+	 ini_puts("currentcost", buff, value, inifile);
 }
 
 static void submit_form() {
@@ -53,26 +54,26 @@ static void submit_form() {
 	 if(cc_meter) {
 		  if((*cc_meter == '1' && ini.cc_enable[0] == '0') ||
 			 (*cc_meter == '0' && ini.cc_enable[0] == '1')) {
-			   ini_puts("currentcost","enable",cc_meter,con.inifile);
+			   ini_puts("currentcost","enable",cc_meter,inifile);
 			   cc_restart = 1;
 		  }
 	 }
 
 	 const char *cc_hysteresis = request_get_arg(request, "cc_hysteresis");
 	 if(cc_hysteresis && strcmp(cc_hysteresis, ini.cc_hysteresis)) {
-		  ini_puts("currentcost","hysteresis", cc_hysteresis, con.inifile);
+		  ini_puts("currentcost","hysteresis", cc_hysteresis, inifile);
 		  cc_restart = 1;
 	 }
 
 	 const char *cc_usbserial = request_get_arg(request, "cc_usbserial");
 	 if(cc_usbserial && strcmp(cc_usbserial, ini.cc_usbserial)) {
-		  ini_puts("currentcost","usbserial", cc_usbserial, con.inifile);
+		  ini_puts("currentcost","usbserial", cc_usbserial, inifile);
 		  cc_restart = 1;
 	 }
 
 	 const char *cc_model = request_get_arg(request, "cc_model");
 	 if(cc_model && strcmp(cc_model, ini.cc_model)) {
-		  ini_puts("currentcost","model", cc_model, con.inifile);
+		  ini_puts("currentcost","model", cc_model, inifile);
 		  cc_restart = 1;
 	 }
 
@@ -95,10 +96,10 @@ static void submit_form() {
 }
 
 static void readIni() {
-	 ini_gets("currentcost","enable","0",ini.cc_enable,sizeof(ini.cc_enable),con.inifile);
-	 ini_gets("currentcost","hysteresis","10",ini.cc_hysteresis,sizeof(ini.cc_hysteresis),con.inifile);
-	 ini_gets("currentcost","usbserial","/dev/ttyUSB0",ini.cc_usbserial,sizeof(ini.cc_usbserial),con.inifile);
-	 ini_gets("currentcost","model","CLASSIC",ini.cc_model,sizeof(ini.cc_model),con.inifile);
+	 ini_gets("currentcost","enable","0",ini.cc_enable,sizeof(ini.cc_enable),inifile);
+	 ini_gets("currentcost","hysteresis","10",ini.cc_hysteresis,sizeof(ini.cc_hysteresis),inifile);
+	 ini_gets("currentcost","usbserial","/dev/ttyUSB0",ini.cc_usbserial,sizeof(ini.cc_usbserial),inifile);
+	 ini_gets("currentcost","model","CLASSIC",ini.cc_model,sizeof(ini.cc_model),inifile);
 	 int i;
 	 for(i=0; modelSensor[i].model; i++) {
 		 if(strcmp(modelSensor[i].model, ini.cc_model) == 0) {

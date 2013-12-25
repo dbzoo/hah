@@ -4,6 +4,9 @@
 #include "const.h"
 #include "utils.h"
 
+static const char *inifile = "/etc/xap.d/xap-livebox.ini";
+static const char *systemini = "/etc/xap.d/system.ini";
+
 static struct {
   char temp_unit[2];
   int devices1wire;
@@ -13,11 +16,11 @@ static struct {
 } ini;
 
 static void readIni() {
-   ini.devices1wire = ini_getl("1wire","devices", 0, con.inifile);
-   ini.devicesrf = ini_getl("rf","devices", 0, con.inifile);
-   ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), con.inifile);
-   ini_gets("webserver","startPage","html",ini.startPage,sizeof(ini.startPage),con.inifile);
-   ini.infoProtect = ini_getl("security","info_protect", 0, con.inifile);
+   ini.devices1wire = ini_getl("1wire","devices", 0, inifile);
+   ini.devicesrf = ini_getl("rf","devices", 0, inifile);
+   ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), inifile);
+   ini_gets("webserver","startPage","html",ini.startPage,sizeof(ini.startPage), systemini);
+   ini.infoProtect = ini_getl("security","info_protect", 0, systemini);
 }
 %>
 <%

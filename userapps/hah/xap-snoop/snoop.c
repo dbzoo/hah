@@ -18,7 +18,7 @@
 #include "xap.h"
 
 char *interfaceName = "br0";
-const char *inifile = "/etc/xap-livebox.ini";
+const char *inifile = "/etc/xap.d/xap-snoop.ini";
 
 void packetDump(void *userData) {
 	char newmsg[XAP_DATA_LEN];
@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
                 }
         }
 
-	xapInitFromINI("snoop","dbzoo.livebox","Snoop","00D4",interfaceName,inifile);
+	xapInitFromINI("snoop","dbzoo","Snoop","00D4",interfaceName,inifile);
 
 	xapAddFilterAction(&packetDump, filter, NULL);
 	xapProcess();

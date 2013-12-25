@@ -9,22 +9,23 @@ static int reboot = 0;
 
 // List of xap-daemons
 struct _daemon {
+	char *file;
 	char *section;
 	char *name;
 	char *dflt;
 	char uid[5];
 } daemons[] = {
-	       {"bridge","Bridge","00D3",""},
-	       {"snoop","Snoop","00D4",""},
-	       {"serial","Serial","00D5",""},
-	       {"xively","Xively","00D7",""},
-	       {"plugboard","Plugboard","00D8",""},
-	       {"twitter","Twitter","00D9",""},
-	       {"googlecal","Google Calendar","00DA",""},
-	       {"xap","Livebox","00DB", ""},
-	       {"currentcost","CurrentCost","00DC",""},
-	       {"sms","SMS","00DD",""},
-	       {"iserver","iServer","00DE",""}
+	{"xap-bridge","bridge","Bridge","00D3",""},
+	{"xap-snoop","snoop","Snoop","00D4",""},
+	{"xap-serial", "serial","Serial","00D5",""},
+	{"xap-xively", "xively","Xively","00D7",""},
+	{"plugboard", "plugboard","Plugboard","00D8",""},
+	{"xap-twitter", "twitter","Twitter","00D9",""},
+	{"xap-googlecal", "googlecal","Google Calendar","00DA",""},
+	{"xap-livebox", "xap","Livebox","00DB", ""},
+	{"xap-currentcost", "currentcost","CurrentCost","00DC",""},
+	{"xap-sms", "sms","SMS","00DD",""},
+	{"xap-iserver", "iserver","iServer","00DE",""}
 };
 #define daemonCount (sizeof(daemons)/sizeof(daemons[0]))
 char iniInstance[32];
@@ -32,8 +33,8 @@ char iniInstance[32];
 static void submit_form() {
 	 const char *instance = request_get_arg(request,"instance");
 	 if(instance && strcmp(instance,iniInstance)) {
-		  ini_puts("xap","instance",instance,con.inifile);
-		  reboot = 1;
+		 ini_puts("xap","instance",instance, "/etc/xap.d/system.ini");
+		 reboot = 1;
 	 }
 	 
 	 int i;
@@ -42,7 +43,9 @@ static void submit_form() {
 		 sprintf(uidKey,"uid%d", i);
 		 const char *uid = request_get_arg(request, uidKey);
 		 if(uid && strcmp(uid, daemons[i].uid)) {
-			 ini_puts(daemons[i].section,"uid",uid,con.inifile);
+			 char inifile[40];
+			 sprintf(inifile, "/etc/xap.d/%.ini", daemons[i].file);
+			 ini_puts(daemons[i].section,"uid",uid, inifile);
 			 reboot = 1;
 		 }
 	 }
@@ -52,10 +55,12 @@ static void readIni() {
 	 int i;
 	 char uidKey[5];
 
-	 ini_gets("xap","instance","",iniInstance,sizeof(iniInstance),con.inifile);
+	 ini_gets("xap","instance","",iniInstance,sizeof(iniInstance), "/etc/xap.d/system.ini");
 	 for(i=0; i<daemonCount; i++) {
+		 char inifile[40];
+		 sprintf(inifile, "/etc/xap.d/%.ini", daemons[i].file);
 		 sprintf(uidKey,"uid%d", i);
-		 ini_gets(daemons[i].section,"uid",daemons[i].dflt,daemons[i].uid,sizeof(daemons[i].uid),con.inifile);
+		 ini_gets(daemons[i].section,"uid",daemons[i].dflt,daemons[i].uid,sizeof(daemons[i].uid),inifile);
 	 }
 }
 %>

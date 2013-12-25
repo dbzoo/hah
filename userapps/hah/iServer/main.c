@@ -24,7 +24,7 @@
 #include "queue.h"
 #include "mem.h"
 
-const char *inifile = "/etc/xap-livebox.ini";
+const char *inifile = "/etc/xap.d/iserver.ini";
 const char *policyResponse="<?xml version=\"1.0\" encoding=\"UTF-8\"?><cross-domain-policy xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:noNamespaceSchemaLocation=\"http://www.adobe.com/xml/schemas/PolicyFileSocket.xsd\"><allow-access-from domain=\"*\" to-ports=\"*\" secure=\"false\" /><site-control permitted-cross-domain-policies=\"master-only\" /></cross-domain-policy>";
 
 #define ST_WAIT_FOR_MESSAGE 0
@@ -803,7 +803,7 @@ void setupXAPini(int joggler)
   }
   else
   {
-    xapInitFromINI("iserver","dbzoo.livebox","iServer","00DE",interfaceName,inifile);
+    xapInitFromINI("iserver","dbzoo","iServer","00DE",interfaceName,inifile);
   }
 
   opt_a = ini_getl("iserver","authmode",0,inifile);

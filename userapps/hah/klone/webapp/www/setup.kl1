@@ -10,6 +10,8 @@
 #define IP2 io_printf(out,"%d",(addr.s_addr & 0x00FF0000)>>16)
 #define IP1 io_printf(out,"%d",(addr.s_addr & 0xFF000000)>>24) 
 
+static const char *inifile = "/etc/xap.d/system.ini";
+
 static int reboot = 0;
 
 static struct {
@@ -31,19 +33,19 @@ static struct {
 struct in_addr addr;
 
 static void readIni() {
-	 ini_gets("network","lan_proto", "dhcp", ini.type, sizeof(ini.type), con.inifile);
-	 ini_gets("network","ip","0.0.0.0",ini.ip,sizeof(ini.ip), con.inifile);
-	 ini_gets("network","netmask","0.0.0.0",ini.netmask,sizeof(ini.netmask), con.inifile);
-	 ini_gets("network","gateway","0.0.0.0",ini.gateway,sizeof(ini.gateway), con.inifile);
-	 ini_gets("network","dns","0.0.0.0",ini.dns,sizeof(ini.dns), con.inifile);
-	 ini_gets("network","hostname", "knoxbox", ini.hostname, sizeof(ini.hostname), con.inifile);
-	 ini_gets("network","domain", "", ini.domain, sizeof(ini.domain), con.inifile);
-	 ini_gets("network","ntp_host", "uk.pool.ntp.org", ini.ntp_host, sizeof(ini.ntp_host), con.inifile);
-	 ini_gets("network","config_bridge","1",ini.config_bridge,sizeof(ini.config_bridge),con.inifile);
-	 ini_gets("hardware","power", "1", ini.power, sizeof (ini.power), con.inifile);
-	 ini_gets("network","ether_0", "", ini.ether0, sizeof (ini.ether0), con.inifile);
-	 ini_gets("network","ether_1", "", ini.ether1, sizeof (ini.ether1), con.inifile);
-	 ini_gets("webserver","style", "elegant", ini.style, sizeof (ini.style), con.inifile);
+	 ini_gets("network","lan_proto", "dhcp", ini.type, sizeof(ini.type), inifile);
+	 ini_gets("network","ip","0.0.0.0",ini.ip,sizeof(ini.ip), inifile);
+	 ini_gets("network","netmask","0.0.0.0",ini.netmask,sizeof(ini.netmask), inifile);
+	 ini_gets("network","gateway","0.0.0.0",ini.gateway,sizeof(ini.gateway), inifile);
+	 ini_gets("network","dns","0.0.0.0",ini.dns,sizeof(ini.dns), inifile);
+	 ini_gets("network","hostname", "knoxbox", ini.hostname, sizeof(ini.hostname), inifile);
+	 ini_gets("network","domain", "", ini.domain, sizeof(ini.domain), inifile);
+	 ini_gets("network","ntp_host", "uk.pool.ntp.org", ini.ntp_host, sizeof(ini.ntp_host), inifile);
+	 ini_gets("network","config_bridge","1",ini.config_bridge,sizeof(ini.config_bridge),inifile);
+	 ini_gets("hardware","power", "1", ini.power, sizeof (ini.power), inifile);
+	 ini_gets("network","ether_0", "", ini.ether0, sizeof (ini.ether0), inifile);
+	 ini_gets("network","ether_1", "", ini.ether1, sizeof (ini.ether1), inifile);
+	 ini_gets("webserver","style", "elegant", ini.style, sizeof (ini.style), inifile);
 }
 
 /* Append all web named segments *webname into a single IP address
@@ -64,7 +66,7 @@ static int processIP(char *webname, char *inikey, char *ip) {
 		  if(*ip) strcat(ip,".");
 		  strcat(ip, val);
 	 }
-	 ini_puts("network",inikey,ip,con.inifile);
+	 ini_puts("network",inikey,ip,inifile);
 	 return strcmp(ip, oldip);
 }
 
@@ -73,11 +75,11 @@ static int processIP(char *webname, char *inikey, char *ip) {
 static int submit_form(io_t *out) {
 	const char *gui_style = request_get_arg(request,"gui_style");
 	if(gui_style && strcmp(gui_style, ini.style)) {
-		ini_puts("webserver","style", gui_style, con.inifile);    
+		ini_puts("webserver","style", gui_style, inifile);    
 	}
 	const char *lan_proto = request_get_arg(request,"lan_proto");
 	if(!lan_proto) return;
-	ini_puts("network","lan_proto", lan_proto, con.inifile);
+	ini_puts("network","lan_proto", lan_proto, inifile);
 	
 	reboot = strcmp(lan_proto,ini.type);
 	if(strcmp(lan_proto,"static") == 0)  {
@@ -85,26 +87,26 @@ static int submit_form(io_t *out) {
 		reboot |= processIP("lan_netmask", "netmask", ini.netmask);
 		reboot |= processIP("lan_gateway", "gateway", ini.gateway);
 		reboot |= processIP("lan_dns", "dns", ini.dns);
-		ini_puts("network","ip", ini.ip, con.inifile);
-		ini_puts("network","netmask", ini.netmask, con.inifile);
-		ini_puts("network","gateway", ini.gateway, con.inifile);
-		ini_puts("network","dns", ini.dns, con.inifile);
+		ini_puts("network","ip", ini.ip, inifile);
+		ini_puts("network","netmask", ini.netmask, inifile);
+		ini_puts("network","gateway", ini.gateway, inifile);
+		ini_puts("network","dns", ini.dns, inifile);
 	}
 	
 	const char *hostname = request_get_arg(request,"hostname");
 	const char *domain = request_get_arg(request,"domain");
 	const char *ntp_host = request_get_arg(request,"ntp_host");
-	ini_puts("network","hostname", hostname, con.inifile);
-	ini_puts("network","domain", domain, con.inifile);
-	ini_puts("network","ntp_host", ntp_host, con.inifile);
+	ini_puts("network","hostname", hostname, inifile);
+	ini_puts("network","domain", domain, inifile);
+	ini_puts("network","ntp_host", ntp_host, inifile);
 	 
 	char *config_bridge = request_get_arg(request, "config_bridge");
-	ini_puts("network","config_bridge", config_bridge, con.inifile);
+	ini_puts("network","config_bridge", config_bridge, inifile);
 	
 	const char *ether0 = request_get_arg(request,"ether0");
 	const char *ether1 = request_get_arg(request,"ether1");
-	ini_puts("network","ether_0", ether0, con.inifile);
-	ini_puts("network","ether_1", ether1, con.inifile);
+	ini_puts("network","ether_0", ether0, inifile);
+	ini_puts("network","ether_1", ether1, inifile);
 	
 	reboot |= strcmp(hostname, ini.hostname)
 		|| strcmp(domain, ini.domain)
@@ -121,7 +123,7 @@ static int submit_form(io_t *out) {
 			system("/bin/ledctrl off");
 		}
 		ini.power[0] = *power;
-		ini_puts("hardware","power", ini.power, con.inifile);
+		ini_puts("hardware","power", ini.power, inifile);
 	}
 	return reboot;
 }

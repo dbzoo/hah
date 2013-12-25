@@ -9,6 +9,8 @@
 #include <arpa/inet.h>
 #include <string.h>
 
+static const char *inifile = "/etc/xap.d/xap-twitter.ini";
+
 // HAH Twitter application keys
 const char *CONSUMER_KEY = "hmGCdLfP9HjVfkzDSnw";
 const char *CONSUMER_SECRET = "6iaSFRs6RFuILhjrBhUYDDEkUBGDsGcFNv7lQyoA";
@@ -25,11 +27,11 @@ static struct {
 } ini;
 
 static void readIni() {
-	 ini_gets("twitter","enable","0",ini.enable,sizeof(ini.enable),con.inifile);
-	 ini_gets("twitter","access_key","",ini.key,sizeof(ini.key),con.inifile);
-	 ini_gets("twitter","access_secret","",ini.secret,sizeof(ini.secret),con.inifile);
-	 ini_gets("twitter","ufreq","30",ini.ufreq,sizeof(ini.ufreq),con.inifile);
-	 ini_gets("twitter","prefix","",ini.prefix,sizeof(ini.prefix),con.inifile);
+	 ini_gets("twitter","enable","0",ini.enable,sizeof(ini.enable),inifile);
+	 ini_gets("twitter","access_key","",ini.key,sizeof(ini.key),inifile);
+	 ini_gets("twitter","access_secret","",ini.secret,sizeof(ini.secret),inifile);
+	 ini_gets("twitter","ufreq","30",ini.ufreq,sizeof(ini.ufreq),inifile);
+	 ini_gets("twitter","prefix","",ini.prefix,sizeof(ini.prefix),inifile);
 }
 
 static int submit_form() {
@@ -41,20 +43,20 @@ static int submit_form() {
 		 if((*enable == '1' && ini.enable[0] == '0') ||
 		    (*enable == '0' && ini.enable[0] == '1')) 
 		     {
-			 ini_puts("twitter","enable",enable,con.inifile);
+			 ini_puts("twitter","enable",enable,inifile);
 			 restart=1;
 		     }
 	     }
 
 	 const char *ufreq = request_get_arg(request,"ufreq");
 	 if(ufreq && strcmp(ufreq,ini.ufreq)) {
-		  ini_puts("twitter","ufreq",ufreq,con.inifile);
+		  ini_puts("twitter","ufreq",ufreq,inifile);
 		  restart = 1;
 	 }
 
 	 const char *prefix = request_get_arg(request,"prefix");
 	 if(prefix && strcmp(prefix,ini.prefix)) {
-		  ini_puts("twitter","prefix",prefix,con.inifile);
+		  ini_puts("twitter","prefix",prefix,inifile);
 		  restart = 1;
 	 }
 
@@ -155,12 +157,12 @@ addEvent(window,"load",function() {
        oauthAuthorize(c, oauth_verifier);
 
        // Keys in tcurl are now the permenant keys.
-       ini_puts("twitter","consumer_key", CONSUMER_KEY, con.inifile);
-       ini_puts("twitter","consumer_secret", CONSUMER_SECRET, con.inifile);
-       ini_puts("twitter","access_key", c->oauthAccessKey, con.inifile);
-       ini_puts("twitter","access_secret", c->oauthAccessSecret, con.inifile);
-       ini_puts("twitter","user", c->user, con.inifile);
-       ini_puts("twitter","userid", c->userid, con.inifile);
+       ini_puts("twitter","consumer_key", CONSUMER_KEY, inifile);
+       ini_puts("twitter","consumer_secret", CONSUMER_SECRET, inifile);
+       ini_puts("twitter","access_key", c->oauthAccessKey, inifile);
+       ini_puts("twitter","access_secret", c->oauthAccessSecret, inifile);
+       ini_puts("twitter","user", c->user, inifile);
+       ini_puts("twitter","userid", c->userid, inifile);
 
        // We don't need the temporary access creds anymore.
        session_del(session,"key");

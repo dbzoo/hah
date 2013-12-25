@@ -25,7 +25,7 @@
 // Seconds between xapBSC.info messages.
 #define INFO_INTERVAL 120
 
-const char *inifile = "/etc/xap-livebox.ini";
+const char *inifile = "/etc/xap.d/xap-currentcost.ini";
 char serialPort[20];
 int hysteresis; // Whole of house
 char *interfaceName = "eth0";
@@ -629,7 +629,7 @@ void setupXap()
         char defaultPort[20];
         strcpy(defaultPort, serialPort);
 
-        xapInitFromINI("currentcost","dbzoo.livebox","CurrentCost","00DC",interfaceName,inifile);
+        xapInitFromINI("currentcost","dbzoo","CurrentCost","00DC",interfaceName,inifile);
 
         hysteresis = ini_getl("currentcost", "hysteresis", 10, inifile);
         ini_gets("currentcost","usbserial",defaultPort, serialPort, sizeof(serialPort), inifile);

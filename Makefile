@@ -110,7 +110,8 @@ SUBDIRS_HAH = \
 	$(HAH_DIR)/klone \
 	$(HAH_DIR)/iServer \
 	$(HAH_DIR)/xap-flash \
-	$(HAH_DIR)/xap-urfrx
+	$(HAH_DIR)/xap-urfrx \
+	$(HAH_DIR)/ini-migrate
 
 SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIRS_HAH)
 
@@ -181,6 +182,11 @@ avrdude:
 	$(MAKE) -C $(OPENSOURCE_DIR)/avrdude-5.10
 	install -m 555 $(OPENSOURCE_DIR)/avrdude-5.10/avrdude $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/avrdude
+
+ini-migrate:
+	install -m 755 -d $(INSTALL_DIR)/usr/bin
+	install -m 755 $(HAH_DIR)/ini-migrate/ini-migrate $(INSTALL_DIR)/usr/bin
+	install -m 644 $(HAH_DIR)/ini-migrate/fileSectionMap.conf $(INSTALL_DIR)/etc_ro_fs
 
 xaplib2:
 	$(MAKE) -C $(HAH_DIR)/xaplib2

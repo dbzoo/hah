@@ -9,8 +9,6 @@ char *u_strndup(char *, int);
 
 // Called once when the webserver starts up
 const_init() {
-	 con.inifile = strdup("/etc/xap-livebox.ini");
-
 	 int size;
 	 char *file;
 	 if(u_load_file("/etc_ro_fs/build", 15, &file, &size)) {

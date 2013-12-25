@@ -88,7 +88,7 @@ end
 -- @raise dir and mask must be strings
 function dir.getfiles(dir,mask)
     assert_dir(1,dir)
-    assert_string(2,mask)
+    if mask then assert_string(2,mask) end
     local match
     if mask then
         mask = filemask(mask)

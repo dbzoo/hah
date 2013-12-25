@@ -60,9 +60,11 @@
 #ifdef DEV
 #include <inc/gcalendar.h>
 #include <inc/internal_gcal.h>
+#include <inc/gcal_status.h>
 #else
 #include <libgcal/gcalendar.h>
 #include <libgcal/internal_gcal.h>
+#include <libgcal/gcal_status.h>
 #endif
 #include "xap.h"
 #include "svn_date.h"
@@ -73,7 +75,7 @@
 #define EVENT_FREQ 60
 #define DEF_POLL_FREQ 60
 
-const char *inifile = "/etc/xap-livebox.ini";
+const char *inifile = "/etc/xap.d/xap-googlecal.ini";
 
 // Commandline / INI settings
 static int freq; // calendar sync frequency
@@ -395,7 +397,7 @@ void validatePollingFrequency(int newFreq) {
 
 void setupXAPini()
 {
-	xapInitFromINI("googlecal","dbzoo.livebox","GoogleCal","00DA",interfaceName,inifile);
+	xapInitFromINI("googlecal","dbzoo","GoogleCal","00DA",interfaceName,inifile);
 	validatePollingFrequency(ini_getl("googlecal","ufreq", DEF_POLL_FREQ, inifile));
         ini_gets("googlecal","user","",username,sizeof(username),inifile);
 	password = getINIPassword("googlecal","passwd", (char *)inifile);

@@ -7,6 +7,8 @@
 
 #define sizearray(x) (sizeof(x) / sizeof(x[0]))
 
+static const char *inifile = "/etc/xap.d/xap-xively.ini";
+
 struct _datastream {
 	char feed[12];
 	char id[4];
@@ -32,23 +34,23 @@ static struct {
 static void loadDynINI(char *key, int id, char *location, int size) {
 	 char buff[20];
 	 snprintf(buff,sizeof(buff),"%s%d",key, id);
-	 ini_gets("xively", buff, "", location, size, con.inifile);
+	 ini_gets("xively", buff, "", location, size, inifile);
 }
 
 static void saveDynINI(char *key, int id, const char *value) {
 	 char buff[20];
 	 snprintf(buff,sizeof(buff),"%s%d",key, id);
-	 ini_puts("xively", buff, value, con.inifile);
+	 ini_puts("xively", buff, value, inifile);
 }
 
 static void readIni() {
-	 ini_gets("xively","enable","0",ini.ph_enable,sizeof(ini.ph_enable),con.inifile);
-	 ini_gets("xively","apikey","",ini.apikey,sizeof(ini.apikey),con.inifile);
-	 ini_gets("xively","feedid","",ini.feedid,sizeof(ini.feedid),con.inifile);
-	 ini_gets("xively","ufreq","60",ini.ufreq,sizeof(ini.ufreq),con.inifile);
+	 ini_gets("xively","enable","0",ini.ph_enable,sizeof(ini.ph_enable),inifile);
+	 ini_gets("xively","apikey","",ini.apikey,sizeof(ini.apikey),inifile);
+	 ini_gets("xively","feedid","",ini.feedid,sizeof(ini.feedid),inifile);
+	 ini_gets("xively","ufreq","60",ini.ufreq,sizeof(ini.ufreq),inifile);
 
 	 // Comma separated list of ids
-	 ini.count = ini_getl("xively", "count", 0, con.inifile);
+	 ini.count = ini_getl("xively", "count", 0, inifile);
 
 	 if(ini.count > sizearray(ds)) {
 		  ini.count = sizearray(ds);
@@ -80,22 +82,22 @@ static void submit_form() {
 	 if(ph_enable) {
 		  if((*ph_enable == '1' && ini.ph_enable[0] == '0') ||
 			 (*ph_enable == '0' && ini.ph_enable[0] == '1')) {
-			   ini_puts("xively","enable",ph_enable,con.inifile);
+			   ini_puts("xively","enable",ph_enable,inifile);
 			   restart = 1;
 		  }
 	 }
 
 	 const char *apikey = request_get_arg(request,"apikey");
 	 if(apikey && strcmp(apikey,ini.apikey)) {
-		  ini_puts("xively","apikey",apikey,con.inifile);
+		  ini_puts("xively","apikey",apikey,inifile);
 	 }
 	 const char *feedid = request_get_arg(request,"feedid");
 	 if(feedid && strcmp(feedid,ini.feedid)) {
-		  ini_puts("xively","feedid",feedid,con.inifile);
+		  ini_puts("xively","feedid",feedid,inifile);
 	 }
 	 const char *ufreq = request_get_arg(request,"ufreq");
 	 if(ufreq && strcmp(ufreq,ini.ufreq)) {
-		  ini_puts("xively","ufreq",ufreq,con.inifile);
+		  ini_puts("xively","ufreq",ufreq,inifile);
 	 }
 
 	 int i;
@@ -142,7 +144,7 @@ static void submit_form() {
   if(action && strcmp(action,"Add") == 0 && ini.count+1 < sizearray(ds)) {
 	   memset( &ds[ini.count], 0, sizeof(ds[i]) );
 	   ini.count++;
-	   ini_putl("xively","count", ini.count, con.inifile);
+	   ini_putl("xively","count", ini.count, inifile);
   }
   if(action && strcmp(action,"Restart") == 0) {
     system("/etc/init.d/xap restart xively");
@@ -172,7 +174,7 @@ static void submit_form() {
 	 }
 	 // now remove it from the list.
 	 ini.count--;
-	 ini_putl("xively","count", ini.count, con.inifile);
+	 ini_putl("xively","count", ini.count, inifile);
   }
 %>
 <html>

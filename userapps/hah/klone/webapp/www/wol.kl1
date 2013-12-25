@@ -5,6 +5,8 @@
 
 #define sizearray(x) (sizeof(x) / sizeof(x[0]))
 
+static const char *inifile = "/etc/xap.d/system.ini";
+
 struct _datastream {
 	 char mac[18];
 	 char hostname[65];
@@ -17,18 +19,18 @@ static struct {
 static void loadDynINI(char *key, int id, char *location, int size) {
 	 char buff[100];
 	 sprintf(buff,"%s%d",key,id);
-	 ini_gets("wol", buff, "", location, size, con.inifile);
+	 ini_gets("wol", buff, "", location, size, inifile);
 }
 
 static void saveDynINI(char *key, int id, const char *value) {
 	 char buff[100];
 	 sprintf(buff,"%s%d",key,id);
 	 dbg("%s=%s", buff, value);
-	 ini_puts("wol", buff, value, con.inifile);
+	 ini_puts("wol", buff, value, inifile);
 }
 
 static void readIni() {
-	 ini.count = ini_getl("wol", "count", 0, con.inifile);
+	 ini.count = ini_getl("wol", "count", 0, inifile);
 	 if(ini.count > sizearray(host)) {
 		  ini.count = sizearray(host);
 	 }
@@ -182,7 +184,7 @@ static void submit_form() {
   if(action && strcmp(action,"Add") == 0 && ini.count+1 < sizearray(host)) {
 	   memset( &host[ini.count], 0, sizeof(host[i]) );
 	   ini.count++;
-	   ini_putl("wol","count", ini.count, con.inifile);
+	   ini_putl("wol","count", ini.count, inifile);
   }
   if(action && strncmp(action,"Wake",4) == 0) {
        int row = atoi(action+4);
@@ -205,7 +207,7 @@ static void submit_form() {
        }
        // now remove it from the list.
        ini.count--;
-       ini_putl("wol","count", ini.count, con.inifile);
+       ini_putl("wol","count", ini.count, inifile);
   }
 %>
 <html>

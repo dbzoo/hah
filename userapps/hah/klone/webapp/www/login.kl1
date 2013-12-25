@@ -4,6 +4,8 @@
 #include "utils.h"
 #include "login.h"
 
+static const char *inifile = "/etc/xap.d/system.ini";
+
 // Check if the CURRENT page is allowed.
 int isPageAllowed(session_t *ss, char *page) {
 	 char *username = session_get(ss, "username");
@@ -19,7 +21,7 @@ int isPageAllowed(session_t *ss, char *page) {
 	// The menu system will hide the pages from access
 	// However we still need to handle DIRECT url navigation.
 	char ini_pages[128];
-	int n = ini_gets("security", username, "", ini_pages, sizeof(ini_pages), con.inifile);
+	int n = ini_gets("security", username, "", ini_pages, sizeof(ini_pages), inifile);
 	if (n == 0) return 1; // No defined pages? (allow all access)
 	char *pages[20];
 	int a = commaTok(pages, sizeof(pages), ini_pages);
@@ -54,7 +56,7 @@ int isScriptAllowed(session_t *ss, response_t *rp, char *script) {
 int login_force(session_t *ss, request_t *rq, response_t *rp, const char *script) 
 {
 	char login_enable[2];
-	ini_gets("security","login_screen","0",login_enable,sizeof(login_enable),con.inifile);
+	ini_gets("security","login_screen","0",login_enable,sizeof(login_enable), inifile);
 	if(login_enable[0] == '0') return 1; // No logic screen (we are authenticated)
 
 	char *username;
@@ -90,7 +92,7 @@ int isValidUser(char *user, char *passwd) {
 	 if(strcmp("admin",user) == 0) {
 		  char ini_passwd[MD5_DIGEST_BUFSZ];
 		  
-		  n = ini_gets("security","admin_passwd", "", ini_passwd, sizeof(ini_passwd), con.inifile);
+		  n = ini_gets("security","admin_passwd", "", ini_passwd, sizeof(ini_passwd), inifile);
 		  if(n == 0) {   // No password found?
 			   return 1; // Accept whatever was entered.
 		  }
@@ -103,9 +105,9 @@ int isValidUser(char *user, char *passwd) {
 	 char *users[10];
 	 char *passwds[10];
 	 
-	 n = ini_gets("security","user", "", ini_users, sizeof(ini_users), con.inifile);
+	 n = ini_gets("security","user", "", ini_users, sizeof(ini_users), inifile);
 	 if (n == 0) return 0;  // No user ini entry
-	 n = ini_gets("security","passwd", "", ini_passwd, sizeof(ini_passwd), con.inifile);
+	 n = ini_gets("security","passwd", "", ini_passwd, sizeof(ini_passwd), inifile);
 	 if (n == 0) return 0;  // No passwd ini entry
 
 	 int a = commaTok(users, sizeof(users), ini_users);

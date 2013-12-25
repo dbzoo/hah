@@ -278,17 +278,26 @@ void xapInitFromINI(
 
         char i_control[64];
         char s_control[128];
-        n = ini_gets("xap","instance","",i_control,sizeof(i_control),inifile);
         strcpy(s_control, prefix);
         // Make sure the prefix has a trailing DOT.
         if(prefix[strlen(prefix)-1] != '.') {
                 strlcat(s_control,".", sizeof(s_control));
         }
         // If there a unique HAH sub address component?
+        n = ini_gets("xap","instance","",i_control,sizeof(i_control),"/etc/xap.d/system.ini");
         if(i_control[0]) {
                 strlcat(s_control, i_control, sizeof(s_control));
-                strlcat(s_control, ".",sizeof(s_control));
-        }
+        } else {
+	  // Default to hostname
+	  char hostname[128];
+	  if(gethostname(hostname, sizeof(hostname)) == 0) {
+	    strlcat(s_control, hostname, sizeof(s_control));
+	  } else {
+	    warning("Failed to get hostname");
+	    strlcat(s_control, "livebox", sizeof(s_control));
+	  }
+	}
+	strlcat(s_control, ".",sizeof(s_control));
         strlcat(s_control,instance,sizeof(s_control));
 
         xapInit(s_control, s_uid, interfaceName);

@@ -3,6 +3,8 @@
 #include "login.h"
 #include "const.h"
 
+static const char *inifile = "/etc/xap.d/system.ini";
+
 static struct {
 	 char ssh_enable[2];
 	 char telnet_enable[2];
@@ -13,12 +15,12 @@ static struct {
 } ini;
 
 static void readIni() {
-	 ini_gets("network","ssh_enable","1",ini.ssh_enable,sizeof(ini.ssh_enable),con.inifile);
-	 ini_gets("network","telnet_enable","0",ini.telnet_enable,sizeof(ini.telnet_enable),con.inifile);
-	 ini_gets("network","ftp_enable","0",ini.ftp_enable,sizeof(ini.ftp_enable),con.inifile);
-	 ini_gets("network","ssh_port","22",ini.ssh_port,sizeof(ini.ssh_port),con.inifile);
-	 ini_gets("network","telnet_port","23",ini.telnet_port,sizeof(ini.telnet_port),con.inifile);
-	 ini_gets("cron","enable","0",ini.cron_enable,sizeof(ini.cron_enable),con.inifile);
+	 ini_gets("network","ssh_enable","1",ini.ssh_enable,sizeof(ini.ssh_enable),inifile);
+	 ini_gets("network","telnet_enable","0",ini.telnet_enable,sizeof(ini.telnet_enable),inifile);
+	 ini_gets("network","ftp_enable","0",ini.ftp_enable,sizeof(ini.ftp_enable),inifile);
+	 ini_gets("network","ssh_port","22",ini.ssh_port,sizeof(ini.ssh_port),inifile);
+	 ini_gets("network","telnet_port","23",ini.telnet_port,sizeof(ini.telnet_port),inifile);
+	 ini_gets("cron","enable","0",ini.cron_enable,sizeof(ini.cron_enable),inifile);
 }
 
 static void submit_form() {
@@ -33,12 +35,12 @@ static void submit_form() {
    if(ssh_enabled) {
 		restart = 0;
 		if(ssh_port && strcmp(ssh_port,ini.ssh_port)) {
-			 ini_puts("network","ssh_port",ssh_port,con.inifile);
+			 ini_puts("network","ssh_port",ssh_port,inifile);
 			 restart = 1;
 		}
 		if((*ssh_enabled == '1' && ini.ssh_enable[0] == '0') ||
 		   (*ssh_enabled == '0' && ini.ssh_enable[0] == '1')) {
-			 ini_puts("network","ssh_enable",ssh_enabled,con.inifile);			 
+			 ini_puts("network","ssh_enable",ssh_enabled,inifile);			 
 			 restart = 1;
 		}
 		if (restart) {
@@ -49,12 +51,12 @@ static void submit_form() {
    if(telnet_enabled) {
 		restart = 0;
 		if(telnet_port && strcmp(telnet_port,ini.telnet_port)) {
-			 ini_puts("network","telnet_port",telnet_port,con.inifile);
+			 ini_puts("network","telnet_port",telnet_port,inifile);
 			 restart = 1;
 		}
 		if((*telnet_enabled == '1' && ini.telnet_enable[0] == '0') ||
 		   (*telnet_enabled == '0' && ini.telnet_enable[0] == '1')) {
-			 ini_puts("network","telnet_enable",telnet_enabled,con.inifile);			 
+			 ini_puts("network","telnet_enable",telnet_enabled,inifile);			 
 			 restart = 1;
 		}
 		if (restart) {
@@ -66,7 +68,7 @@ static void submit_form() {
 		restart = 0;
 		if((*ftp_enabled == '1' && ini.ftp_enable[0] == '0') ||
 		   (*ftp_enabled == '0' && ini.ftp_enable[0] == '1')) {
-			 ini_puts("network","ftp_enable",ftp_enabled,con.inifile);			 
+			 ini_puts("network","ftp_enable",ftp_enabled,inifile);			 
 			 restart = 1;
 		}
 		if (restart) {
@@ -77,7 +79,7 @@ static void submit_form() {
 		restart = 0;
 		if((*cron_enabled == '1' && ini.cron_enable[0] == '0') ||
 		   (*cron_enabled == '0' && ini.cron_enable[0] == '1')) {
-			 ini_puts("cron","enable",cron_enabled,con.inifile);			 
+			 ini_puts("cron","enable",cron_enabled,inifile);			 
 			 restart = 1;
 		}
 		if (restart) {

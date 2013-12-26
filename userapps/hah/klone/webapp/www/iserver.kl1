@@ -11,7 +11,7 @@
 
 #define sizearray(x) (sizeof(x) / sizeof(x[0]))
 static int reboot = 0;
-static const char *inifile = "/etc/xap.d/xap-iserver.ini";
+static const char *inifile = "/etc/xap.d/iserver.ini";
 
 static struct {
 	 char authmode[2];

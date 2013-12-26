@@ -53,12 +53,12 @@ static void submit_form() {
 		  restart = 1;
 	 }
 
-	submit_statickey(request,"urfrx","devices");
+	submit_statickey(request,"urfrx","devices", inifile);
 	readIni();
 
-	submit_dynkeys(request,"urfrx","rf%d.label", ini.devicesrf);
-	submit_dynkeys(request,"urfrx","rf%d.off", ini.devicesrf);
-	submit_dynkeys(request,"urfrx","rf%d.on", ini.devicesrf);
+	submit_dynkeys(request,"urfrx","rf%d.label", ini.devicesrf, inifile);
+	submit_dynkeys(request,"urfrx","rf%d.off", ini.devicesrf, inifile);
+	submit_dynkeys(request,"urfrx","rf%d.on", ini.devicesrf, inifile);
 
 	if(restart) {
 		system("/etc/init.d/xap restart urfrx");
@@ -144,9 +144,9 @@ int i;
 <table><tr><th>Item</th><th>Label</th><th>On</th><th>Off</th></tr><%
 for(i=1; i<=ini.devicesrf; i++) {
   io_printf(out,"<tr><td>RF %d</td>", i);
-  io_printf(out,"<td><input size=\"15\" type=\"text\" name=\"rf%d.label\" value=\"%s\"></td>\n", i, iniGetDynLabel("urfrx",i));
-  io_printf(out,"<td><input style=\"width:300px\" type=\"text\" name=\"rf%d.on\" value=\"%s\"></td>\n", i, iniGetDynKey("urfrx","rf%d.on", i));
-  io_printf(out,"<td><input style=\"width:300px\" type=\"text\" name=\"rf%d.off\" value=\"%s\"></td>\n", i, iniGetDynKey("urfrx","rf%d.off", i));
+  io_printf(out,"<td><input size=\"15\" type=\"text\" name=\"rf%d.label\" value=\"%s\"></td>\n", i, iniGetDynLabel("urfrx",i, inifile));
+  io_printf(out,"<td><input style=\"width:300px\" type=\"text\" name=\"rf%d.on\" value=\"%s\"></td>\n", i, iniGetDynKey("urfrx","rf%d.on", i, inifile));
+  io_printf(out,"<td><input style=\"width:300px\" type=\"text\" name=\"rf%d.off\" value=\"%s\"></td>\n", i, iniGetDynKey("urfrx","rf%d.off", i, inifile));
   io_printf(out,"</tr>");
 }
 %></table>

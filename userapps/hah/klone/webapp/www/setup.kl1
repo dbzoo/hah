@@ -100,7 +100,7 @@ static int submit_form(io_t *out) {
 	ini_puts("network","domain", domain, inifile);
 	ini_puts("network","ntp_host", ntp_host, inifile);
 	 
-	char *config_bridge = request_get_arg(request, "config_bridge");
+	const char *config_bridge = request_get_arg(request, "config_bridge");
 	ini_puts("network","config_bridge", config_bridge, inifile);
 	
 	const char *ether0 = request_get_arg(request,"ether0");

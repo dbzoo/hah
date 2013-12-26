@@ -32,7 +32,7 @@ static void build_action(char *item, int count, char *action, int action_type, i
 	 char name[10];	 
 	 for(i=base; i<count+base; i++) {
 		  sprintf(name,"%s.%d",item, i);
-		  char *key = request_get_arg(request, name);
+		  const char *key = request_get_arg(request, name);
 		  if(key) {
 			   strcat(action, " ");
 			   strcat(action, name);
@@ -74,7 +74,7 @@ static void process_form() {
   char cmd[100];
   if (action_type == ACT_SETLCD) {
 	   strcpy(cmd,"lcd ");
-	   char *key = request_get_arg(request, "lcd");
+	   const char *key = request_get_arg(request, "lcd");
 	   strcat(cmd, key);
   }
   else {

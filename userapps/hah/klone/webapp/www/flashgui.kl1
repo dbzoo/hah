@@ -19,7 +19,7 @@ if(REQUIRE_AUTH(SCRIPT_NAME)) {
 <div id="content">
 <%@include component/heading.kl1%>
 <%
-char *action = request_get_arg(request, "setup");
+const char *action = request_get_arg(request, "setup");
 if(action) {
   char buf[128];
   snprintf(buf, sizeof(buf),"sed 's#<ip>.*$#<ip>%s</ip>#' < /usr/share/flash/xapconfig.xml > /etc/www/xapconfig.xml", 

@@ -18,7 +18,7 @@ static struct {
 struct {
 	char *model;
 	int sensors;
-} modelSensor[] = {{"ORIGINAL",0},{"CLASSIC",0},{"CC128",9},{"EDF",14},{NULL,NULL}};
+} modelSensor[] = {{"ORIGINAL",0},{"CLASSIC",0},{"CC128",9},{"EDF",14},{(char *)NULL,(int)NULL}};
 
 int sensorCount = 0;
 

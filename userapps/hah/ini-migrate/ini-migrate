@@ -43,7 +43,7 @@ end
 
 local fileToSectionMap = config.read(confFile, {variabilize=false})
 local sectionToFileMap = invertTable(fileToSectionMap)
-local masterini = config.read(srcFile)
+local masterini = config.read(srcFile, {variabilize=false})
 
 -- Parse master INI and split into sub-tables keyed by (sub-ini)
 local output={}

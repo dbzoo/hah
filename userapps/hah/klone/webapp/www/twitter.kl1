@@ -146,15 +146,15 @@ addEvent(window,"load",function() {
     if(oauth_verifier) {
 
      // Fetch temporary access keyss
-     char *key = session_get(session,"key");
-     char *secret = session_get(session,"secret");
+     const char *key = session_get(session,"key");
+     const char *secret = session_get(session,"secret");
 
      if (key && secret) {
        tcurl *c = new_tcurl(out);
-       c->oauthAccessKey = key;
-       c->oauthAccessSecret = secret;
+       c->oauthAccessKey = (char *)key;
+       c->oauthAccessSecret = (char *)secret;
        // Obtain access keys and verify us.
-       oauthAuthorize(c, oauth_verifier);
+       oauthAuthorize(c, (char *)oauth_verifier);
 
        // Keys in tcurl are now the permenant keys.
        ini_puts("twitter","consumer_key", CONSUMER_KEY, inifile);

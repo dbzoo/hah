@@ -12,7 +12,7 @@ static struct {
   int devices1wire;
   int devicesrf;
   int infoProtect;
-  int startPage[6];
+  char startPage[6];
 } ini;
 
 static void readIni() {
@@ -34,7 +34,7 @@ static void readIni() {
   // Load index.kl1 if explicitly ask for.  Default URI of / to configuration setting of StartPage
   if(strcmp(request_get_uri(request),"/index.kl1") && strcmp(ini.startPage,"flash") == 0) {
     response_redirect(response, "flashgui.kl1");
-    return 0;
+    return;
   }
 %>
 <html>
@@ -69,7 +69,7 @@ function comboSubmit() {
 <%
   k = 1;
   for(i=1; i<=ini.devicesrf; i++, k++) {
-	   io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("rf",i));
+    io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("rf",i, inifile));
      io_printf(out,"%s %s </td>", alt_td(k), query("rf",i));
   }
 %>
@@ -88,7 +88,7 @@ function comboSubmit() {
 <%
   k = 1;
   for(i=1; i<5; i++, k++) {
-	   io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("relay",i));
+    io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("relay",i, inifile));
 	   io_printf(out,"%s %s </td>", alt_td(k), query("relay",i));
   }
 %>
@@ -104,7 +104,7 @@ function comboSubmit() {
 <%
   k = 1;
   for(i=1; i<5; i++, k++) {
-	   io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("input",i));
+    io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("input",i, inifile));
      io_printf(out,"%s %s </td>", alt_td(k), query("input",i));
      io_printf(out,"%s</td></tr>", alt_td(k));
   }
@@ -124,7 +124,7 @@ function comboSubmit() {
 <%
   k = 1;
   for(i=1; i<=ini.devices1wire; i++, k++) {
-	   io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("sensor",i));
+    io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("sensor",i, inifile));
 	   char *c  = query("1wire",i);
 	   io_printf(out,"%s ",alt_td(k));
 	   if (*c == '?') {

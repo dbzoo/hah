@@ -12,9 +12,9 @@ static struct {
 } ini;
 
 static void change_passwd(io_t *out) {
-	   char *old = request_get_arg(request, "old");
-	   char *new = request_get_arg(request, "new");
-	   char *confirm = request_get_arg(request, "confirm");
+	   const char *old = request_get_arg(request, "old");
+	   const char *new = request_get_arg(request, "new");
+	   const char *confirm = request_get_arg(request, "confirm");
 
 	   if (! (old && new && confirm)) return;
 	   if(strlen(old) == 0 && strlen(new) == 0 && strlen(confirm) == 0) return;
@@ -58,13 +58,13 @@ static void readIni() {
 static void submitForm(io_t *out) {
        change_passwd(out);
 
-       char *val = request_get_arg(request, "infoprotect");
+       const char *val = request_get_arg(request, "infoprotect");
        ini_putl("security","info_protect", val ? 1 : 0, inifile);
 
        val = request_get_arg(request, "loginscreen");
        ini_putl("security","login_screen", val ? 1 : 0, inifile);
 
-       char *startPage = request_get_arg(request,"startPage");
+       const char *startPage = request_get_arg(request,"startPage");
        if(startPage && strcmp(startPage, ini.startPage)) {
 	 ini_puts("webserver","startPage", startPage, inifile);			 
        }       

@@ -7,7 +7,7 @@
 
 static const char *sms = "/etc/xap.d/xap-sms.ini";
 static const char *serial = "/etc/xap.d/xap-serial.ini";
-static const char *plugboard = "/etc/xap.d/xap-plugboard.ini";
+static const char *plugboard = "/etc/xap.d/plugboard.ini";
 
 static struct {
 	char sms_enable[2];

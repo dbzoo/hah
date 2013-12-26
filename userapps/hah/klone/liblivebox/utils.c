@@ -39,7 +39,7 @@ int commaTok(char *arg[], int arglen, char *str)
 	 return j;
 }
 
-void submit_statickey(request_t *request, char *section, char *key, char *inifile)
+void submit_statickey(request_t *request, char *section, char *key, const char *inifile)
 {
 	char formKey[20];
 	snprintf(formKey, sizeof(formKey), "%s.%s", section, key);
@@ -49,7 +49,7 @@ void submit_statickey(request_t *request, char *section, char *key, char *inifil
 	}
 }
 
-void submit_dynkey(request_t *request, char *section, char *keyPattern, int id, char *inifile)
+void submit_dynkey(request_t *request, char *section, char *keyPattern, int id, const char *inifile)
 {
 	char iniKey[20];
 	snprintf(iniKey, sizeof(iniKey), keyPattern, id);
@@ -59,7 +59,7 @@ void submit_dynkey(request_t *request, char *section, char *keyPattern, int id, 
 	}
 }
 
-void submit_dynkeys(request_t *request, char *section, char *keyPattern, int cnt, char *inifile) {
+void submit_dynkeys(request_t *request, char *section, char *keyPattern, int cnt, const char *inifile) {
 	int i;
 	for(i=1; i<=cnt; i++) {
 	  submit_dynkey(request, section, keyPattern, i, inifile);
@@ -68,7 +68,7 @@ void submit_dynkeys(request_t *request, char *section, char *keyPattern, int cnt
 
 static char buf[128];
 
-char *iniGetDynKeyWithDefault(char *section, char *keyPattern, int id, char *dfltPattern, char *inifile) {
+char *iniGetDynKeyWithDefault(char *section, char *keyPattern, int id, char *dfltPattern, const char *inifile) {
 	char key[20];
 	snprintf(key, sizeof(key), keyPattern, id);
 	if(ini_gets(section, key, "", buf, sizeof(buf), inifile) == 0) {
@@ -77,7 +77,7 @@ char *iniGetDynKeyWithDefault(char *section, char *keyPattern, int id, char *dfl
 	return buf;
 }
 
-char *iniGetDynKey(char *section, char *keyPattern, int id, char *inifile) {
+char *iniGetDynKey(char *section, char *keyPattern, int id, const char *inifile) {
 	char key[20];
 	snprintf(key, sizeof(key), keyPattern, id);
 	ini_gets(section, key, "", buf, sizeof(buf), inifile);
@@ -85,7 +85,7 @@ char *iniGetDynKey(char *section, char *keyPattern, int id, char *inifile) {
 }
 
 // Given a type and key return its label.
-char *iniGetDynLabel(char *name, int id, char *inifile) {
+char *iniGetDynLabel(char *name, int id, const char *inifile) {
 	if(strcmp(name,"sensor") == 0) 
 	  return iniGetDynKeyWithDefault("1wire","sensor%d.label",id,"Sensor %d", inifile);
 	if(strcmp(name,"rf") == 0) 

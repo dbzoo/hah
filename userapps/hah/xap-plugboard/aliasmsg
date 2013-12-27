@@ -1,9 +1,6 @@
 #!/usr/bin/lua
 -- $Id$
 lapp = require("pl.lapp")
-config = require("pl.config")
-stringx = require("pl.stringx")
-socket = require("socket")
 local args = lapp
 [[
   Various flags and option types

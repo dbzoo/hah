@@ -4,7 +4,6 @@
 -- also useful within a crontab 
 
 lapp = require("pl.lapp")
-config = require("pl.config")
 
 lapp.add_type("onoff","string",
 	function(x)
@@ -43,16 +42,6 @@ if args.l then
   cmd = cmd .. "level="..args.l.."\n"
 end
 cmd = cmd .. "}"
-
-local ini = config.read("/etc/xap.d/system.ini")
-local instance = nil
-
-if ini['xap'] then
-   instance = ini.xap['instance']
-end
-if instance == nil then 
-   instance=stringx.split(socket.dns.gethostname(),'.')[1] 
-end
 
 xap.init{instance="bscmsg",uid="FF00DF00"}
 xap.sendShort(cmd)

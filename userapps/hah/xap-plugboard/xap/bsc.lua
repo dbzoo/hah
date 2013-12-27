@@ -40,8 +40,15 @@ class.Endpoint()
 function Endpoint:_init(endpoint)
    utils.assert_arg(1,endpoint,'table')
 
+   -- Source is a fully formed xAP address
    if endpoint.source == nil then
-      endpoint.source = xap.buildXapAddress(endpoint)
+      -- Perhaps just a endpoint onto our running xap source
+      if endpoint.name then
+	 endpoint.source = xap.defaultKeys.source .. ":".. endpoint.name
+      else
+	 -- dropping back to vendorid,deviceid,instance keys
+	 endpoint.source = xap.buildXapAddress(endpoint)
+      end
    end
 
    assert(endpoint.direction, "direction is mandatory")

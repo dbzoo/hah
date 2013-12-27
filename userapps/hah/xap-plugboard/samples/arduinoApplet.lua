@@ -9,7 +9,7 @@ require("xap")
 require("xap.bsc")
 
 info={
-   version="1.0", description="Arduino control"
+   version="2.0", description="Arduino control"
 }
 port="/dev/ttyUSB0"
 
@@ -45,7 +45,7 @@ Serial.Setup
 }]]
    xap.sendShort(string.format(serialSetup, port))
 
-   bsc.Endpoint{ source="dbzoo.livebox.arduino:led", 
+   bsc.Endpoint{ instance="arduino:led", 
 		 direction=bsc.OUTPUT, 
 		 type=bsc.BINARY, 
 		 cmdCB=cmd

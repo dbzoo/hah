@@ -21,15 +21,5 @@ command
 text=%s
 }]],args.alias)
 
-local ini = config.read("/etc/xap.d/system.ini")
-local instance = nil
-
-if ini['xap'] then
-   instance = ini.xap['instance']
-end
-if instance == nil then 
-   instance=stringx.split(socket.dns.gethostname(),'.')[1] 
-end
-
-xap.init("dbzoo."..instance..".aliasmsg","FF00DF00")
+xap.init{instance="aliasmsg", uid="FF00DF00"}
 xap.sendShort(cmd)

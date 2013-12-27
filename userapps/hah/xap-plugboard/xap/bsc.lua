@@ -39,7 +39,11 @@ class.Endpoint()
 
 function Endpoint:_init(endpoint)
    utils.assert_arg(1,endpoint,'table')
-   assert(endpoint.source,"source is mandatory")
+
+   if endpoint.source == nil then
+      endpoint.source = xap.buildXapAddress(endpoint)
+   end
+
    assert(endpoint.direction, "direction is mandatory")
    assert(endpoint.type,"type is mandatory")
 

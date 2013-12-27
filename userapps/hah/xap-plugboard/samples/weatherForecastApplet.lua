@@ -13,6 +13,7 @@ local location="wa5"
 local apikey="<InsertKey>"
 local current={}
 local forecast={}
+local source = xap.buildXapAddress{instance="Plugboard:Weather"}
 
 function lookupWeather()
     local xmlstring = http.request("http://www.myweather2.com/developer/forecast.ashx?uac="..apikey.."&output=xml&query="..location)
@@ -64,13 +65,13 @@ day=%s
     return msg
 end
 function sendWeather()
-        xap.sendShort([[
+        xap.sendShort(string.format([[
 xap-header
 {
 class=weather.forecast
-source=dbzoo.livebox.Plugboard:Weather
+source=%s
 }
-]] .. getWeatherBody())
+]], source) .. getWeatherBody())
 end
 
 function init()

@@ -52,24 +52,15 @@ local scriptdir = args.appletdir
 
 local ini = config.read("/etc/xap.d/plugboard.ini")
 local uid = nil
-if ini['plugboard'] then
+if ini and ini['plugboard'] then
    uid = ini.plugboard['uid']
    if uid then uid = tostring(uid) end
    if ini.plugboard['scriptdir'] then scriptdir = ini.plugboard['scriptdir'] end
 end
 if uid == nil then uid="D8" end
 
-local xapini = config.read("/etc/xap.d/system.ini")
-local instance = nil
-if xapini['xap'] then
-   instance = xapini.xap['instance']
-end
-if instance == nil then 
-   instance=stringx.split(socket.dns.gethostname(),'.')[1] 
-end
-
 require_path(scriptdir)
-xap.init("dbzoo."..instance..".Plugboard","FF"..stringx.rjust(uid,4,'0').."00")
+xap.init{instance="Plugboard",uid="FF"..stringx.rjust(uid,4,'0').."00"}
 local files = dir.getfiles(scriptdir,"*Applet.lua")
 table.sort(files)
 tablex.foreach(files, loadApplet)

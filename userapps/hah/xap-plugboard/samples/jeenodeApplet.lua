@@ -12,7 +12,7 @@ IRNode = require("xap.irnode").IRNode
 BoilerNode = require("boilernode").BoilerNode
 
 info={
-   version="2.0", description="JeeNode"
+   version="3.0", description="JeeNode"
 }
 
 local jeemon={
@@ -26,11 +26,11 @@ local jeemon={
 
 -- Keyed by NODE ID
 local nodes = {
-   [2] = RoomNode{base="dbzoo.livebox.jeenode:attic", endpoints={temp=1,light=1}, ttl=360},
-   [3] = RoomNode{base="dbzoo.livebox.jeenode:basement", endpoints={temp=1,lobat=1}, ttl=900},
-   [4] = OutputNode{base="dbzoo.livebox.jeenode:bedroom",endpoints={p1="light",p2="heater",p3="amp",p4=0}},
-   [5] = IRNode{base="dbzoo.livebox.jeenode:ir"},
-   [6] = BoilerNode{base="dbzoo.livebox.jeenode:boiler", endpoints={temp=1}, ttl=360},
+   [2] = RoomNode{instance="jeenode:attic", endpoints={temp=1,light=1}, ttl=360},
+   [3] = RoomNode{instance="jeenode:basement", endpoints={temp=1,lobat=1}, ttl=900},
+   [4] = OutputNode{instance="jeenode:bedroom",endpoints={p1="light",p2="heater",p3="amp",p4=0}},
+   [5] = IRNode{instance="jeenode:ir"},
+   [6] = BoilerNode{instance="jeenode:boiler", endpoints={temp=1}, ttl=360},
 }
 
 function init()

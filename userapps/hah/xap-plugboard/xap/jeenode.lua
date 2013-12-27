@@ -103,7 +103,8 @@ end
 function monitor(t, config)
    local target = t["target"]
    if target == nil then
-      target = "dbzoo.livebox.serial"
+      -- Target an xap-serial on the host we are running on.
+      target = xap.buildXapAddress{instance="serial"}
    end
    t["target"] = nil
 
@@ -240,6 +241,12 @@ function Nodule:add(e)
    if epvalue == 0 then
       self.cfg.endpoints[e.key] = nil
       return
+   end
+
+   if self.cfg['base'] == nil then
+      self.cfg.base = xap.buildXapAddress{vendorid=self.cfg['vendorid'], 
+					  deviceid=self.cfg['deviceid'], 
+					  instance=self.cfg['instance']}
    end
 
    -- do we want the key value as the epvalue name?

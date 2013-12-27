@@ -54,5 +54,5 @@ if instance == nil then
    instance=stringx.split(socket.dns.gethostname(),'.')[1] 
 end
 
-xap.init("dbzoo."..instance..".bscmsg","FF00DF00")
+xap.init{instance="bscmsg",uid="FF00DF00"}
 xap.sendShort(cmd)

@@ -10,6 +10,8 @@ local http=require("socket.http")
 info={
    version="1.1", description="Report Sunrise and Sunset service"
 }
+local source = xap.buildXapAddress{instance="Earthtools"}
+
 -- London
 --local latitude=51.505697
 --local longitude=-0.120678
@@ -64,7 +66,7 @@ function sendSunriseSunset()
 xap-header
 {
 class=sun.forecast
-source=dbzoo.livebox.Earthtools
+source=%s
 }
 forecast
 {
@@ -72,7 +74,7 @@ sunrise=%s
 sunset=%s
 daylight=%s
 }
-]], sunrise, sunset, daylight and "yes" or "no"))
+]], source, sunrise, sunset, daylight and "yes" or "no"))
 end
 
 function init()

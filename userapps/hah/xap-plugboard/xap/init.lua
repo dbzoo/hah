@@ -15,6 +15,8 @@ module("xap", package.seeall)
 require("socket")
 local class = require("pl.class")
 local List = require("pl.List")
+local config = require("pl.config")
+
 local gframe
 defaultKeys={}
 
@@ -100,10 +102,15 @@ local handlePacket = function(udp, data)
 			end
 		     end
 
-function init(source, uid)
+function init(t, uid)
+   if type(t) == "table" then
+      assert(t.uid, "Missing UID")
+      defaultKeys = {source=buildXapAddress(t), uid=t.uid, v=12, hop=1}
+   else
+      defaultKeys = {source=t, uid=uid, v=12, hop=1}
+   end
    verbose = true
    tx = getTxPort()
-   defaultKeys = {source=source, uid=uid, v=12, hop=1}
 
    Select(handlePacket, getRxPort())
    Timer(heartBeat, 60):start()
@@ -395,4 +402,26 @@ function Filter:dispatch(frame)
          error(err..'\nxAP Message being processed.\n'..tostring(frame))
       end
    end
+end
+
+function getDeviceID()
+   local xapini = config.read("/etc/xap.d/system.ini")
+   if xapini and xapini['xap'] then
+      deviceid = xapini.xap['instance']
+   end
+   if deviceid == nil then 
+      deviceid = stringx.split(socket.dns.gethostname(),'.')[1] 
+   end
+   return deviceid
+end
+
+function buildXapAddress(t)
+   assert(t.instance,"missing instance")
+   if t.vendorid == nil then
+      t.vendorid = "dbzoo"
+   end
+   if t.deviceid == nil then
+      t.deviceid = getDeviceID()
+   end
+   return t.vendorid.."."..t.deviceid.."."..t.instance
 end

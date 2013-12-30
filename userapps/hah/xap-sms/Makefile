@@ -1,4 +1,3 @@
-CC=mips-linux-gcc
 XAP=sms
 CFLAGS=-DIDENT -I$(INSTALL_DIR)/include
 LDFLAGS=-L$(INSTALL_DIR)/lib -lxap2

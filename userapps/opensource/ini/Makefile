@@ -2,8 +2,6 @@
 
 CFLAGS=
 LDFLAGS=
-CC=mips-linux-gcc
-STRIP=mips-linux-strip
 OBJECTS=ini.o minIni.o
 
 ini: $(OBJECTS)

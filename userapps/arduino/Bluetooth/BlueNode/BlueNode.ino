@@ -30,7 +30,14 @@ enum { SYNC, ASYNC };
 
 // RF Transmission payload.
 struct {
-  char device[12];
+  union {
+    struct {
+      unsigned int nap:16;
+      unsigned int uap:8;
+      unsigned int lap:24;
+    };
+    uint8_t device[6];
+  };
 } payload;
 
 // RF Configuration struct.
@@ -85,14 +92,21 @@ void processBluetoothResponse() {
       Serial.println(arg[2]);
 #endif
 
-#if WITHRF
-      // Send the DEVICE string over RF.
-      // Do we care about the type and rssi ?
-      
-      // Incase the strcpy is a partial string we don't want left over chars from a previous operation.
-      memset(payload, 0, sizeof payload); 
-      
-      strcpy(payload.device, arg[0]);
+#if WITHRF     
+// A bluetooth device address breaks down like this: NAP:UAP:LAP
+// Each Bluetooth device is assigned a 48-bit address consisting of three parts: 
+// a 24-bit lower address part (LAP), an 8-bit upper address part (UAP), 
+// and a 16-bit so-called non-significant address part (NAP). 
+
+      uint8_t uap;
+      uint16_t nap;
+      uint32_t lap;
+      sscanf(arg[0],"%hx:%hhx:%x", &nap, &uap, &lap);
+	
+      payload.nap = nap;
+      payload.uap = uap;
+      payload.lap = (lap & 0xffffff); // 24 bits.
+	      
       rf12_sleep(RF12_WAKEUP);
       while (!rf12_canSend())
         rf12_recvDone();

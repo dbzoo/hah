@@ -88,6 +88,10 @@ void processBluetoothResponse() {
 #if WITHRF
       // Send the DEVICE string over RF.
       // Do we care about the type and rssi ?
+      
+      // Incase the strcpy is a partial string we don't want left over chars from a previous operation.
+      memset(payload, 0, sizeof payload); 
+      
       strcpy(payload.device, arg[0]);
       rf12_sleep(RF12_WAKEUP);
       while (!rf12_canSend())

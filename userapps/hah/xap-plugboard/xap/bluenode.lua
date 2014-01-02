@@ -12,9 +12,10 @@ local nodes = {
    [18] = BlueNode{instance="bluetooth:presence",
 		   endpoints={
 		      ["1d:fe:720479"] = "brett.1",
-		      ["12:37:e90912"] = "brett.2"
+		      ["12:37:e90912"] = "brett.2",
 		      ["80ea:96:9"] = "gary",
-		}},
+		}
+           }
 }
 --]]
 

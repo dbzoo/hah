@@ -291,6 +291,11 @@ void xapInitFromINI(
 	  // Default to hostname
 	  char hostname[128];
 	  if(gethostname(hostname, sizeof(hostname)) == 0) {
+	    // Don't use the FQDN.
+	    char *host = strchr(hostname,'.');
+	    if (host) {
+	      *host = '\0';
+	    }
 	    strlcat(s_control, hostname, sizeof(s_control));
 	  } else {
 	    warning("Failed to get hostname");

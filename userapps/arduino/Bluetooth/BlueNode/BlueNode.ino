@@ -3,10 +3,13 @@ Bluetooth Proximity detector for the HS-05 device.
 This sketch is designed to be flashed on to a JeeNode/HAHnode.
 The decoding and interpretting of the "payload" occurs on the HAH system.
 
-HC-05  Arduino
-KEY -> 9
-TX -> 10
-RX -> 11
+Wiring for JeeNode/Hahnode/Arduino
+Port 1
+D (digital 4) -> RX
+I (digital 3) -> TX
+A (analog 0)  -> KEY
++             -> 3.3V
+GND           -> GND
 */
 
 #include <SoftwareSerial.h>
@@ -15,14 +18,18 @@ RX -> 11
 // RF12 - our node ID
 #define NODE_ID 18
 
-// Bluetooth to Arduino pins.
-#define BTkey 9
-#define BTrxPin 10
-#define BTtxPin 11
+// Bluetooth to JeeNode/HAHnode keyed for Port1
+#define BTkey A0
+#define BTrxPin 3
+#define BTtxPin 4
+
+// set the sync mode to 2 if the fuses are still the Arduino default
+// mode 3 (full powerdown) can only be used with 258 CK startup fuses
+#define RADIO_SYNC_MODE 2
 
 // Production setting: SERIAL commented, WITHRF uncommented.
-#define SERIAL  1        // uncomment to debug to serial port.
-//#define WITHRF 1         // Comment out when running on hardware with no RF12B hardware.
+//#define SERIAL  1        // uncomment to debug to serial port.
+#define WITHRF 1         // Comment out when running on hardware with no RF12B hardware.
 #define BTPOLL_PERIOD  300 // how often to poll for bluetooth devices, in tenths of seconds
 
 enum { BTPOLL, TASK_END };
@@ -51,7 +58,7 @@ static word schedbuf[TASK_END];
 Scheduler scheduler (schedbuf, TASK_END);
 
 // Serial buffer management
-const uint8_t inBufferLen = 64;
+const uint8_t inBufferLen = 128;
 char inBuffer[inBufferLen+1];
 uint8_t inPtr = 0;
 
@@ -75,11 +82,9 @@ void processBluetoothResponse() {
       // Destroys inBuffer.     
       char *arg[3];
       char *p = inBuffer + 5;
-      uint8_t i = 0;
-      while(i < 3) {
-        arg[i++] = p;
+      for(uint8_t i=0; i<3; i++) {
+        arg[i] = p;
         while(*p && *p != ',') p++;
-        if(! *p) break;
         *p++ = '\0';
       }      
       
@@ -90,6 +95,7 @@ void processBluetoothResponse() {
       Serial.print(arg[1]);
       Serial.print(" rssi=");
       Serial.println(arg[2]);
+      Serial.flush(); // drain to prevent interupting the RF sender.
 #endif
 
 #if WITHRF     
@@ -100,17 +106,21 @@ void processBluetoothResponse() {
 
       uint8_t uap;
       uint16_t nap;
-      uint32_t lap;
-      sscanf(arg[0],"%hx:%hhx:%x", &nap, &uap, &lap);
-	
+      unsigned long lap;  // We should be ok with a uint32_t but sscanf("%x") screws up?  go long and its ok. !
+      sscanf(arg[0],"%hx:%hhx:%lx", &nap, &uap, &lap);
+
       payload.nap = nap;
-      payload.uap = uap;
-      payload.lap = (lap & 0xffffff); // 24 bits.
+      payload.uap = uap;      
+      // For some odd reason this is not working its dropping the top 8 bits, do it manually.
+      //payload.lap = lap;
+      payload.device[3] = lap & 0xff;
+      payload.device[4] = lap >> 8 & 0xff;
+      payload.device[5] = lap >> 16 & 0xff;
 	      
       rf12_sleep(RF12_WAKEUP);
       while (!rf12_canSend())
         rf12_recvDone();
-      rf12_sendStart(0, &payload, sizeof payload);
+      rf12_sendStart(0, &payload, sizeof payload, RADIO_SYNC_MODE);
       rf12_sleep(RF12_SLEEP);
 #endif      
     }
@@ -159,7 +169,7 @@ void sendBluetoothCommand(String cmd, uint8_t mode) {
 
 void setup()
 {
-   Serial.begin(38400);
+   Serial.begin(57600);
 
 #if WITHRF
   ////////////////////////////////////////////////////////

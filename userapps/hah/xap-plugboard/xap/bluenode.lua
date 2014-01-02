@@ -76,6 +76,7 @@ function BlueNode:reaper(self)
 	   end
 	   device:setState(bsc.STATE_OFF)
            device:sendEvent()
+           device.isAlive = false
         end
     end
 end

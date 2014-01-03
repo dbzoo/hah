@@ -297,9 +297,16 @@ function Frame:__tostring()
     return t
   end
 
-  local header = 'xap-header'
-  if self[header] == nil then header = 'xap-hbeat' end    
-  local out = encodeSection(header)
+  local out = ""
+  local header = nil
+  -- sequence the header sections first
+  for _,v in pairs{'xap-header','xap-hbeat'} do
+     if self[v] then
+	header = v
+	out = encodeSection(header)
+	break
+     end
+  end
 
   for k,_ in pairs(self) do
     if k ~= header then

@@ -327,6 +327,14 @@ function FilterKey:_init(section,key,value)
    self.value = value
 end
 
+function FilterKey:equals(section, key, value)
+   return self.section == section and self.key == key and self.value == value
+end
+
+function FilterKey:__tostring()
+   return string.format("(%s,%s,%s)", self.section, self.key, self.value)
+end
+
 class.Filter()
 
 filterList=List()
@@ -340,6 +348,24 @@ function Filter:_init(filter)
 	 for k,v in pairs(keys) do
 	    self:add(section, k, v)
 	 end
+      end
+   end
+end
+
+function Filter:destroy()
+   for i = 1,#self.filterChain do
+      self.filterChain[i] = nil
+   end
+   self.filterChain = nil
+   self.callback = nil
+   self.userdata = nil
+   filterList:remove_value(self)
+end
+
+function Filter:delete(section, key, value)
+   for k,v in pairs(self.filterChain) do
+      if v:equals(section, key, value) then
+	 table.remove(self.filterChain, k)
       end
    end
 end

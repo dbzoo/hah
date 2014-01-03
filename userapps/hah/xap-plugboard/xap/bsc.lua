@@ -77,12 +77,16 @@ function Endpoint:_init(endpoint)
       endpoint.uid = xap.defaultKeys.uid:sub(1,-3) .. rjust(tostring(endpoint.id),2,'0')
    end
    
+   -- Record destructors to call on endpoint point destroy
+   endpoint._dtors = {}
+
    -- create xap.Filters for this endpoint
    if endpoint.direction == OUTPUT then
       f = xap.Filter()
       f:add("xap-header","class", CMD_CLASS)
       f:add("xap-header","target", endpoint.source)
       f:callback(incomingCmd, endpoint)
+      table.insert(endpoint._dtors, function() f:destroy() end)
    end
    
    f = xap.Filter()
@@ -92,17 +96,29 @@ function Endpoint:_init(endpoint)
 		 e:sendInfo()
 	      end, 
 	      endpoint)
+   table.insert(endpoint._dtors, function() f:destroy() end)
 
-   xap.Timer(function(t, e)
+   t = xap.Timer(function(t, e)
 		e:sendInfo()
 	     end, 
 	     endpoint.timeout, 
-	     endpoint):start()
+	     endpoint)
+   t:start()
+   table.insert(endpoint._dtors, function() t:delete() end)
 
    -- Send initial INFO event to show we exist
    sendInfoEvent(endpoint, INFO_CLASS)
 
    return endpoint
+end
+
+function Endpoint:destroy()
+   for _,dtor in pairs(self._dtors) do
+      dtor()
+   end
+   for k in pairs(self) do
+      self[k] = nil
+   end
 end
 
 function Endpoint:sendEvent()

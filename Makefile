@@ -120,7 +120,7 @@ OPENSOURCE_APPS = brctl dropbear iptables busybox ntpclient ini mtd lua \
 INVENTEL_APPS = inventelbin sendarp ledctrl
 HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-xively xap-sms iServer \
 	xap-currentcost xap-googlecal xap-twitter xap-serial klone xap-plugboard \
-	xap-flash xap-urfrx
+	xap-flash xap-urfrx ini-migrate
 
 BUSYBOX_DIR = $(OPENSOURCE_DIR)/busybox
 

@@ -131,7 +131,7 @@ end
 
 function Endpoint:setText(text)
    self.state = STATE_ON
-   self.text = text
+   self.text = text or ""
 end
 
 function Endpoint:setDisplayText(text)
@@ -248,7 +248,8 @@ id=*
 end
 
 function sendText(target, text, state)
-  state = state or "on"
+  state = state or STATE_ON
+  text = text or ""
   send{target=target, text=text, state=state}
 end
 
@@ -257,6 +258,7 @@ function sendState(target, state)
 end
 
 function sendLevel(target, level, state)
-  state = state or "on"
+  state = state or STATE_ON
+  level = level or ""
   send{target=target, level=level, state=state}
 end

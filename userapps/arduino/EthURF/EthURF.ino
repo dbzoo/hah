@@ -3,7 +3,7 @@ Ethernet enabled Universal RF using xAP
 Allows you to place an Ethernet enabled Arduino on your network as an xAP compliant
 device that will accept the rf.xmit URF schema.
  
-Sample: http://www.dbzoo.com/livebox/universalrf#lightwaverf_dimmable_cfl_bulb
+Sample: http://www.dbzoo.com/livebox/universalrf#lidl_night_light
  
 xap-header
 {
@@ -16,7 +16,7 @@ target=dbzoo.ethurf.unit
 }
 rf
 {
-data=0101012C00FA012C04EC0601271048050A144D00A90514A0
+data=0101024407C6024401CC140116F80D3638
 } 
 */
 #include <EtherCard.h>
@@ -35,13 +35,17 @@ data=0101012C00FA012C04EC0601271048050A144D00A90514A0
  PIN 8  (RES)          N/A
  PIN 9  (VCC)          +3.3V
  PIN 10 (GND)          GND
+ 
+ RF MODULE
+ TX                    PIN 7
+ VCC                   +5v
+ GND                   GND
  */
 
 #define CS_PIN 10
 #define RFTX_PIN  7
 #define SERIAL_BAUD 57600
-#define SERIAL_DEBUG 0
-#define LED 6
+#define SERIAL_DEBUG 1
 
 // ethernet interface mac address
 static uint8_t mymac[6] = { 
@@ -59,8 +63,6 @@ static int freeRam () {
 }
 
 void setup() {
-  pinMode(LED, OUTPUT);
-  digitalWrite(LED,HIGH);
 #if SERIAL_DEBUG   
   Serial.begin(SERIAL_BAUD);
 reset:  
@@ -122,9 +124,7 @@ void xapCallback() {
   if(filter("xap-header","class", "rf.xmit") == 0) return;
   char *data = xap.getValue("rf","data");
   if(data == NULL) return;
-  digitalWrite(LED,LOW);
   RF.transmit(data);
-  digitalWrite(LED,HIGH);
   sendOK();  
 }
 

@@ -49,7 +49,7 @@ local masterini = config.read(srcFile, {variabilize=false})
 local output={}
 for k,v in pairs(masterini) do
    if sectionToFileMap[k] == nil then
-      utils.quit("missing mapping for section "..k)
+      sectionToFileMap[k] = "unknown.ini"
    end
    res = output[sectionToFileMap[k]]
    if res == nil then

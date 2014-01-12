@@ -12,7 +12,11 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 
 ###########################################
 TOOLCHAIN=/opt/bb/toolchain
-CROSS_COMPILE=$(TOOLCHAIN)/bin/arm-linux-
+
+# Comment out these 3 lines for native building.
+HOST=arm-linux
+XHOST=--host=$(HOST)
+CROSS_COMPILE=$(TOOLCHAIN)/bin/$(HOST)-
 
 AR              = $(CROSS_COMPILE)ar
 AS              = $(CROSS_COMPILE)as
@@ -152,9 +156,7 @@ libopenssl:
 	@if [ ! -d $(OPENSOURCE_DIR)/openssl-0.9.8l ]; then \
 	   (cd $(OPENSOURCE_DIR); tar zxf openssl-0.9.8l.tar.gz; ln -s openssl-0.9.8l openssl); \
 	fi
-	if [ ! -f $(OPENSOURCE_DIR)/openssl/Makefile ]; then \
-	  (cd $(OPENSOURCE_DIR)/openssl; ./Configure no-hw dist) \
-	fi
+	(cd $(OPENSOURCE_DIR)/openssl; ./Configure no-hw dist custom:$(CC) -fPIC)
 	$(MAKE) -C $(OPENSOURCE_DIR)/openssl CC=$(CC) AR="$(AR) r" RANLIB=$(RANLIB)
 # CURL wants to find them in the lib subdirectory.
 	test -d $(OPENSOURCE_DIR)/openssl/lib || mkdir $(OPENSOURCE_DIR)/openssl/lib
@@ -165,7 +167,7 @@ libcurl: libopenssl
 	   (cd $(OPENSOURCE_DIR); tar zxf curl-7.19.7.tar.gz; ln -s curl-7.19.7 curl; rm -f $(OPENSOURCE_DIR)/curl/Makefile) \
 	fi
 	@if [ ! -f $(OPENSOURCE_DIR)/curl/Makefile ]; then \
-	    (cd $(OPENSOURCE_DIR)/curl; ./configure CFLAGS='-Os' LDFLAGS='-Wl,-s -Wl,-Bsymbolic -Wl,--gc-sections' --host=arm-linux --with-ssl=$(OPENSOURCE_DIR)/openssl --with-random=/dev/urandom --disable-manual --disable-static --disable-proxy --enable-optimize --disable-tftp --disable-ftp --disable-dict --disable-ldap --disable-file --disable-telnet --disable-largefile --disable-debug --with-ca-bundle=/etc_ro_fs/curl-ca-bundle.crt --prefix=$(INSTALL_DIR)) \
+	    (cd $(OPENSOURCE_DIR)/curl; ./configure CFLAGS='-Os' LDFLAGS='-Wl,-s -Wl,-Bsymbolic -Wl,--gc-sections' $(XHOST) --with-ssl=$(OPENSOURCE_DIR)/openssl --with-random=/dev/urandom --disable-manual --disable-static --disable-proxy --enable-optimize --disable-tftp --disable-ftp --disable-dict --disable-ldap --disable-file --disable-telnet --disable-largefile --disable-debug --disable-ipv6 --with-ca-bundle=/etc_ro_fs/curl-ca-bundle.crt --prefix=$(INSTALL_DIR)) \
 	fi
 # Download the latest CERT bundle
 	test -f $(INSTALL_DIR)/etc_ro_fs/curl-ca-bundle.crt || wget -O $(INSTALL_DIR)/etc_ro_fs/curl-ca-bundle.crt http://curl.haxx.se/ca/cacert.pem
@@ -177,7 +179,7 @@ libxml2:
 	   (cd $(OPENSOURCE_DIR); tar zxf libxml2-2.7.6.tar.gz; ln -s libxml2-2.7.6 libxml2) \
 	fi
 	@if [ ! -f $(OPENSOURCE_DIR)/libxml2/Makefile ]; then \
-	  (cd $(OPENSOURCE_DIR)/libxml2; ./configure --host=arm-linux --disable-static --without-docbook --without-python --without-schematron --without-schemas --without-threads --without-zlib --without-valid --without-pattern --without-legacy --without-xinclude --without-modules --without-catalog --without-ftp --without-http --without-zlib --without-python --without-xptr --without-iso8859x --prefix=$(INSTALL_DIR)) \
+	  (cd $(OPENSOURCE_DIR)/libxml2; ./configure $(XHOST) --disable-static --without-docbook --without-python --without-schematron --without-schemas --without-threads --without-zlib --without-valid --without-pattern --without-legacy --without-xinclude --without-modules --without-catalog --without-ftp --without-http --without-zlib --without-python --without-xptr --without-iso8859x --prefix=$(INSTALL_DIR)) \
 	fi
 	$(MAKE) -C $(OPENSOURCE_DIR)/libxml2
 # install-strip is BROKEN with the above directive.. nice one.  So we do it manually.
@@ -195,7 +197,7 @@ libgcal: libxml2 libcurl
 	fi
 # GCC3 doesn't like -Wno-pointer-sign so remove it.
 	@if [ ! -f $(OPENSOURCE_DIR)/libgcal/Makefile ]; then \
-	  (cd $(OPENSOURCE_DIR)/libgcal-0.9.6; LIBCURL_LIBS=-lcurl LIBXML_LIBS=-L$(INSTALL_DIR)/lib LIBXML_CFLAGS="-I$(INSTALL_DIR)/include -I$(INSTALL_DIR)/include/libxml2" ./configure --host=arm-linux --disable-check --disable-static --prefix=$(INSTALL_DIR); mv Makefile Makefile.orig; sed 's/-Wno-pointer-sign//' Makefile.orig > Makefile ) \
+	  (cd $(OPENSOURCE_DIR)/libgcal-0.9.6; LIBCURL_LIBS=-lcurl LIBXML_LIBS=-L$(INSTALL_DIR)/lib LIBXML_CFLAGS="-I$(INSTALL_DIR)/include -I$(INSTALL_DIR)/include/libxml2" ./configure $(XHOST) --disable-check --disable-static --prefix=$(INSTALL_DIR); mv Makefile Makefile.orig; sed 's/-Wno-pointer-sign//' Makefile.orig > Makefile ) \
 	fi
 	$(MAKE) -C $(OPENSOURCE_DIR)/libgcal install-strip
 
@@ -228,7 +230,7 @@ ncurses:
 	  tar zxf ncurses-5.9.tar.gz \
 	  ) \
 	fi
-	(cd $(OPENSOURCE_DIR)/ncurses-5.9; ./configure --host=arm-linux --prefix=$(INSTALL_DIR) --without-cxx --without-manpages --without-progs --without-tests --without-debug --with-shared)
+	(cd $(OPENSOURCE_DIR)/ncurses-5.9; ./configure $(XHOST) --prefix=$(INSTALL_DIR) --without-cxx --without-manpages --without-progs --without-tests --without-debug --without-shared --enable-termcap --disable-database --disable-big-core --without-tic  --without-debug --without-profile)
 	$(MAKE) -C $(OPENSOURCE_DIR)/ncurses-5.9 install
 
 readline:
@@ -245,7 +247,7 @@ readline:
 	  done \
 	  ) \
 	fi
-	(cd $(OPENSOURCE_DIR)/readline-6.2; ./configure --host=arm-linux --prefix=$(INSTALL_DIR))
+	(cd $(OPENSOURCE_DIR)/readline-6.2; ./configure $(XHOST) --prefix=$(INSTALL_DIR))
 	$(MAKE) -C $(OPENSOURCE_DIR)/readline-6.2 install
 
 lua:
@@ -259,22 +261,22 @@ iServer: xaplib2
 	$(STRIP) $(INSTALL_DIR)/usr/bin/iServer
 
 luasocket:
-	$(MAKE) -C $(OPENSOURCE_DIR)/luasocket install LD="$(CC) -shared" PLATFORM=linux INSTALL_TOP="$(INSTALL_DIR)/usr" CFLAGS="-I$(OPENSOURCE_DIR)/lua/src"
+	$(MAKE) -C $(OPENSOURCE_DIR)/luasocket install LD="$(CC) -shared" PLATFORM=linux INSTALL_TOP="$(INSTALL_DIR)/usr" CFLAGS="-I$(OPENSOURCE_DIR)/lua/src -fPIC"
 	$(STRIP) $(INSTALL_DIR)/usr/lib/lua/5.1/socket/core.so
 	$(STRIP) $(INSTALL_DIR)/usr/lib/lua/5.1/mime/core.so
 
 luafilesystem:
-	$(MAKE) -C $(OPENSOURCE_DIR)/luafilesystem install PLATFORM=linux PREFIX="$(INSTALL_DIR)/usr" CFLAGS="-I$(OPENSOURCE_DIR)/lua/src"
+	$(MAKE) -C $(OPENSOURCE_DIR)/luafilesystem install PLATFORM=linux PREFIX="$(INSTALL_DIR)/usr" CFLAGS="-I$(OPENSOURCE_DIR)/lua/src -fPIC"
 	$(STRIP) $(INSTALL_DIR)/usr/lib/lua/5.1/lfs.so
 
 lrexlib:
 	mkdir -p $(INSTALL_DIR)/usr/lib/lua/5.1
-	$(MAKE) -C $(OPENSOURCE_DIR)/lrexlib build_posix AR="$(AR) rcu" PREFIX="$(INSTALL_DIR)/usr" CFLAGS="-I$(OPENSOURCE_DIR)/lua/src"
+	$(MAKE) -C $(OPENSOURCE_DIR)/lrexlib build_posix AR="$(AR) rcu" PREFIX="$(INSTALL_DIR)/usr" CFLAGS="-I$(OPENSOURCE_DIR)/lua/src -fPIC"
 	$(STRIP) $(INSTALL_DIR)/usr/lib/lua/5.1/rex_posix.so
 
 ipkg:
 	@if [ ! -f $(OPENSOURCE_DIR)/ipkg/Makefile ]; then \
-	   (cd $(OPENSOURCE_DIR)/ipkg; ./configure --host=arm --prefix=$(INSTALL_DIR)); \
+	   (cd $(OPENSOURCE_DIR)/ipkg; ./configure $(XHOST) --prefix=$(INSTALL_DIR)); \
 	fi
 	$(MAKE) -C $(OPENSOURCE_DIR)/ipkg
 	$(MAKE) -C $(OPENSOURCE_DIR)/ipkg install-exec

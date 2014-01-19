@@ -15,7 +15,9 @@ module("bluenode", package.seeall)
 require("xap.bsc")
 jeenode = require("xap.jeenode")
 Nodule = jeenode.Nodule
-require("pl.class").BlueNode(Nodule)
+class = require("pl.class")
+
+class.BlueNode(Nodule)
 
 --[[
 Sample configuation for RF node 18 which has a BT device attached.

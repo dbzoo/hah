@@ -8,6 +8,7 @@
    All derivative work must retain this message and
    acknowledge the work of the original author.
 --]]
+local _G = _G
 local DEBUG = rawget(_G,'_DEBUG')
 
 module("bluenode", package.seeall)
@@ -123,3 +124,5 @@ function BlueNode.reaper(_, self)
         end
     end
 end
+
+return BlueNode

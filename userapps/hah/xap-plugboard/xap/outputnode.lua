@@ -53,3 +53,5 @@ struct {
    local p1, p2, p3, p4, lobat = jeenode.bitslicer(data,1,1,1,1,1)
    Nodule.process(self,{p1=p1,p2=p2,p3=p3,p4=p4,lobat=lobat})
 end
+
+return OutputNode

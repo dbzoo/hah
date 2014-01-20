@@ -6,7 +6,7 @@
 --]]
 module(...,package.seeall)
 require("xap")
-info = {version="0.02", description="Auto Fan"}
+info = {version="0.03", description="Auto Fan"}
 
 local sensor = "dbzoo.livebox.Controller:1wire.1"
 local fan = "dbzoo.livebox.Controller:relay.4"
@@ -25,7 +25,7 @@ function tempEvent(frame)
   temp = tonumber(frame:getValue("input.state","text"))
   --print(string.format("Temp %s", temp))
   if temp < prevTemp then
-     if temp < 26 then
+     if temp < 26 and autoShut then
         fanOff()
      end
   elseif temp > prevTemp then

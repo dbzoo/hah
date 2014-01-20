@@ -6,13 +6,14 @@
 module(...,package.seeall)
 
 monitor = require("xap.jeenode").monitor
-RoomNode = require("xap.roomnode").RoomNode
-OutputNode = require("xap.outputnode").OutputNode
-IRNode = require("xap.irnode").IRNode
-BoilerNode = require("boilernode").BoilerNode
+RoomNode = require("xap.roomnode")
+OutputNode = require("xap.outputnode")
+IRNode = require("xap.irnode")
+BoilerNode = require("xap.boilernode")
+BlueNode = require("xap.bluenode")
 
 info={
-   version="3.0", description="JeeNode"
+   version="4.0", description="JeeNode"
 }
 
 local jeemon={
@@ -31,6 +32,7 @@ local nodes = {
    [4] = OutputNode{instance="jeenode:bedroom",endpoints={p1="light",p2="heater",p3="amp",p4=0}},
    [5] = IRNode{instance="jeenode:ir"},
    [6] = BoilerNode{instance="jeenode:boiler", endpoints={temp=1}, ttl=360},
+   [7] = BlueNode{instance="bluetooth:presence"}
 }
 
 function init()

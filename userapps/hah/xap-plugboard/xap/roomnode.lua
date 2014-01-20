@@ -54,3 +54,5 @@ struct {
    -- The keys here must match the key values from the self:add{key=x}
    Nodule.process(self,{light=li,moved=mo,humi=hu,temp=te,lobat=lo})
 end
+
+return RoomNode

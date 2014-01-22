@@ -441,6 +441,9 @@ function getDeviceID()
    local xapini = config.read("/etc/xap.d/system.ini")
    if xapini and xapini['xap'] then
       deviceid = xapini.xap['instance']
+      if deviceid and #deviceid == 0 then
+	 deviceid = nil
+      end
    end
    if deviceid == nil then 
       deviceid = stringx.split(socket.dns.gethostname(),'.')[1] 

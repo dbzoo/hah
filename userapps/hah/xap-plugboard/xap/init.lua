@@ -440,7 +440,7 @@ end
 function getDeviceID()
    local xapini = config.read("/etc/xap.d/system.ini")
    if xapini and xapini['xap'] then
-      deviceid = xapini.xap['instance']
+      deviceid = xapini.xap['deviceid']
       if deviceid and #deviceid == 0 then
 	 deviceid = nil
       end

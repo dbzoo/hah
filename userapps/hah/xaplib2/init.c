@@ -284,8 +284,8 @@ void xapInitFromINI(
                 strlcat(s_control,".", sizeof(s_control));
         }
         // If there a unique HAH sub address component?
-        n = ini_gets("xap","instance","",i_control,sizeof(i_control),"/etc/xap.d/system.ini");
-        if(i_control[0]) {
+        n = ini_gets("xap","deviceid","",i_control,sizeof(i_control),"/etc/xap.d/system.ini");
+        if(n > 0) {
                 strlcat(s_control, i_control, sizeof(s_control));
         } else {
 	  // Default to hostname

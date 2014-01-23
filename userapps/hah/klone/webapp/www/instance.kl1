@@ -28,12 +28,12 @@ struct _daemon {
 	{"xap-iserver", "iserver","iServer","00DE",""}
 };
 #define daemonCount (sizeof(daemons)/sizeof(daemons[0]))
-char iniInstance[32];
+char iniDevice[32];
 
 static void submit_form() {
-	 const char *instance = request_get_arg(request,"instance");
-	 if(instance && strcmp(instance,iniInstance)) {
-		 ini_puts("xap","instance",instance, "/etc/xap.d/system.ini");
+	 const char *device = request_get_arg(request,"deviceid");
+	 if(device && strcmp(device,iniDevice)) {
+		 ini_puts("xap","deviceid",device, "/etc/xap.d/system.ini");
 		 reboot = 1;
 	 }
 	 
@@ -55,7 +55,7 @@ static void readIni() {
 	 int i;
 	 char uidKey[5];
 
-	 ini_gets("xap","instance","",iniInstance,sizeof(iniInstance), "/etc/xap.d/system.ini");
+	 ini_gets("xap","deviceid","",iniDevice,sizeof(iniDevice), "/etc/xap.d/system.ini");
 	 for(i=0; i<daemonCount; i++) {
 		 char inifile[40];
 		 sprintf(inifile, "/etc/xap.d/%.ini", daemons[i].file);
@@ -104,15 +104,15 @@ function reboot(F) {
 <br/>
 <form name="frmControl" action="<%= SCRIPT_NAME %>" method="post">
 <input type="hidden" name="action" />
-<h2>HAH Instance</h2>
+<h2>HAH Device</h2>
 <p>These settings should only need to be changed if you have more then one HAH box running on the same subnet.<br/>You must also ensure that each has a unique MAC address via the <a href="/setup.kl1">setup<a> page</p>
 
 <fieldset>
-  <legend>Instance Settings</legend>
+  <legend>Device Settings</legend>
 
   <div class="setting">
-    <div class="label">HAH Instance</div>
-    <input maxlength="30" size="25" name="instance" value="<%= iniInstance %>"/>
+    <div class="label">HAH Device</div>
+    <input maxlength="30" size="25" name="device" value="<%= iniDevice %>"/>
     <span class="default">(Default: null)</span>
   </div>
 

@@ -11,7 +11,12 @@ char *u_strndup(char *, int);
 const_init() {
 	 int size;
 	 char *file;
-	 if(u_load_file("/etc_ro_fs/build", 15, &file, &size)) {
+	 int ret = u_load_file("/etc_ro_fs/build", 15, &file, &size); // 0 on success, ~0 error
+	 
+	 if(ret) {
+	   ret = u_load_file("/etc/xap.d/build", 15, &file, &size);
+	 }	 
+	 if(ret) {
 		  con.build = strdup("?");
 	 } else {
 		  con.build = u_strndup(file, size);

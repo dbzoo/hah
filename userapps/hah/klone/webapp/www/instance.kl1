@@ -40,11 +40,11 @@ static void submit_form() {
 	 int i;
 	 char uidKey[5];
 	 for(i=0; i<daemonCount; i++) {
-		 sprintf(uidKey,"uid%d", i);
+	         snprintf(uidKey, sizeof uidKey, "uid%d", i);
 		 const char *uid = request_get_arg(request, uidKey);
 		 if(uid && strcmp(uid, daemons[i].uid)) {
 			 char inifile[40];
-			 sprintf(inifile, "/etc/xap.d/%.ini", daemons[i].file);
+			 snprintf(inifile, sizeof inifile, "/etc/xap.d/%.ini", daemons[i].file);
 			 ini_puts(daemons[i].section,"uid",uid, inifile);
 			 reboot = 1;
 		 }
@@ -58,9 +58,9 @@ static void readIni() {
 	 ini_gets("xap","deviceid","",iniDevice,sizeof(iniDevice), "/etc/xap.d/system.ini");
 	 for(i=0; i<daemonCount; i++) {
 		 char inifile[40];
-		 sprintf(inifile, "/etc/xap.d/%.ini", daemons[i].file);
-		 sprintf(uidKey,"uid%d", i);
-		 ini_gets(daemons[i].section,"uid",daemons[i].dflt,daemons[i].uid,sizeof(daemons[i].uid),inifile);
+		 snprintf(inifile, sizeof inifile, "/etc/xap.d/%.ini", daemons[i].file);
+		 snprintf(uidKey, sizeof uidKey, "uid%d", i);
+		 ini_gets(daemons[i].section,"uid",daemons[i].dflt,daemons[i].uid,5,inifile);
 	 }
 }
 %>

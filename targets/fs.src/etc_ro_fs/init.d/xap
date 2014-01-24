@@ -8,9 +8,9 @@ subsystem="hub xively livebox iserver web sms serial currentcost twitter googlec
 start_web() {
     rm -f /tmp/klone_sess*
     if [ -f /etc/kloned.conf ]; then
-	/usr/bin/kloned -f /etc/kloned.conf
+        /usr/bin/kloned -f /etc/kloned.conf
     else
-	/usr/bin/kloned
+        /usr/bin/kloned
     fi
 }
 
@@ -37,7 +37,7 @@ stop_livebox() {
 start_serial() {
     INI="/etc/xap.d/xap-serial.ini"
     if [ `iniget $INI serial enable 0` -eq 1 ] ;  then 
-	/usr/bin/xap-serial -i $MYDEV >/var/log/xap-serial.log 2>&1 &
+        /usr/bin/xap-serial -i $MYDEV >/var/log/xap-serial.log 2>&1 &
     fi
 }
 stop_serial() {
@@ -47,7 +47,7 @@ stop_serial() {
 start_twitter() {
     INI="/etc/xap.d/xap-twitter.ini"
     if [ `iniget $INI twitter enable 0` -eq 1 ] ;  then 
-	/usr/bin/xap-twitter -i $MYDEV >/var/log/xap-twitter.log 2>&1 &
+        /usr/bin/xap-twitter -i $MYDEV >/var/log/xap-twitter.log 2>&1 &
     fi
 }
 stop_twitter() {
@@ -57,8 +57,8 @@ stop_twitter() {
 start_sms() {
     INI="/etc/xap.d/xap-sms.ini"
     if [ `iniget $INI sms enable 0` -eq 1 ] ;  then 
-	USBSERIAL=`iniget $INI sms usbserial /dev/ttyUSB0`
-	/usr/bin/xap-sms -s $USBSERIAL -i $MYDEV >/var/log/xap-sms.log 2>&1 &
+        USBSERIAL=`iniget $INI sms usbserial /dev/ttyUSB0`
+        /usr/bin/xap-sms -s $USBSERIAL -i $MYDEV >/var/log/xap-sms.log 2>&1 &
     fi
 }
 stop_sms() {
@@ -68,7 +68,7 @@ stop_sms() {
 start_xively() {
     INI="/etc/xap.d/xap-xively.ini"
     if [ `iniget $INI xively enable 0` -eq 1 ] ;  then 
-	/usr/bin/xap-xively -i $MYDEV >/var/log/xap-xively.log 2>&1 &
+        /usr/bin/xap-xively -i $MYDEV >/var/log/xap-xively.log 2>&1 &
     fi
 }
 stop_xively() {
@@ -78,8 +78,8 @@ stop_xively() {
 start_currentcost() {
     INI="/etc/xap.d/xap-currentcost.ini"
     if [ `iniget $INI currentcost enable 0` -eq 1 ] ;  then 
-	USBSERIAL=`iniget $INI currentcost usbserial /dev/ttyUSB0`
-	/usr/bin/xap-currentcost -s $USBSERIAL -i $MYDEV >/var/log/xap-currentcost.log 2>&1 &
+        USBSERIAL=`iniget $INI currentcost usbserial /dev/ttyUSB0`
+        /usr/bin/xap-currentcost -s $USBSERIAL -i $MYDEV >/var/log/xap-currentcost.log 2>&1 &
     fi
 }
 stop_currentcost() {
@@ -89,7 +89,7 @@ stop_currentcost() {
 start_googlecal() {
     INI="/etc/xap.d/xap-googlecal.ini"
     if [ `iniget $INI googlecal enable 0` -eq 1 ] ;  then 
-	/usr/bin/xap-googlecal -i $MYDEV >/var/log/xap-googlecal.log 2>&1 &
+        /usr/bin/xap-googlecal -i $MYDEV >/var/log/xap-googlecal.log 2>&1 &
     fi
 }
 stop_googlecal() {
@@ -99,9 +99,9 @@ stop_googlecal() {
 start_plugboard() {
     INI="/etc/xap.d/plugboard.ini"
     if [ `iniget $INI plugboard enable 0` -eq 1 ] ;  then 
-	/usr/bin/xap-plugboard >/var/log/xap-plugboard.log 2>&1 &
-	pid=$!
-	echo $pid >/var/run/xap-plugboard.pid
+        /usr/bin/xap-plugboard >/var/log/xap-plugboard.log 2>&1 &
+        pid=$!
+        echo $pid >/var/run/xap-plugboard.pid
     fi
 }
 
@@ -112,7 +112,7 @@ stop_plugboard() {
 start_iserver() {
     INI="/etc/xap.d/iserver.ini"
     if [ `iniget $INI iserver enable 0` -eq 1 ] ;  then 
-	/usr/bin/iServer -i $MYDEV >/var/log/iserver.log 2>&1 &
+        /usr/bin/iServer -i $MYDEV >/var/log/iserver.log 2>&1 &
     fi
 }
 stop_iserver() {
@@ -122,8 +122,8 @@ stop_iserver() {
 start_urfrx() {
     INI="/etc/xap.d/xap-urfrx.ini"
     if [ `iniget $INI urfrx enable 0` -eq 1 ] ;  then 
-	SERIALPORT=`iniget $INI urfrx serialport /dev/ttyUSB0`
-	/usr/bin/xap-urfrx -i $MYDEV -s $SERIALPORT >/var/log/xap-urfrx.log 2>&1 &
+        SERIALPORT=`iniget $INI urfrx serialport /dev/ttyUSB0`
+        /usr/bin/xap-urfrx -i $MYDEV -s $SERIALPORT >/var/log/xap-urfrx.log 2>&1 &
     fi
 }
 stop_urfrx() {
@@ -135,8 +135,8 @@ all() {
     local i cmd
     IFS=" "
     for i in $subsystem; do
-	cmd="$1_$i"
-	$cmd 2>/dev/null
+        cmd="$1_$i"
+        $cmd 2>/dev/null
     done
 }
 
@@ -146,11 +146,11 @@ subsystem() {
     local i cmd
     IFS=" "
     for i in $subsystem; do
-	if [ "$i" = "$2" ]; then
-	    cmd="$1_$2"
-	    $cmd 2>/dev/null
-	    return
-	fi
+        if [ "$i" = "$2" ]; then
+            cmd="$1_$2"
+            $cmd 2>/dev/null
+            return
+        fi
     done
     echo "Subsystem $2 not found"
 }
@@ -159,34 +159,37 @@ INI="/etc/xap.d/system.ini"
 if [ `iniget $INI network config_bridge 1` -eq 0 ] ;  then 
     MYDEV=eth0
 else
-    MYDEV=br0	
+    MYDEV=br0   
 fi
 
 case $1 in
     start|stop)
-	if [ -z "$2" ]; then
-	    all $1
-	else
-	    action=$1
-	    shift
-	    for i in $*; do
-	      subsystem $action $i
+        if [ -z "$2" ]; then
+            all $1
+        else
+            action=$1
+            shift
+            for i in $*; do
+              subsystem $action $i
             done
-	fi
-	;;
+        fi
+        ;;
     restart)
-	if [ -z "$2" ]; then
-	    all stop
-	    all start
-	else
-	    shift
-	    for i in $*; do
-	      subsystem stop $i
-	      subsystem start $i
+        if [ -z "$2" ]; then
+            all stop
+            all start
+        else
+            shift
+            for i in $*; do
+              subsystem stop $i
+              subsystem start $i
             done
-	fi
-	;;
+        fi
+        ;;
      
     *)
-	echo "Usage $0 <start|stop|restart> [component...]"
+        echo "Usage $0 <start|stop|restart> [component...]"
+        exit 1
+        ;;
 esac
+exit 0

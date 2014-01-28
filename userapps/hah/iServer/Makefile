@@ -1,6 +1,7 @@
 OBJECTS=tokenize.o main.o queue.o mem.o
 XAPLIB=../xaplib2
 CFLAGS=-I$(XAPLIB) -g
+LEX=flex
 
 all: $(OBJECTS)
 	$(CC) -o iServer $(OBJECTS) -L$(XAPLIB) -lxap2 -lpthread

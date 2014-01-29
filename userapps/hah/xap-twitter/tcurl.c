@@ -234,7 +234,7 @@ int deleteTweetById( tcurl *c, long long id ) {
         int retVal = -1;
         if( isCurlInit(c) )
         {
-                snprintf(c->url, TWITCURL_URL_LEN, "http://api.twitter.com/1.1/statuses/destroy/%lld.json", id);
+                snprintf(c->url, TWITCURL_URL_LEN, "https://api.twitter.com/1.1/statuses/destroy/%lld.json", id);
                 retVal = performDelete( c );
         }
         return retVal;
@@ -243,7 +243,7 @@ int deleteTweetById( tcurl *c, long long id ) {
 int userGet(tcurl *c, char *userInfo, int isUserId) {
         int retVal;
         if( isCurlInit(c) && userInfo) {
-                strcpy(c->url, "http://twitter.com/users/show.json");
+                strcpy(c->url, "https://twitter.com/users/show.json");
                 strcat(c->url, isUserId ? "?user_id=" : "?screen_name=");
                 strcat(c->url, userInfo);
                 retVal = performGet(c);
@@ -265,9 +265,9 @@ int getLatestTweet(tcurl *c, char *content, int clen, long long *id)
 	debug("Get tweet after this ID %lld", *id);
 
 	if (*id > 0) { // Get tweet after this POINT
-		snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1.1/statuses/user_timeline.json?user_id=%s&since_id=%lld&trim_user=1&count=1", c->userid, *id);
+		snprintf(c->url, TWITCURL_URL_LEN,"https://api.twitter.com/1.1/statuses/user_timeline.json?user_id=%s&since_id=%lld&trim_user=1&count=1", c->userid, *id);
 	} else { // Get the latest
-		snprintf(c->url, TWITCURL_URL_LEN,"http://api.twitter.com/1.1/statuses/user_timeline.json?user_id=%s&trim_user=1&count=1", c->userid);
+		snprintf(c->url, TWITCURL_URL_LEN,"https://api.twitter.com/1.1/statuses/user_timeline.json?user_id=%s&trim_user=1&count=1", c->userid);
 	}
 
 	if(performGet(c)) {

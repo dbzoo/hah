@@ -180,7 +180,7 @@ char *oauthGetAuthorizeUrl(tcurl *c, char *callbackURL) {
                 c->oauthAccessKey = NULL;
                 c->oauthAccessSecret = NULL;
 
-                sprintf(c->url, "http://api.twitter.com/oauth/request_token?oauth_callback=%s", callbackURL);
+                sprintf(c->url, "https://api.twitter.com/oauth/request_token?oauth_callback=%s", callbackURL);
                 performGet(c);
         
                 char *reply = getLastWebResponse(c);
@@ -193,13 +193,16 @@ char *oauthGetAuthorizeUrl(tcurl *c, char *callbackURL) {
                 if (oauthParseReply(reply, &t_key, &t_secret, NULL, NULL)) {
 		  io_printf(c->out,"<p>Unable to parse data from twitter. Content:<pre>");
 		  io_printf(c->out,reply);
-		  io_printf(c->out,"</pre></p>");
+		  io_printf(c->out,"</pre><pre>");
+		  int responseCode;
+		  curl_easy_getinfo(c->curlHandle, CURLINFO_HTTP_CODE, &responseCode);
+		  io_printf(c->out,"response Code: %d</pre></p>", responseCode);
 		  return NULL;
                 }
         
                 /* Compile url string */
                 char *t_url = (char *)malloc(50 + strlen(t_key));
-                strcpy(t_url,"https://twitter.com/oauth/authorize?oauth_token=");
+                strcpy(t_url,"https://api.twitter.com/oauth/authorize?oauth_token=");
                 strcat(t_url, t_key);
                 
                 /* Set temporary access key/secret */
@@ -226,7 +229,7 @@ int oauthAuthorize(tcurl *c, char *oauth_verify) {
   
         if( isCurlInit(c) )
         {
-                strcpy(c->url, "http://api.twitter.com/oauth/access_token?oauth_verifier=");
+                strcpy(c->url, "https://api.twitter.com/oauth/access_token?oauth_verifier=");
                 strcat(c->url, oauth_verify);      
                 if(! performGet(c)) return -1;
       

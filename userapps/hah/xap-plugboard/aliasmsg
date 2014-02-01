@@ -1,6 +1,5 @@
 #!/usr/bin/lua
 -- $Id$
-require("pl")
 lapp = require("pl.lapp")
 local args = lapp
 [[

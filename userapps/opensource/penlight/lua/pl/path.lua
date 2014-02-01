@@ -18,89 +18,100 @@ local ipairs = ipairs
 local utils = require 'pl.utils'
 local assert_arg,assert_string,raise = utils.assert_arg,utils.assert_string,utils.raise
 
---[[
-module ('pl.path',utils._module)
-]]
+local attrib
+local path = {}
 
-local path, attrib
-
-if rawget(_G,'luajava') then
-    path = require 'pl.platf.luajava'
+local res,lfs = _G.pcall(_G.require,'lfs')
+if res then
+    attributes = lfs.attributes
+    currentdir = lfs.currentdir
+    link_attrib = lfs.symlinkattributes
 else
-    path = {}
+    error("pl.path requires LuaFileSystem")
+end
 
-    local res,lfs = _G.pcall(_G.require,'lfs')
-    if res then
-        attributes = lfs.attributes
-        currentdir = lfs.currentdir
-        link_attrib = lfs.symlinkattributes
+attrib = attributes
+path.attrib = attrib
+path.link_attrib = link_attrib
+
+--- Lua iterator over the entries of a given directory.
+-- Behaves like `lfs.dir`
+path.dir = lfs.dir
+
+--- Creates a directory.
+path.mkdir = lfs.mkdir
+
+--- Removes a directory.
+path.rmdir = lfs.rmdir
+
+---- Get the working directory.
+path.currentdir = currentdir
+
+--- Changes the working directory.
+path.chdir = lfs.chdir
+
+
+--- is this a directory?
+-- @param P A file path
+function path.isdir(P)
+	assert_string(1,P)
+    if P:match("\\$") then
+        P = P:sub(1,-2)
+    end
+    return attrib(P,'mode') == 'directory'
+end
+
+--- is this a file?.
+-- @param P A file path
+function path.isfile(P)
+	assert_string(1,P)
+    return attrib(P,'mode') == 'file'
+end
+
+-- is this a symbolic link?
+-- @param P A file path
+function path.islink(P)
+	assert_string(1,P)
+    if link_attrib then
+        return link_attrib(P,'mode')=='link'
     else
-        error("pl.path requires LuaFileSystem")
+        return false
     end
+end
 
-    attrib = attributes
-    path.attrib = attrib
-    path.link_attrib = link_attrib
-    path.dir = lfs.dir
-    path.mkdir = lfs.mkdir
-    path.rmdir = lfs.rmdir
-    path.chdir = lfs.chdir
+--- return size of a file.
+-- @param P A file path
+function path.getsize(P)
+	assert_string(1,P)
+    return attrib(P,'size')
+end
 
-    --- is this a directory?
-    -- @param P A file path
-    function path.isdir(P)
-        if P:match("\\$") then
-            P = P:sub(1,-2)
-        end
-        return attrib(P,'mode') == 'directory'
-    end
+--- does a path exist?.
+-- @param P A file path
+-- @return the file path if it exists, nil otherwise
+function path.exists(P)
+	assert_string(1,P)
+    return attrib(P,'mode') ~= nil and P
+end
 
-    --- is this a file?.
-    -- @param P A file path
-    function path.isfile(P)
-        return attrib(P,'mode') == 'file'
-    end
+--- Return the time of last access as the number of seconds since the epoch.
+-- @param P A file path
+function path.getatime(P)
+	assert_string(1,P)
+    return attrib(P,'access')
+end
 
-    -- is this a symbolic link?
-    -- @param P A file path
-    function path.islink(P)
-        if link_attrib then
-            return link_attrib(P,'mode')=='link'
-        else
-            return false
-        end
-    end
+--- Return the time of last modification
+-- @param P A file path
+function path.getmtime(P)
+    return attrib(P,'modification')
+end
 
-    --- return size of a file.
-    -- @param P A file path
-    function path.getsize(P)
-        return attrib(P,'size')
-    end
-
-    --- does a path exist?.
-    -- @param P A file path
-    -- @return the file path if it exists, nil otherwise
-    function path.exists(P)
-        return attrib(P,'mode') ~= nil and P
-    end
-
-    --- Return the time of last access as the number of seconds since the epoch.
-    -- @param P A file path
-    function path.getatime(P)
-        return attrib(P,'access')
-    end
-
-    --- Return the time of last modification
-    -- @param P A file path
-    function path.getmtime(P)
-        return attrib(P,'modification')
-    end
-
-    ---Return the system's ctime.
-    -- @param P A file path
-    function path.getctime(P)
-        return path.attrib(P,'change')
-    end
+---Return the system's ctime.
+-- @param P A file path
+function path.getctime(P)
+	assert_string(1,P)
+    return path.attrib(P,'change')
 end
 
 
@@ -156,6 +167,7 @@ end
 -- @param pwd optional start path to use (default is current dir)
 function path.abspath(P,pwd)
     assert_string(1,P)
+	if pwd then assert_string(2,pwd) end
     local use_pwd = pwd ~= nil
     if not use_pwd and not currentdir then return P end
     P = P:gsub('[\\/]$','')
@@ -224,16 +236,27 @@ function path.isabs(P)
     end
 end
 
---- return the P resulting from combining the two paths.
--- if the second is already an absolute path, then it returns it.
+--- return the path resulting from combining the individual paths.
+-- if the second (or later) path is absolute, we return the last absolute path (joined with any non-absolute paths following).
+-- empty elements (except the last) will be ignored.
 -- @param p1 A file path
 -- @param p2 A file path
-function path.join(p1,p2)
+-- @param ... more file paths
+function path.join(p1,p2,...)
     assert_string(1,p1)
     assert_string(2,p2)
+    if select('#',...) > 0 then
+        local p = path.join(p1,p2)
+        local args = {...}
+        for i = 1,#args do
+            assert_string(i,args[i])
+            p = path.join(p,args[i])
+        end
+        return p
+    end
     if path.isabs(p2) then return p2 end
     local endc = at(p1,#p1)
-    if endc ~= path.sep and endc ~= other_sep then
+    if endc ~= path.sep and endc ~= other_sep and endc ~= "" then
         p1 = p1..path.sep
     end
     return p1..p2
@@ -252,17 +275,33 @@ function path.normcase(P)
     end
 end
 
+local np_gen1,np_gen2 = '[^SEP]+SEP%.%.SEP?','SEP+%.?SEP'
+local np_pat1, np_pat2
+
 --- normalize a path name.
 --  A//B, A/./B and A/foo/../B all become A/B.
 -- @param P a file path
-function path.normpath (P)
+function path.normpath(P)
     assert_string(1,P)
     if path.is_windows then
+        if P:match '^\\\\' then -- UNC
+            return '\\\\'..path.normpath(P:sub(3))
+        end
         P = P:gsub('/','\\')
-        return (P:gsub('[^\\]+\\%.%.\\',''):gsub('\\%.?\\','\\'))
-    else
-        return (P:gsub('[^/]+/%.%./',''):gsub('/%.?/','/'))
     end
+    if not np_pat1 then
+        np_pat1 = np_gen1:gsub('SEP',sep)
+        np_pat2 = np_gen2:gsub('SEP',sep)
+    end
+    local k
+    repeat -- /./ -> /
+        P,k = P:gsub(np_pat2,sep)
+    until k == 0
+    repeat -- A/../ -> (empty)
+        P,k = P:gsub(np_pat1,'')
+    until k == 0
+    if P == '' then P = '.' end
+    return P
 end
 
 local function ATS (P)
@@ -276,6 +315,8 @@ end
 -- @param P a path
 -- @param start optional start point (default current directory)
 function path.relpath (P,start)
+    assert_string(1,P)
+	if start then assert_string(2,start) end
     local split,normcase,min,append = utils.split, path.normcase, math.min, table.insert
     P = normcase(path.abspath(P,start))
     start = start or currentdir()
@@ -317,10 +358,10 @@ end
 
 
 ---Return a suitable full path to a new temporary file name.
--- unlike os.tmpnam(), it always gives you a writeable path (uses %TMP% on Windows)
+-- unlike os.tmpnam(), it always gives you a writeable path (uses TEMP environment variable on Windows)
 function path.tmpname ()
     local res = tmpnam()
-    if path.is_windows then res = getenv('TMP')..res end
+    if path.is_windows then res = getenv('TEMP')..res end
     return res
 end
 
@@ -351,7 +392,7 @@ end
 
 --- return the full path where a particular Lua module would be found.
 -- Both package.path and package.cpath is searched, so the result may
--- either be a Lua file or a shared libarary.
+-- either be a Lua file or a shared library.
 -- @param mod name of the module
 -- @return on success: path of module, lua or binary
 -- @return on error: nil,error string

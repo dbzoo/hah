@@ -16,17 +16,17 @@
 --     > = fruit*colours
 --     [orange]
 --
--- Depdencies: `pl.utils`, `pl.tablex`, `pl.class`
--- @module pl.Set
+-- Depdencies: `pl.utils`, `pl.tablex`, `pl.class`, (`pl.List` if __tostring is used)
+-- @classmod pl.Set
 
 local tablex = require 'pl.tablex'
 local utils = require 'pl.utils'
-local stdmt = utils.stdmt
+local array_tostring, concat = utils.array_tostring, table.concat
 local tmakeset,deepcompare,merge,keys,difference,tupdate = tablex.makeset,tablex.deepcompare,tablex.merge,tablex.keys,tablex.difference,tablex.update
 local Map = require 'pl.Map'
-local Set = stdmt.Set
-local List = stdmt.List
 local class = require 'pl.class'
+local stdmt = utils.stdmt
+local Set = stdmt.Set
 
 -- the Set class --------------------
 class(Map,nil,Set)
@@ -43,6 +43,7 @@ end
 -- @class function
 -- @name Set
 function Set:_init (t)
+    t = t or {}
     local mt = getmetatable(t)
     if mt == Set or mt == Map then
         for k in pairs(t) do self[k] = true end
@@ -51,8 +52,10 @@ function Set:_init (t)
     end
 end
 
+--- string representation of a set.
+-- @within metamethods
 function Set:__tostring ()
-    return '['..Set.values(self):join ','..']'
+    return '['..concat(array_tostring(Set.values(self)),',')..']'
 end
 
 --- get a list of the values in a set.
@@ -81,6 +84,10 @@ end
 function Set.union (self,set)
     return merge(self,set,true)
 end
+
+--- union of sets.
+-- @within metamethods
+-- @function Set.__add
 Set.__add = Set.union
 
 --- intersection of two sets (also *).
@@ -90,6 +97,10 @@ Set.__add = Set.union
 function Set.intersection (self,set)
     return merge(self,set,false)
 end
+
+--- intersection of sets.
+-- @within metamethods
+-- @function Set.__mul
 Set.__mul = Set.intersection
 
 --- new set with elements in the set that are not in the other (also -).
@@ -99,6 +110,11 @@ Set.__mul = Set.intersection
 function Set.difference (self,set)
     return difference(self,set,false)
 end
+
+
+--- difference of sets.
+-- @within metamethods
+-- @function Set.__sub
 Set.__sub = Set.difference
 
 -- a new set with elements in _either_ the set _or_ other but not both (also ^).
@@ -108,6 +124,10 @@ Set.__sub = Set.difference
 function Set.symmetric_difference (self,set)
     return difference(self,set,true)
 end
+
+--- symmetric difference of sets.
+-- @within metamethods
+-- @function Set.__pow
 Set.__pow = Set.symmetric_difference
 
 --- is the first set a subset of the second (also <)?.
@@ -120,12 +140,16 @@ function Set.issubset (self,set)
     end
     return true
 end
-Set.__lt = Set.subset
+
+--- first set subset of second?
+-- @within metamethods
+-- @function Set.__lt
+Set.__lt = Set.issubset
 
 --- is the set empty?.
 -- @param self a Set
 -- @return true or false
-function Set.issempty (self)
+function Set.isempty (self)
     return next(self) == nil
 end
 
@@ -138,6 +162,19 @@ function Set.isdisjoint (s1,s2)
     return Set.isempty(Set.intersection(s1,s2))
 end
 
+--- size of this set (also # for 5.2).
+-- @param s a Set
+-- @return size
+-- @function Set.len
+Set.len = tablex.size
+
+--- cardinality of set (5.2).
+-- @within metamethods
+-- @function Set.__len
+Set.__len = Set.len
+
+--- equality between sets.
+-- @within metamethods
 function Set.__eq (s1,s2)
     return Set.issubset(s1,s2) and Set.issubset(s2,s1)
 end

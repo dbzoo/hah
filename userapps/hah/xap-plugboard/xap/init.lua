@@ -16,6 +16,7 @@ require("socket")
 local class = require("pl.class")
 local List = require("pl.List")
 local config = require("pl.config")
+local stringx = require("pl.stringx")
 
 local gframe
 defaultKeys={}

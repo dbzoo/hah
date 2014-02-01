@@ -45,3 +45,5 @@ bits=%s
 value=%s
 }]], self.base, self.uid, type, bits, value))
 end
+
+return IRNode

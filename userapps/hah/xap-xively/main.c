@@ -186,10 +186,14 @@ void parseINI()
                 wf->key = getDynINI("key",i,MANDATORY);
 
                 xAPFilter *xf = NULL;
-                xapAddFilter(&xf, "xap-header", "source", getDynINI("source",i,MANDATORY));
-	        xapAddFilter(&xf, "xap-header", "class", getDynINI("class",i,MANDATORY));
+		char *source = getDynINI("source",i,MANDATORY);
+		char *class = getDynINI("class",i,MANDATORY);
+                xapAddFilter(&xf, "xap-header", "source", source);
+	        xapAddFilter(&xf, "xap-header", "class", class);
 	        xapAddFilter(&xf, wf->section, wf->key, XAP_FILTER_ANY);
                 xapAddFilterAction(&broadcastUpdate, xf, wf);
+		free(source);
+		free(class);
         }
 }
 

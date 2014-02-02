@@ -120,7 +120,7 @@ addEvent(window,"load",function() {
 	<input class="spaceradio" type="radio" value="1" name="sms_enable" onclick="show_layer_ext(this, 'idsms', true);"<% if(ini.sms_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
     <input class="spaceradio" type="radio" value="0" name="sms_enable" onclick="show_layer_ext(this, 'idsms', false);"<% if(ini.sms_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
   </div>
-  <div class="setting" id="idsms">
+  <div class="setting" id="idsms" style="display:none; visibility:hidden">
     <div class="setting">
        <div class="label">USB Serial Device</div>
        <input type="text" name="sms_usbserial" value="<%= ini.sms_usbserial %>" maxlength="15" size="15"/>

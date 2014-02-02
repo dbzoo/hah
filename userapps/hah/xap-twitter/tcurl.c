@@ -282,10 +282,11 @@ int getLatestTweet(tcurl *c, char *content, int clen, long long *id)
 
 	int i;
 	jsmn_parser p;
-	jsmntok_t t[60];
+#define TOKEN_COUNT 100
+	jsmntok_t t[TOKEN_COUNT];
 
 	jsmn_init(&p);
-	i = jsmn_parse(&p, result, t, 60);
+	i = jsmn_parse(&p, result, t, TOKEN_COUNT);
 	if(i != JSMN_SUCCESS) {
 	  switch(i) {
 	  case JSMN_ERROR_NOMEM:

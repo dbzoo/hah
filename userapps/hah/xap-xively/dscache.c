@@ -4,6 +4,7 @@
  */
 #include <string.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include "mem.h"
 #include "dscache.h"
 #include "log.h"
@@ -16,43 +17,60 @@ static int dscnt = 0;
 static unsigned long *feeds;
 static unsigned int feeds_cnt = 0;
 
+int appendXml(char **s, int *size, int offset, const char *fmt, ...) {
+  int n = -1;
+  va_list ap;
+  char *p;
+
+  info("Offset: %d Size: %d Space: %d", offset, *size, *size-offset);
+  info("Process: %s", fmt);
+  while(1) {
+    p = *s + offset;
+    // Try to print in the allocated space
+    va_start(ap, fmt);
+    n = vsnprintf(p, *size - offset, fmt, ap);
+    va_end(ap);
+    // if that worked, return
+    if (n > -1 && n < *size - offset)
+      return n;
+    if (n > -1) //glibc 2.1
+      *size += n+1;  // add precisely what is needed.
+    else // glibc 2.0
+      *size *= 2;  // twice the old
+    info("Growing xml buffer to %d bytes", *size);
+    *s = mem_realloc(*s, *size, M_NONE);
+  }
+}
+
 /* Iterate over the datastream constructing an XML fragment in a
 ** static buffer suitable for pushing to xively as a data feed.
 ** Expand the buffer if necessary.
 */
 static char *xmlDatastream(unsigned long feed) {
      static char *xml = NULL;
-     static int xmllen = 1024;
+     static int xmllen = 200;
      int i, j, len;
      if(dscnt == 0) return NULL;
 
      if(xml == NULL) xml = mem_malloc(xmllen, M_NONE);
-again:
      j = 0;
      for(i=0; i < dscnt; i++) {
        if(ds[i].feed != feed) continue;
 
        // Issue 26 - round to 2 decimal points of value data.
-       j += snprintf(&xml[j], xmllen-j,"<data id=\"%d\"><tag>%s</tag><value", ds[i].id, ds[i].tag);
+       j += appendXml(&xml, &xmllen, j, "<data id=\"%d\"><tag>%s</tag><value", ds[i].id, ds[i].tag);
 
        // using V1 API.... v2 API would be <min_value>%s</min_value> etc..
        if(ds[i].min)
-	 j += snprintf(&xml[j], xmllen-j," minValue=\"%s\"", ds[i].min);
+	 j += appendXml(&xml, &xmllen, j, " minValue=\"%s\"", ds[i].min);
        if(ds[i].max)
-	 j += snprintf(&xml[j], xmllen-j," maxValue=\"%s\"", ds[i].max);
-       
-       j += snprintf(&xml[j], xmllen-j,">%.2f</value>", ds[i].value);
+	 j += appendXml(&xml, &xmllen, j, " maxValue=\"%s\"", ds[i].max);       
+       j += appendXml(&xml, &xmllen, j, ">%.2f</value>", ds[i].value);
 
        if(ds[i].unit)
-	 j += snprintf(&xml[j], xmllen-j,"<unit symbol=\"%s\">%s</unit>", ds[i].unit, ds[i].unit);
+	 j += appendXml(&xml, &xmllen, j, "<unit symbol=\"%s\">%s</unit>", ds[i].unit, ds[i].unit);
 
-       j += snprintf(&xml[j], xmllen-j,"</data>");
-       
-       if(j >= xmllen) { // out of buffer?
-	 xmllen += 512;
-	 xml = mem_realloc(xml, xmllen, M_NONE);
-	 goto again;
-       }
+       j += appendXml(&xml, &xmllen, j, "</data>");
      }
      return xml;
 }

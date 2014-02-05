@@ -149,7 +149,7 @@ void xapRxBroadcast(int fd, void *userData) {
 
 int main(int argc, char **argv) {
 	printf("xAP HUB\n");
-	printf("Copyright (C) DBzoo, 2008-2010\n\n");
+	printf("Copyright (C) DBzoo, 2008-2014\n\n");
 	
 	simpleCommandLine(argc, argv, &interfaceName);
 	
@@ -159,9 +159,7 @@ int main(int argc, char **argv) {
 	discoverHub(&gXAP->rxPort, &gXAP->rxSockfd, &gXAP->txAddress);
 	die_if(gXAP->rxPort != XAP_PORT_L,"Port %d not available", XAP_PORT_L);
 
-	char source[64];
-	sprintf(source, "dbzoo.hub.linux-%s", gXAP->ip);
-	gXAP->source = strdup(source);
+	gXAP->source = xapBuildAddress("dbzoo", NULL, "hub");
 	gXAP->uid = "FF00DC00";
 
 	xapAddTimeoutAction(&heartbeatHandler, XAP_HEARTBEAT_INTERVAL, NULL);	

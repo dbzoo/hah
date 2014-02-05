@@ -113,6 +113,8 @@ void simpleCommandLine(int argc, char *argv[], char **interfaceName);
 void discoverHub(int *rxport, int *rxfd, struct sockaddr_in *txAddr);
 void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char **ip, char *interfaceName);
 void heartbeatHandler(int interval, void *data);
+int xapGetDeviceID(char *hostname, size_t len);
+char *xapBuildAddress(char *vendor, char *device, char *instance);
 
 // tx.c
 void xapSend(const char *mess);

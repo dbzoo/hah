@@ -253,11 +253,59 @@ void xapInit(char *source, char *uid, char *interfaceName)
 	signal(SIGINT, termHandler);
 }
 
+/** compute a deviceid
+    0 on success, otherwise -1
+ */
+int xapGetDeviceID(char *hostname, size_t len) {
+  // If there a unique HAH sub address component?
+  int n = ini_gets("xap","deviceid","",hostname,len,"/etc/xap.d/system.ini");
+  if(n > 0) 
+    return 0;
+
+  // Fallback to hostname
+  if(gethostname(hostname, len) == 0) {
+    // Don't use the FQDN.
+    char *host = strchr(hostname,'.');
+    if (host) {
+      *host = '\0';
+    }
+    return 0;
+  }
+
+  warning("Failed to get hostname");
+  return -1;
+}
+
+char *xapBuildAddress(char *vendor, char *device, char *instance) 
+{
+  char address[128];
+  strlcpy(address, vendor, sizeof(address));
+
+  // Make sure the vendor has a trailing DOT.
+  if(vendor[strlen(vendor)-1] != '.') {
+    strlcat(address,".", sizeof(address));
+  }
+
+  if(device) {
+    strlcat(address, device, sizeof(address));
+  } else { // no device, compute it.
+    char hostname[128];
+    if(xapGetDeviceID(hostname, sizeof(hostname)) == -1) {
+      strcpy(hostname, "livebox"); // still no device?  Default it.
+    }
+    strlcat(address, hostname, sizeof(address));
+  }
+  
+  strlcat(address, ".",sizeof(address));
+  strlcat(address,instance,sizeof(address));
+  return strdup(address);
+}
+
 /**
  * Register an xap connection initialized from an INI file.
  */
 void xapInitFromINI(
-        char *section, char *prefix, char *instance, char *uid,
+        char *section, char *vendor, char *instance, char *uid,
         char *interfaceName, const char *inifile)
 {
         long n;
@@ -276,36 +324,9 @@ void xapInitFromINI(
         }
         snprintf(s_uid, sizeof(s_uid), "FF%s00", i_uid);
 
-        char i_control[64];
-        char s_control[128];
-        strcpy(s_control, prefix);
-        // Make sure the prefix has a trailing DOT.
-        if(prefix[strlen(prefix)-1] != '.') {
-                strlcat(s_control,".", sizeof(s_control));
-        }
-        // If there a unique HAH sub address component?
-        n = ini_gets("xap","deviceid","",i_control,sizeof(i_control),"/etc/xap.d/system.ini");
-        if(n > 0) {
-                strlcat(s_control, i_control, sizeof(s_control));
-        } else {
-	  // Default to hostname
-	  char hostname[128];
-	  if(gethostname(hostname, sizeof(hostname)) == 0) {
-	    // Don't use the FQDN.
-	    char *host = strchr(hostname,'.');
-	    if (host) {
-	      *host = '\0';
-	    }
-	    strlcat(s_control, hostname, sizeof(s_control));
-	  } else {
-	    warning("Failed to get hostname");
-	    strlcat(s_control, "livebox", sizeof(s_control));
-	  }
-	}
-	strlcat(s_control, ".",sizeof(s_control));
-        strlcat(s_control,instance,sizeof(s_control));
-
-        xapInit(s_control, s_uid, interfaceName);
+	char *sourceAddress = xapBuildAddress(vendor, NULL, instance);
+        xapInit(sourceAddress, s_uid, interfaceName);
+	free(sourceAddress);
         die_if(gXAP == NULL,"Failed to init xAP");
 }
 

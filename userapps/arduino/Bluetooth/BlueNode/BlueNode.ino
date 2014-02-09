@@ -208,6 +208,16 @@ void setup()
   // AT+ROLE=p1
   // p1 - 0 Slave Role, 1 Master Role, 2 Slave-Loop role.
   sendBluetoothCommand("AT+ROLE=1", SYNC);
+  
+  // Set Connection mode.
+  // 1 -connect the module to any address.
+  sendBluetoothCommand("AT+CMODE=1", SYNC);
+  
+  // Initialize the SPP profile lib
+  // You may get an ERROR 17 out of this (you can ignore that)
+  // 17 - SPP lib has been repeated initialization.
+  sendBluetoothCommand("AT+INIT", SYNC);
+  
   // AT+INQM=p1,p2,p3
   // p1 - 0 inquire_mode_standad, 1 inquire_mode_rssi
   // p2 - maximum number of bluetooth devices response

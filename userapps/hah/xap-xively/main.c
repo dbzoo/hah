@@ -51,7 +51,7 @@ value=10.4
 #define OPTIONAL 0
 #define MANDATORY 1
 
-char *interfaceName = "eth0";
+char *interfaceName = NULL;
 
 char *inifile = "/etc/xap.d/xap-xively.ini";
 static unsigned int g_ufreq;

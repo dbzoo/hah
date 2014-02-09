@@ -1,6 +1,6 @@
 /* $Id$
    Copyright (c) Brett England, 2010
- 
+
    No commercial use.
    No redistribution at profit.
    All derivative work must retain this message and
@@ -12,10 +12,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <net/if.h>
-#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/ioctl.h>
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <signal.h>
 #include <getopt.h>
@@ -25,15 +26,15 @@
 xAP *gXAP;  // Our global XAP object
 
 inline char *xapGetSource() {
-	return gXAP->source;
+        return gXAP->source;
 }
 
 inline char *xapGetUID() {
-	return gXAP->uid;
+        return gXAP->uid;
 }
 
 inline char *xapGetIP() {
-	return gXAP->ip;
+        return gXAP->ip;
 }
 
 /// Setup for Rx XAP packets
@@ -76,70 +77,76 @@ void discoverHub(int *rxport, int *rxfd, struct sockaddr_in *txAddr)
         }
 }
 
+
 /// Setup for Tx XAP Packets
 void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char **ip, char *interfaceName)
 {
-        struct ifreq interface;
-        struct sockaddr_in myinterface;
-        struct sockaddr_in mynetmask;
-        int optval, optlen;
+        struct ifconf ifc;
+        struct ifreq ifr[10];
+        int sd, ifc_num, i, found=0;
+        struct in_addr addr, bcast;
 
-        if (interfaceName == NULL)
-        {
-                interfaceName = "eth0";
-                info("Defaulting interface to %s", interfaceName);
+        if((sd = socket (AF_INET, SOCK_DGRAM, 0)) == -1) {
+          die_strerror("Unable to create interface enumerator socket");
         }
 
-        if((*txfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-        {
-                die_strerror("Unable to create Tx socket");
+        ifc.ifc_len = sizeof(ifr);
+        ifc.ifc_buf = (caddr_t)ifr;
+
+        if(ioctl(sd, SIOCGIFCONF, &ifc) == 0) {
+          ifc_num = ifc.ifc_len / sizeof(struct ifreq);
+          info("%d interfaces found", ifc_num);
+
+          for(i=0; i < ifc_num; i++) {
+            if(ifr[i].ifr_addr.sa_family != AF_INET) continue;
+            info("%d) interface: %s", i+1, ifr[i].ifr_name);
+            if(strcmp("lo", ifr[i].ifr_name) == 0) continue;
+            if(interfaceName == NULL || strcmp(ifr[i].ifr_name, interfaceName) == 0) {
+              // Retrieve the IP address and broadcast address.
+              if (ioctl(sd, SIOCGIFADDR, &ifr[i]) == 0)
+                {
+                  addr.s_addr = ((struct sockaddr_in *)(&ifr[i].ifr_addr))->sin_addr.s_addr;
+                  info("address: %s", inet_ntoa(addr));
+                } else die_strerror("Unable to retrieve IP address");
+              if (ioctl(sd, SIOCGIFBRDADDR, &ifr[i]) == 0)
+                {
+                  bcast.s_addr = ((struct sockaddr_in *)(&ifr[i].ifr_broadaddr))->sin_addr.s_addr;
+                  info("broadcast: %s", inet_ntoa(bcast));
+                } else die_strerror("Unable to retrieve broadcast address");
+              found = 1;
+              break;
+            }
+          }
+        }
+        else
+          err_strerror("Unable to retrieve interface list");
+
+        if(found == 0) {
+          if(interfaceName)
+            die("Interface %s not found", interfaceName);
+          die("No interface found");
         }
 
-        optval=1;
-        optlen=sizeof(int);
-        if (setsockopt(*txfd, SOL_SOCKET, SO_BROADCAST, (char*)&optval, optlen) == -1)
-        {
-                die_strerror("Cannot set options on broadcast socket");
-        }
+	// Set the socket to be UDP Broadcast enabled.
+        int optval=1;
+        int optlen=sizeof(int);
+        if (setsockopt(sd, SOL_SOCKET, SO_BROADCAST, (char*)&optval, optlen) == -1)
+          {
+            die_strerror("Cannot enable socket broadcast");
+          }
 
-        // Query the low-level capabilities of the network interface
-        // we are to use. If none passed on command line, default to
-        // eth0.
-        memset((char*)&interface, sizeof(interface),0);
-        interface.ifr_addr.sa_family = AF_INET;
-        strcpy(interface.ifr_name, interfaceName);
-        if (ioctl(*txfd, SIOCGIFADDR, &interface) == -1)
-        {
-                die_strerror("Unable to query capabilities of interface %s", interfaceName);
-        }
-        myinterface.sin_addr.s_addr=((struct sockaddr_in*)&interface.ifr_broadaddr)->sin_addr.s_addr;
-
-        *ip = strdup(inet_ntoa(((struct sockaddr_in *)&interface.ifr_addr)->sin_addr));
-        info("%s: address %s", interfaceName, *ip);
-
-        // Find netmask
-        interface.ifr_addr.sa_family = AF_INET;
-        interface.ifr_broadaddr.sa_family = AF_INET;
-        strcpy(interface.ifr_name, interfaceName);
-        if (ioctl(*txfd, SIOCGIFNETMASK, &interface) == -1)
-        {
-                die_strerror("Unable to determine netmask for interface %s", interfaceName);
-        }
-        mynetmask.sin_addr.s_addr = ((struct sockaddr_in*)&interface.ifr_broadaddr)->sin_addr.s_addr;
-
-        info("%s: netmask %s", interfaceName, inet_ntoa(((struct sockaddr_in *)&interface.ifr_netmask)->sin_addr));
-
-        // Calculate broadcast address and stuff TX_address struct
-        txAddr->sin_addr.s_addr = ~mynetmask.sin_addr.s_addr | myinterface.sin_addr.s_addr;
+	// Setup the TX sockaddr options.
+        txAddr->sin_addr.s_addr = bcast.s_addr;
         txAddr->sin_family = AF_INET;
         txAddr->sin_port = htons(XAP_PORT_L);
 
-        info("Autoconfig: xAP broadcasts on %s:%d",inet_ntoa(txAddr->sin_addr), XAP_PORT_L);
+	*txfd = sd; // return the socket.
+	*ip = strdup(inet_ntoa(addr)); // return a string IP 
 }
 
 /** Timeout handler to send heartbeats.
- * 
- * @param interval Number of seconds between invocations 
+ *
+ * @param interval Number of seconds between invocations
  * @param data unused
  */
 void heartbeatHandler(int interval, void *data)
@@ -181,8 +188,8 @@ void termHandler(int sig)
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 /** Locate a socket listener by its file descriptor
- * 
- * @param ifd File descriptor 
+ *
+ * @param ifd File descriptor
  * @return xap Socket connection
  */
 xAPSocketConnection *xapFindSocketListenerByFD(int ifd)
@@ -193,16 +200,16 @@ xAPSocketConnection *xapFindSocketListenerByFD(int ifd)
 }
 
 /** Delete a socket listener
- * 
+ *
  * @param cb socket connection to be deleted
  * @return Pointer to user data.  Caller is responsible for freeing.
  */
 void *xapDelSocketListener(xAPSocketConnection *cb)
 {
-	void *userData = cb->user_data;
+        void *userData = cb->user_data;
         LL_DELETE(gXAP->connectionList, cb);
         free(cb);
-	return userData;
+        return userData;
 }
 
 /** Monitor multiple file descriptor callback when ready.
@@ -215,10 +222,10 @@ void *xapDelSocketListener(xAPSocketConnection *cb)
  */
 xAPSocketConnection *xapAddSocketListener(int fd, void (*callback)(int, void *), void *data)
 {
-	if(fd < 0) {
-		err("Invalid socket %d", fd);
-		return NULL;
-	}
+        if(fd < 0) {
+                err("Invalid socket %d", fd);
+                return NULL;
+        }
         debug("socket=%d", fd);
         xAPSocketConnection *cb = (xAPSocketConnection *)malloc(sizeof(xAPSocketConnection));
         cb->callback = callback;
@@ -249,8 +256,8 @@ void xapInit(char *source, char *uid, char *interfaceName)
         xapAddTimeoutAction(&heartbeatHandler, XAP_HEARTBEAT_INTERVAL, NULL);
         xapAddSocketListener(gXAP->rxSockfd, handleXapPacket, NULL);
 
-	signal(SIGTERM, termHandler);
-	signal(SIGINT, termHandler);
+        signal(SIGTERM, termHandler);
+        signal(SIGINT, termHandler);
 }
 
 /** compute a deviceid
@@ -259,7 +266,7 @@ void xapInit(char *source, char *uid, char *interfaceName)
 int xapGetDeviceID(char *hostname, size_t len) {
   // If there a unique HAH sub address component?
   int n = ini_gets("xap","deviceid","",hostname,len,"/etc/xap.d/system.ini");
-  if(n > 0) 
+  if(n > 0)
     return 0;
 
   // Fallback to hostname
@@ -276,7 +283,7 @@ int xapGetDeviceID(char *hostname, size_t len) {
   return -1;
 }
 
-char *xapBuildAddress(char *vendor, char *device, char *instance) 
+char *xapBuildAddress(char *vendor, char *device, char *instance)
 {
   char address[128];
   strlcpy(address, vendor, sizeof(address));
@@ -295,7 +302,7 @@ char *xapBuildAddress(char *vendor, char *device, char *instance)
     }
     strlcat(address, hostname, sizeof(address));
   }
-  
+
   strlcat(address, ".",sizeof(address));
   strlcat(address,instance,sizeof(address));
   return strdup(address);
@@ -324,18 +331,18 @@ void xapInitFromINI(
         }
         snprintf(s_uid, sizeof(s_uid), "FF%s00", i_uid);
 
-	char *sourceAddress = xapBuildAddress(vendor, NULL, instance);
+        char *sourceAddress = xapBuildAddress(vendor, NULL, instance);
         xapInit(sourceAddress, s_uid, interfaceName);
-	free(sourceAddress);
+        free(sourceAddress);
         die_if(gXAP == NULL,"Failed to init xAP");
 }
 
 
 /// Display usage information and exit.
-static void simpleUsage(char *prog, char *interfaceName)
+static void simpleUsage(char *prog)
 {
         printf("%s: [options]\n",prog);
-        printf("  -i, --interface IF     Default %s\n", interfaceName);
+        printf("  -i, --interface IF\n");
         printf("  -d, --debug            0-7\n");
         printf("  -h, --help\n");
         exit(1);
@@ -344,22 +351,22 @@ static void simpleUsage(char *prog, char *interfaceName)
 void simpleCommandLine(int argc, char *argv[], char **interfaceName)
 {
         int c;
-	static struct option long_options[] = {
-	  {"interface", 1, 0, 'i'},
-	  {"debug", 1, 0, 'd'},
-	  {"help", 0, 0, 'h'},
-	  {0, 0, 0, 0}
-	};
-	while(1) {
+        static struct option long_options[] = {
+          {"interface", 1, 0, 'i'},
+          {"debug", 1, 0, 'd'},
+          {"help", 0, 0, 'h'},
+          {0, 0, 0, 0}
+        };
+        while(1) {
                int option_index = 0;
                c = getopt_long (argc, argv, "i:d:h",
-				long_options, &option_index);
+                                long_options, &option_index);
                if (c == -1)
                    break;
-	       switch(c) {
-	       case 'i': *interfaceName = strdup(optarg); break;
-	       case 'd': setLoglevel(atoi(optarg)); break;
-	       case 'h': simpleUsage(argv[0], *interfaceName);  break;
-	       }
-	}
+               switch(c) {
+               case 'i': *interfaceName = strdup(optarg); break;
+               case 'd': setLoglevel(atoi(optarg)); break;
+               case 'h': simpleUsage(argv[0]);  break;
+               }
+        }
 }

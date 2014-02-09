@@ -22,7 +22,7 @@
 
 bscEndpoint *endpointList;
 static char *serialPort = "/dev/ttyS0";
-static char *interfaceName = "br0";
+static char *interfaceName = NULL;
 
 /// Handle xapBSC.cmd for the RELAY endpoints.
 static void cmdRelay (bscEndpoint *e)
@@ -70,7 +70,7 @@ static void rfXmitPacked(void *userData) {
 /// Display usage information and exit.
 static void usage(char *prog) {
 	 printf("%s: [options]\n",prog);
-	 printf("  -i, --interface IF     Default %s\n", interfaceName);
+	 printf("  -i, --interface IF\n");
 	 printf("  -s, --serial DEV       Default %s\n", serialPort);
 	 printf("  -b, --baud RATE        Default 115200\n");
 	 printf("  -d, --debug            0-7\n");

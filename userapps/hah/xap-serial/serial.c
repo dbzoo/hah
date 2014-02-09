@@ -23,7 +23,7 @@
 #include "xap.h"
 #define INFO_INTERVAL 120
 
-char *interfaceName = "eth0";
+char *interfaceName = NULL;
 const char inifile[] = "/etc/xap.d/xap-serial.ini";
 
 struct serialPort {

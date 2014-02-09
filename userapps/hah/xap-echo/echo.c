@@ -18,7 +18,7 @@
 #include <string.h>
 #include "xap.h"
 
-char *interfaceName = "br0";
+char *interfaceName = NULL;
 const char *inifile = "/etc/xap.d/xap-echo.ini";
 
 char newMsg[XAP_DATA_LEN];

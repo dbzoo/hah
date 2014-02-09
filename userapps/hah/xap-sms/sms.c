@@ -17,7 +17,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-char *interfaceName = "eth0";
+char *interfaceName = NULL;
 const char *inifile = "/etc/xap.d/xap-sms.ini";
 
 const char *XAP_CLASS = "sms.message";

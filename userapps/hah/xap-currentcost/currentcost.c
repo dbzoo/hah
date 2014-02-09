@@ -28,7 +28,7 @@
 const char *inifile = "/etc/xap.d/xap-currentcost.ini";
 char serialPort[20];
 int hysteresis; // Whole of house
-char *interfaceName = "eth0";
+char *interfaceName = NULL;
 
 enum {CC128, CLASSIC, ORIGINAL, EDF} model;
 
@@ -615,7 +615,7 @@ int setupSerialPort()
 static void usage(char *prog)
 {
         printf("%s: [options]\n",prog);
-        printf("  -i, --interface IF     Default %s\n", interfaceName);
+        printf("  -i, --interface IF\n");
         printf("  -s, --serial DEV       Default %s\n", serialPort);
         printf("  -m, --model [CLASSIC|CC128|ORIGINAL|EDF]  Default CLASSIC\n");
         printf("  -d, --debug            0-7\n");

@@ -17,7 +17,7 @@
 #include <string.h>
 #include "xap.h"
 
-char *interfaceName = "br0";
+char *interfaceName = NULL;
 const char *inifile = "/etc/xap.d/xap-snoop.ini";
 
 void packetDump(void *userData) {
@@ -30,7 +30,7 @@ void packetDump(void *userData) {
 static void usage(char *prog)
 {
         printf("%s: [options]\n",prog);
-        printf("  -i, --interface IF     Default %s\n", interfaceName);
+        printf("  -i, --interface IF\n");
         printf("  -d, --debug            0-7\n");
         printf("  -h, --help\n\n");
 	printf("Each of these may appear multiple times\n");

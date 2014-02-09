@@ -81,7 +81,7 @@ const char *inifile = "/etc/xap.d/xap-googlecal.ini";
 static int freq; // calendar sync frequency
 static char username[64];
 static char *password=NULL;
-static char *interfaceName = "eth0";
+static char *interfaceName = NULL;
 
 // Internal
 static struct gcal_event_array events;
@@ -407,7 +407,7 @@ void setupXAPini()
 static void usage(char *prog)
 {
         printf("%s: [options]\n",prog);
-        printf("  -i, --interface IF     Default %s\n", interfaceName);
+        printf("  -i, --interface IF\n");
         printf("  -d, --debug            0-7\n");
         printf("  -u, --username\n");
         printf("  -p, --password\n");

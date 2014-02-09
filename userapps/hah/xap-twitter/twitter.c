@@ -38,7 +38,7 @@
 #include "tcurl.h"
 
 char *inifile = "/etc/xap.d/xap-twitter.ini";
-char *interfaceName = "eth0";
+char *interfaceName = NULL;
 
 static int freq; // calendar sync frequency
 

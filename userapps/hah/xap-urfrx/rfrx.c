@@ -26,7 +26,7 @@
 #include "minIni.h"
 
 #define INFO_INTERVAL 120
-static char *interfaceName = "br0";
+static char *interfaceName = NULL;
 static char *serialPort = "/dev/ttyUSB0";
 const char *inifile = "/etc/xap.d/xap-urfrx.ini";
 static RFdecoder *decoderList;
@@ -151,7 +151,7 @@ void serialInputHandler(int fd, void *uData) {
 static void usage(char *prog)
 {
   printf("%s: [options]\n",prog);
-  printf("  -i, --interface IF     Default %s\n", interfaceName);
+  printf("  -i, --interface IF\n");
   printf("  -s, --serial DEV       Default %s\n", serialPort);
   printf("  -d, --debug            0-7\n");
   printf("  -h, --help\n");

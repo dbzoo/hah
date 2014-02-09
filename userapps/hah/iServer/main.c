@@ -70,7 +70,7 @@ YYSTYPE yylval;
 Client *clientList = NULL;
 
 // Options
-char *interfaceName = "eth0";
+char *interfaceName = NULL;
 int opt_a; // authorisation mode
 int opt_b; // iServer port
 int opt_c = 20; // BSC Query pacing on client filter registration (ms)
@@ -759,52 +759,9 @@ int serverBind(int port)
   return listener;
 }
 
-/* Returns the MAC Address
-   char chMAC[6] - MAC Address in binary format
-   Returns: 0: success
-   -1: Failure
-*/
-int getMACAddress(unsigned char chMAC[6])
+void setupXAPini()
 {
-  struct ifreq ifr;
-  int sock;
-  char *ifname=NULL;
-
-  sock=socket(AF_INET,SOCK_DGRAM,0);
-  strcpy( ifr.ifr_name, interfaceName);
-  ifr.ifr_addr.sa_family = AF_INET;
-  if (ioctl( sock, SIOCGIFHWADDR, &ifr ) < 0)
-  {
-    return -1;
-  }
-  memcpy(chMAC, ifr.ifr_hwaddr.sa_data, 6);
-  close(sock);
-  return 0;
-}
-
-void setupXAPini(int joggler)
-{
-  if(joggler)
-  {
-    unsigned char mac[6];
-    char uid[5];
-    strcpy(uid,"ABCD");
-    // To make the UID unique use the last 2 digits of the MAC address
-    if(getMACAddress(mac) == 0)
-    {
-      sprintf(uid,"%02X%02X", mac[4],mac[5]);
-      debug("UID from MAC %s\n",uid);
-    }
-    // to allow for multiple joggler on the network we automatically
-    // make the instance name unique by using its UID
-    char instance[13];
-    snprintf(instance,sizeof(instance),"iServer-%s",uid);
-    xapInitFromINI("iserver","dbzoo.joggler",instance,uid,interfaceName,inifile);
-  }
-  else
-  {
-    xapInitFromINI("iserver","dbzoo","iServer","00DE",interfaceName,inifile);
-  }
+  xapInitFromINI("iserver","dbzoo","iServer","00DE",interfaceName,inifile);
 
   opt_a = ini_getl("iserver","authmode",0,inifile);
   opt_b = ini_getl("iserver","port",9996,inifile);
@@ -826,7 +783,7 @@ void setupXAPini(int joggler)
 static void usage(char *prog)
 {
   printf("%s: [options]\n",prog);
-  printf("  -i, --interface IF     Default %s\n", interfaceName);
+  printf("  -i, --interface IF\n");
   printf("  -d, --debug            0-7\n");
   printf("  -a                     Enable authorisation mode (default off)\n");
   printf("  -b PORT                Listening port (default 9996)\n");
@@ -843,7 +800,6 @@ static void usage(char *prog)
 int main(int argc, char *argv[])
 {
   int i;
-  int joggler = 0;
   printf("\niServer for xAP v12\n");
   printf("Copyright (C) DBzoo 2010\n");
 
@@ -861,13 +817,9 @@ int main(int argc, char *argv[])
     {
       usage(argv[0]);
     }
-    else if(strcmp("-j", argv[i]) == 0)
-    {
-      joggler=1;
-    }
   }
 
-  setupXAPini(joggler);
+  setupXAPini();
 
   // Command line override for INI
   for(i=0; i<argc; i++)

@@ -16,7 +16,7 @@
 #include "xap.h"
 
 const int reapTimeSecs = 10;
-char *interfaceName = "eth0";
+char *interfaceName = NULL;
 
 struct hubEntry {
 	int port;

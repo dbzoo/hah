@@ -5,6 +5,9 @@
 
 subsystem="hub xively livebox iserver web sms serial currentcost twitter googlecal plugboard urfrx"
 
+#To force an interface bind
+#MYDEV=-i wlan0
+
 start_web() {
     rm -f /tmp/klone_sess*
     if [ -f /etc/kloned.conf ]; then
@@ -19,7 +22,7 @@ stop_web() {
 }
 
 start_hub() {
-    /usr/bin/xap-hub -i $MYDEV > /var/log/xap-hub.log 2>&1 &
+    /usr/bin/xap-hub $MYDEV > /var/log/xap-hub.log 2>&1 &
     sleep 1
 }
 
@@ -28,7 +31,7 @@ stop_hub() {
 }
 
 start_livebox() {
-    /usr/bin/xap-livebox -s /dev/ttyS0 -i $MYDEV >/var/log/xap-livebox.log 2>&1 &
+    /usr/bin/xap-livebox -s /dev/ttyS0 $MYDEV >/var/log/xap-livebox.log 2>&1 &
 }
 stop_livebox() {
     killall xap-livebox
@@ -37,7 +40,7 @@ stop_livebox() {
 start_serial() {
     INI="/etc/xap.d/xap-serial.ini"
     if [ `iniget $INI serial enable 0` -eq 1 ] ;  then 
-        /usr/bin/xap-serial -i $MYDEV >/var/log/xap-serial.log 2>&1 &
+	/usr/bin/xap-serial $MYDEV >/var/log/xap-serial.log 2>&1 &
     fi
 }
 stop_serial() {
@@ -47,7 +50,7 @@ stop_serial() {
 start_twitter() {
     INI="/etc/xap.d/xap-twitter.ini"
     if [ `iniget $INI twitter enable 0` -eq 1 ] ;  then 
-        /usr/bin/xap-twitter -i $MYDEV >/var/log/xap-twitter.log 2>&1 &
+	/usr/bin/xap-twitter $MYDEV >/var/log/xap-twitter.log 2>&1 &
     fi
 }
 stop_twitter() {
@@ -57,8 +60,8 @@ stop_twitter() {
 start_sms() {
     INI="/etc/xap.d/xap-sms.ini"
     if [ `iniget $INI sms enable 0` -eq 1 ] ;  then 
-        USBSERIAL=`iniget $INI sms usbserial /dev/ttyUSB0`
-        /usr/bin/xap-sms -s $USBSERIAL -i $MYDEV >/var/log/xap-sms.log 2>&1 &
+	USBSERIAL=`iniget $INI sms usbserial /dev/ttyUSB0`
+	/usr/bin/xap-sms -s $USBSERIAL $MYDEV >/var/log/xap-sms.log 2>&1 &
     fi
 }
 stop_sms() {
@@ -68,7 +71,7 @@ stop_sms() {
 start_xively() {
     INI="/etc/xap.d/xap-xively.ini"
     if [ `iniget $INI xively enable 0` -eq 1 ] ;  then 
-        /usr/bin/xap-xively -i $MYDEV >/var/log/xap-xively.log 2>&1 &
+	/usr/bin/xap-xively $MYDEV >/var/log/xap-xively.log 2>&1 &
     fi
 }
 stop_xively() {
@@ -78,8 +81,8 @@ stop_xively() {
 start_currentcost() {
     INI="/etc/xap.d/xap-currentcost.ini"
     if [ `iniget $INI currentcost enable 0` -eq 1 ] ;  then 
-        USBSERIAL=`iniget $INI currentcost usbserial /dev/ttyUSB0`
-        /usr/bin/xap-currentcost -s $USBSERIAL -i $MYDEV >/var/log/xap-currentcost.log 2>&1 &
+	USBSERIAL=`iniget $INI currentcost usbserial /dev/ttyUSB0`
+	/usr/bin/xap-currentcost -s $USBSERIAL $MYDEV >/var/log/xap-currentcost.log 2>&1 &
     fi
 }
 stop_currentcost() {
@@ -89,7 +92,7 @@ stop_currentcost() {
 start_googlecal() {
     INI="/etc/xap.d/xap-googlecal.ini"
     if [ `iniget $INI googlecal enable 0` -eq 1 ] ;  then 
-        /usr/bin/xap-googlecal -i $MYDEV >/var/log/xap-googlecal.log 2>&1 &
+	/usr/bin/xap-googlecal $MYDEV >/var/log/xap-googlecal.log 2>&1 &
     fi
 }
 stop_googlecal() {
@@ -112,7 +115,7 @@ stop_plugboard() {
 start_iserver() {
     INI="/etc/xap.d/iserver.ini"
     if [ `iniget $INI iserver enable 0` -eq 1 ] ;  then 
-        /usr/bin/iServer -i $MYDEV >/var/log/iserver.log 2>&1 &
+	/usr/bin/iServer $MYDEV >/var/log/iserver.log 2>&1 &
     fi
 }
 stop_iserver() {
@@ -122,8 +125,8 @@ stop_iserver() {
 start_urfrx() {
     INI="/etc/xap.d/xap-urfrx.ini"
     if [ `iniget $INI urfrx enable 0` -eq 1 ] ;  then 
-        SERIALPORT=`iniget $INI urfrx serialport /dev/ttyUSB0`
-        /usr/bin/xap-urfrx -i $MYDEV -s $SERIALPORT >/var/log/xap-urfrx.log 2>&1 &
+	SERIALPORT=`iniget $INI urfrx serialport /dev/ttyUSB0`
+	/usr/bin/xap-urfrx $MYDEV -s $SERIALPORT >/var/log/xap-urfrx.log 2>&1 &
     fi
 }
 stop_urfrx() {
@@ -154,13 +157,6 @@ subsystem() {
     done
     echo "Subsystem $2 not found"
 }
-
-INI="/etc/xap.d/system.ini"
-if [ `iniget $INI network config_bridge 1` -eq 0 ] ;  then 
-    MYDEV=eth0
-else
-    MYDEV=br0   
-fi
 
 case $1 in
     start|stop)

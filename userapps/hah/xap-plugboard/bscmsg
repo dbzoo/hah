@@ -18,8 +18,8 @@ local args = lapp
   Various flags and option types
     -t (string)   xAPBSC Target
     -s (onoff)    xAPBSC State
-    -x            xAPBSC Text
-    -l            xAPBSC Level
+    -x (optional string) xAPBSC Text
+    -l (optional string) xAPBSC Level
 ]]
 require("xap")
 

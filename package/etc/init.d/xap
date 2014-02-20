@@ -12,9 +12,7 @@
 # /etc/init.d/xap start [component...]
 # /etc/init.d/xap stop [component...]
 
-#subsystem="hub xively livebox iserver web sms serial currentcost twitter googlecal plugboard urfrx"
-subsystem="hub xively iserver web sms serial currentcost twitter googlecal plugboard urfrx"
-
+subsystem="hub xively livebox iserver web sms serial currentcost twitter googlecal plugboard urfrx"
 #MYDEV="-i wlan0"
 
 start_web() {
@@ -40,8 +38,12 @@ stop_hub() {
 }
 
 start_livebox() {
-    /usr/bin/xap-livebox -s /dev/ttyS0 $MYDEV >/var/log/xap-livebox.log 2>&1 &
+    INI="/etc/xap.d/xap-livebox.ini"
+    if [ `iniget $INI livebox enable 0` -eq 1 ] ;  then 
+	/usr/bin/xap-livebox $MYDEV >/var/log/xap-livebox.log 2>&1 &
+    fi
 }
+
 stop_livebox() {
     killall xap-livebox
 }

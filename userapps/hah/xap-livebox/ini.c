@@ -478,3 +478,10 @@ void addIniEndpoints()
 
         }
 }
+
+char *getSerialPort()
+{
+  static char serialPort[80];
+  ini_gets("livebox", "port", "/dev/ttyS0", serialPort, sizeof(serialPort), inifile);
+  return serialPort;
+}

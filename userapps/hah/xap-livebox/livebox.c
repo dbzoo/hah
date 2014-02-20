@@ -21,7 +21,7 @@
 #define WEB_PORT 79
 
 bscEndpoint *endpointList;
-static char *serialPort = "/dev/ttyS0";
+static char *serialPort = NULL;
 static char *interfaceName = NULL;
 
 /// Handle xapBSC.cmd for the RELAY endpoints.
@@ -110,7 +110,10 @@ int main(int argc, char *argv[])
 
 	xapInitFromINI("xap","dbzoo","Controller","00DB",interfaceName,inifile);
 
-	setupSerialPort(serialPort, baud);
+	if(serialPort == NULL) {
+	  serialPort = getSerialPort();
+	}
+	setupSerialPort(serialPort, baud);	  
 
 	/* Endpoint UID mapping - Identifies a particular hardware device for life.
 	   As endpoints can be dynamically added we define ranges so this remains true.

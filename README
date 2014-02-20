@@ -13,6 +13,9 @@ apt-get install lua5.1 lua-filesystem lua-penlight lua-rex-posix lua-socket
 # Stopping apache2 as kloned will use port 80
 update-rc.d -f  apache2 remove
 
+# Build it
+make
+
 # Distribution will be placed into
 ./build/sysroot
 

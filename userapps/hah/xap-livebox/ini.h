@@ -12,6 +12,7 @@ void addIniEndpoints();
 int infoEventBinary(bscEndpoint *e, char *clazz);
 void resetOneWireEndpoints();
 void resetOneWireEndpoints();
+char *getSerialPort();
 
 struct tempSensor {
 	time_t lastSerialEvent;

@@ -1,0 +1,169 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+#include "utils.h"
+
+static const char *inifile = "/etc/xap.d/xap-livebox.ini";
+static const char *systemini = "/etc/xap.d/system.ini";
+
+static struct {
+  char temp_unit[2];
+  int devices1wire;
+  int devicesrf;
+  int infoProtect;
+  char startPage[6];
+} ini;
+
+static void readIni() {
+   ini.devices1wire = ini_getl("1wire","devices", 0, inifile);
+   ini.devicesrf = ini_getl("rf","devices", 0, inifile);
+   ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), inifile);
+   ini_gets("webserver","startPage","html",ini.startPage,sizeof(ini.startPage), systemini);
+   ini.infoProtect = ini_getl("security","info_protect", 0, systemini);
+}
+%>
+<%
+  if(ini.infoProtect) {
+    REQUIRE_AUTH(SCRIPT_NAME);
+  }
+  response_disable_caching(response);
+  readIni();
+
+  // Bit of a kludge really.
+  // Load index.kl1 if explicitly ask for.  Default URI of / to configuration setting of StartPage
+  if(strcmp(request_get_uri(request),"/index.kl1") && strcmp(ini.startPage,"flash") == 0) {
+    response_redirect(response, "flashgui.kl1");
+    return;
+  }
+%>
+<html>
+<head>
+<%@include component/style.kl1%>
+<script type="text/javascript">
+function comboSubmit() {
+    frmControl.submit();
+}
+</script>
+</head>
+<body class="gui">
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<br/>
+<h2>Information Panel</h2>
+<%
+  int i,k;
+  if(ini.devicesrf > 0) {
+%>
+<table><tr><td valign="top"><fieldset>
+<legend>RF</legend>
+<table>
+<tr>
+<th>Item</th>
+<th>State</th>
+<%
+  k = 1;
+  for(i=1; i<=ini.devicesrf; i++, k++) {
+    io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("rf",i, inifile));
+     io_printf(out,"%s %s </td>", alt_td(k), query("rf",i));
+  }
+%>
+</table>
+</fieldset></td>
+<%
+}
+%>
+
+<td valign="top"><fieldset>
+<legend>Relay</legend>
+<table>
+<tr>
+<th>Item</th>
+<th>State</th>
+<%
+  k = 1;
+  for(i=1; i<5; i++, k++) {
+    io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("relay",i, inifile));
+	   io_printf(out,"%s %s </td>", alt_td(k), query("relay",i));
+  }
+%>
+</table>
+</fieldset></td>
+
+<td valign="top"><fieldset>
+<legend>Input</legend>
+<table>
+<tr>
+<th>Item</th>
+<th>State</th>
+<%
+  k = 1;
+  for(i=1; i<5; i++, k++) {
+    io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("input",i, inifile));
+     io_printf(out,"%s %s </td>", alt_td(k), query("input",i));
+     io_printf(out,"%s</td></tr>", alt_td(k));
+  }
+%>
+</table>
+</fieldset></td>
+
+<%
+  if(ini.devices1wire > 0) {
+%>
+<td valign="top"><fieldset>
+<legend>Temperature</legend>
+<table>
+<tr>
+<th>Item</th>
+<th>State</th>
+<%
+  k = 1;
+  for(i=1; i<=ini.devices1wire; i++, k++) {
+    io_printf(out,"<tr>%s%s</td>", alt_td(k), iniGetDynLabel("sensor",i, inifile));
+	   char *c  = query("1wire",i);
+	   io_printf(out,"%s ",alt_td(k));
+	   if (*c == '?') {
+			io_printf(out,"%s", c);
+	   } else {
+			if (ini.temp_unit[0] == 'C') {
+				 io_printf(out,"%s&deg;C </td>", c);
+			} else { // Farenheit
+				 int f  = atoi(c) * 9 / 5 + 32;
+				 io_printf(out,"%d&deg;F </td>", f);
+			}
+	   }	   
+     io_printf(out,"%s</td></tr>", alt_td(k));
+  }
+%>
+</table>
+</fieldset></td>
+<%
+}
+%>
+</tr><td colspan=4>
+<fieldset>
+<legend>LCD</legend>
+<%
+  io_printf(out,"%s",send_cmd("query lcd"));
+%>
+</fieldset>
+</td></tr>
+</table>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>
+

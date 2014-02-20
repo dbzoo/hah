@@ -1,0 +1,21 @@
+Ubuntu Beaglebone build notes.
+
+Download ubuntu
+http://elinux.org/BeagleBoardUbuntu
+
+# Building packages required.
+apt-get install build-essential libxml2-dev libcurl4-openssl-dev flex
+
+# Runtime packages required.
+apt-get install lua5.1 lua-filesystem lua-penlight lua-rex-posix lua-socket
+
+# Stopping apache2 as kloned will use port 80
+update-rc.d -f  apache2 remove
+
+# Distribution will be placed into
+./build/sysroot
+
+# Installation: copy this over your filesystem as root.
+cp -a build/sysroot/* /
+
+# A packaged distribution will be forthcoming.

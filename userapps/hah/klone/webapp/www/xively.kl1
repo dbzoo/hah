@@ -1,0 +1,297 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+#include "utils.h"
+#include <string.h>
+
+#define sizearray(x) (sizeof(x) / sizeof(x[0]))
+
+static const char *inifile = "/etc/xap.d/xap-xively.ini";
+
+struct _datastream {
+	char feed[12];
+	char id[4];
+	char tag[20];
+	char min[8];
+	char max[8];
+        char unit[8];
+	char source[64];
+	char class[32];
+	char section[32];
+	char key[32];
+
+} ds[32];
+
+static struct {
+	 char apikey[129];
+	 char feedid[12];
+	 int count;
+	 char ufreq[4];
+	 char ph_enable[2];
+} ini;
+
+static void loadDynINI(char *key, int id, char *location, int size) {
+	 char buff[20];
+	 snprintf(buff,sizeof(buff),"%s%d",key, id);
+	 ini_gets("xively", buff, "", location, size, inifile);
+}
+
+static void saveDynINI(char *key, int id, const char *value) {
+	 char buff[20];
+	 snprintf(buff,sizeof(buff),"%s%d",key, id);
+	 ini_puts("xively", buff, value, inifile);
+}
+
+static void readIni() {
+	 ini_gets("xively","enable","0",ini.ph_enable,sizeof(ini.ph_enable),inifile);
+	 ini_gets("xively","apikey","",ini.apikey,sizeof(ini.apikey),inifile);
+	 ini_gets("xively","feedid","",ini.feedid,sizeof(ini.feedid),inifile);
+	 ini_gets("xively","ufreq","60",ini.ufreq,sizeof(ini.ufreq),inifile);
+
+	 // Comma separated list of ids
+	 ini.count = ini_getl("xively", "count", 0, inifile);
+
+	 if(ini.count > sizearray(ds)) {
+		  ini.count = sizearray(ds);
+	 }
+	 int i;
+	 for(i=0; i < ini.count; i++) {
+		  loadDynINI("feed", i, ds[i].feed, sizeof(ds[i].feed));
+		  loadDynINI("id", i, ds[i].id, sizeof(ds[i].id));
+		  loadDynINI("tag", i, ds[i].tag, sizeof(ds[i].tag));
+		  loadDynINI("min", i, ds[i].min, sizeof(ds[i].min));
+		  loadDynINI("max", i, ds[i].max, sizeof(ds[i].max));
+		  loadDynINI("unit", i, ds[i].unit, sizeof(ds[i].unit));
+		  loadDynINI("source", i, ds[i].source, sizeof(ds[i].source));
+		  loadDynINI("class", i, ds[i].class, sizeof(ds[i].class));
+		  loadDynINI("section", i, ds[i].section, sizeof(ds[i].section));
+		  loadDynINI("key", i, ds[i].key, sizeof(ds[i].key));
+	 }
+}
+
+static const char *getdynkey(char *key, int id ) {
+	 char buff[30];
+	 sprintf(buff,"%s%d", key, id);
+	 return request_get_arg(request, buff);
+}
+
+static void submit_form() {
+	int restart=0;
+	 const char *ph_enable = request_get_arg(request,"ph_enable");
+	 if(ph_enable) {
+		  if((*ph_enable == '1' && ini.ph_enable[0] == '0') ||
+			 (*ph_enable == '0' && ini.ph_enable[0] == '1')) {
+			   ini_puts("xively","enable",ph_enable,inifile);
+			   restart = 1;
+		  }
+	 }
+
+	 const char *apikey = request_get_arg(request,"apikey");
+	 if(apikey && strcmp(apikey,ini.apikey)) {
+		  ini_puts("xively","apikey",apikey,inifile);
+	 }
+	 const char *feedid = request_get_arg(request,"feedid");
+	 if(feedid && strcmp(feedid,ini.feedid)) {
+		  ini_puts("xively","feedid",feedid,inifile);
+	 }
+	 const char *ufreq = request_get_arg(request,"ufreq");
+	 if(ufreq && strcmp(ufreq,ini.ufreq)) {
+		  ini_puts("xively","ufreq",ufreq,inifile);
+	 }
+
+	 int i;
+	 for(i=0; i<ini.count; i++) {
+		  const char *feed = getdynkey("feed", i);
+		  const char *id = getdynkey("id", i);
+		  const char *tag = getdynkey("tag", i);
+		  const char *min = getdynkey("min", i);
+		  const char *max = getdynkey("max", i);
+		  const char *unit = getdynkey("unit", i);
+		  const char *source = getdynkey("source", i);
+		  const char *class = getdynkey("class", i);
+		  const char *section = getdynkey("section", i);
+		  const char *key = getdynkey("key", i);
+		  if(id == NULL || source == NULL || section == NULL || key == NULL || class == NULL) 
+			  continue;
+		  saveDynINI("feed", i, feed);
+		  saveDynINI("id", i, id);
+		  saveDynINI("tag", i, tag);
+		  saveDynINI("min", i, min);
+		  saveDynINI("max", i, max);
+		  saveDynINI("unit", i, unit);
+		  saveDynINI("source", i, source);
+		  saveDynINI("class", i, class);
+		  saveDynINI("section", i, section);
+		  saveDynINI("key", i, key);
+	 }
+
+	 if(restart) {
+	   system("/etc/init.d/xap restart xively");
+	 }
+}
+/**********************************************************************/
+%>
+<%
+  int i;
+  REQUIRE_AUTH(SCRIPT_NAME);
+  const char *action = request_get_arg(request,"action");
+  readIni();
+  if(action && (strcmp(action,"Apply") == 0 || strcmp(action,"Add") == 0)) {
+	  submit_form();
+	  readIni();
+  }
+  if(action && strcmp(action,"Add") == 0 && ini.count+1 < sizearray(ds)) {
+	   memset( &ds[ini.count], 0, sizeof(ds[i]) );
+	   ini.count++;
+	   ini_putl("xively","count", ini.count, inifile);
+  }
+  if(action && strcmp(action,"Restart") == 0) {
+    system("/etc/init.d/xap restart xively");
+  }
+
+  if(action && strncmp(action,"Del",3) == 0) {
+       int row = atoi(action+3);
+	 // Bubble the other rows down over this deleted one.
+	 for(i=row; i < ini.count-1; i++) {
+		  memcpy(&ds[row], &ds[row+1], sizeof(ds[i]));
+	 }
+	 // clear our deleted row.
+	 memset( &ds[ini.count-1], 0, sizeof(ds[i]));
+
+	 // Write out the datastreams - including our blank one.
+	 for(i=0; i<ini.count; i++) {
+		  saveDynINI("feed", i, ds[i].feed);
+		  saveDynINI("id", i, ds[i].id);
+		  saveDynINI("tag", i, ds[i].tag);
+		  saveDynINI("min", i, ds[i].min);
+		  saveDynINI("max", i, ds[i].max);
+		  saveDynINI("unit", i, ds[i].unit);
+		  saveDynINI("source", i, ds[i].source);
+		  saveDynINI("class", i, ds[i].class);
+		  saveDynINI("section", i, ds[i].section);
+		  saveDynINI("key", i, ds[i].key);
+	 }
+	 // now remove it from the list.
+	 ini.count--;
+	 ini_putl("xively","count", ini.count, inifile);
+  }
+%>
+<html>
+<head>
+<%@include component/style.kl1%>
+<script type="text/javascript">
+function to_submit(F) {
+F.save_button.value = "Saving";
+F.action.value="Apply";
+apply(F);
+}
+function add(F) {
+ F.action.value = "Add";
+ apply(F);
+}
+function del(i) {
+ F = document.forms['services'];
+ F.action.value = "Del"+i;
+ apply(F);
+}
+function restart(F) {
+ F.action.value = "Restart";
+ apply(F);
+}
+addEvent(window,"load",function() {
+	 show_layer_ext(document.services.ph_enable, 'idph', 1 == <%= ini.ph_enable %>);
+	 });
+</script>
+</head>
+<body class="gui">
+
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<form name="services" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="submit_button"/>
+<input type="hidden" name="action"/>
+<br/>
+<h2>Xively Settings (aka Cosm/Pachube)</h2><div>
+
+<fieldset>
+  <legend>Xively</legend>
+  <div class="setting">
+    <div class="label">Start service</div>
+	<input class="spaceradio" type="radio" value="1" name="ph_enable" onclick="show_layer_ext(this, 'idph', true);"<% if(ini.ph_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+    <input class="spaceradio" type="radio" value="0" name="ph_enable" onclick="show_layer_ext(this, 'idph', false);"<% if(ini.ph_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+  <div class="setting" id="idph">
+
+<fieldset>
+  <legend>Configuration</legend>
+
+  <div class="setting">
+    <div class="label">API Key</div>
+    <input maxlength="129" size="65" name="apikey" value="<%= ini.apikey %>"/>
+  </div>
+
+  <div class="setting">
+    <div class="label">Feed ID</div>
+  <input maxlength="12" size="12" name="feedid" value="<%= ini.feedid %>" onblur="isdigit(this,'Feed ID')"/> (Default if unassigned on a datastream)
+  </div>
+  <div class="setting">
+    <div class="label">Update Frequency</div>
+	 <input maxlength="4" size="4" name="ufreq" value="<%= ini.ufreq %>" onblur="valid_range(this,6,900,'Update Frequency')"/>
+    <span class="default">(Default: 60 secs, Range: 6 - 900)</span>
+  </div>
+</fieldset>
+<fieldset>
+  <legend>Datastream</legend>
+   <table>
+  <tr><th>Feed</th><th>ID</th><th>Tag</th><th>Min</th><th>Max</th><th>Unit</th><th>xAP source</th><th>xAP class</th><th>xAP section</th><th>key</th><th>&nbsp;</th></tr>
+<%
+	   for(i=0; i<ini.count; i++) {
+%>
+	   <tr>
+         <td><input name="feed<% io_printf(out,"%d",i); %>" maxlength="12" size="1" value="<%= ds[i].feed %>" onblur="isdigit(this,'FEED')"/></td>
+         <td><input name="id<% io_printf(out,"%d",i); %>" maxlength="4" size="1" value="<%= ds[i].id %>" onblur="isdigit(this,'ID')"/></td>
+         <td><input name="tag<% io_printf(out,"%d",i); %>" maxlength="20" size="10" value="<%= ds[i].tag %>"/></td>
+         <td><input name="min<% io_printf(out,"%d",i); %>" maxlength="7" size="1" value="<%= ds[i].min %>" onblur="isdigit(this,'MIN')"/></td>
+         <td><input name="max<% io_printf(out,"%d",i); %>" maxlength="7" size="1" value="<%= ds[i].max %>" onblur="isdigit(this,'MAX')"/></td>
+         <td><input name="unit<% io_printf(out,"%d",i); %>" maxlength="7" size="1" value="<%= ds[i].unit %>"/></td>
+         <td><input name="source<% io_printf(out,"%d",i); %>" maxlength="64" size="30" value="<%= ds[i].source %>"/></td>
+         <td><input name="class<% io_printf(out,"%d",i); %>" maxlength="32" size="11" value="<%= ds[i].class %>"/></td>
+         <td><input name="section<% io_printf(out,"%d",i); %>" maxlength="32" size="11" value="<%= ds[i].section %>"/></td>
+         <td><input name="key<% io_printf(out,"%d",i); %>" maxlength="32" size="4" value="<%= ds[i].key %>"/></td>
+         <td class="bin" title="Click to remove setting" onclick="del(<% io_printf(out,"%d",i);%>)"></td>
+       </tr>
+<%
+	   }
+%>
+</table>
+<input type="button" name="add_button" value="Add" onclick="add(this.form)"/>
+</fieldset>
+</div>
+</fieldset>
+</div>
+<br/>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)"/>
+<input type="reset" value="Cancel Changes"/>
+<input type="button" value="Restart" onclick="restart(this.form)"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,70 @@
+<%!
+#include "comms.h"
+#include "const.h"
+#include <time.h>
+#include <sys/sysinfo.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdlib.h>
+
+#define FSHIFT          16              /* nr of bits of precision */
+#define FIXED_1         (1<<FSHIFT)     /* 1.0 as fixed-point */
+#define LOAD_INT(x) ((x) >> FSHIFT)
+#define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1-1)) * 100)
+%>
+<%
+static char buf[60];
+static char tze[20];
+
+// workaround broken TZ issue
+{
+  int fd;
+  if ((fd = open("/etc/TZ", O_RDONLY)) >= 0) {
+    int r;
+    char tz[15] = {0};
+    if ((r = read(fd, tz, sizeof(tz)-1)) > 0) {
+      tz[r] = 0;
+      if(tz[r-1] == '\n')
+	tz[r-1] = 0;
+      strcpy(tze,"TZ=");
+      strcat(tze, tz);
+      putenv(tze);
+      tzset();
+    }
+    close(fd);    
+  }
+}
+time_t now = time(NULL);
+struct tm *loctime = localtime(&now);
+strftime(buf, sizeof(buf), "%a %b %d %T %Z %Y", loctime);
+char *avrBuild = send_cmd("version"); // Query AVR version
+%>
+<div id="statusInfo">
+<div class="info">Build: <%= con.build %>/<%= avrBuild %></div>
+<div class="info"><%= buf %></div>
+<div id="info">up
+<%
+struct sysinfo info;
+int updays, uphours, upminutes;
+
+sysinfo(&info);
+
+updays = (int) info.uptime / (60*60*24);
+if (updays)
+	 io_printf(out, " %d day%s, ", updays, (updays != 1) ? "s" : "");
+upminutes = (int) info.uptime / 60;
+uphours = (upminutes / 60) % 24;
+upminutes %= 60;
+if(uphours)
+	 io_printf(out, "%2d:%02d, ", uphours, upminutes);
+else
+	 io_printf(out, "%d min, ", upminutes);
+
+io_printf(out,"load average: %ld.%02ld, %ld.%02ld, %ld.%02ld\n", 
+	   LOAD_INT(info.loads[0]), LOAD_FRAC(info.loads[0]), 
+	   LOAD_INT(info.loads[1]), LOAD_FRAC(info.loads[1]), 
+	   LOAD_INT(info.loads[2]), LOAD_FRAC(info.loads[2]));
+%>
+</div>
+</div>

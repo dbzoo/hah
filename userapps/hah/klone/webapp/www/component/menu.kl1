@@ -1,0 +1,82 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+/*  
+ * $Id$	
+ *  2--level tab menu system
+*/
+#include "menu.h"
+
+#define MENU_ITEM(script, label, linked, cond) menu_item(out, session, response, script, label, linked, cond)
+
+/* As SCRIPT_NAME is static and compiled into every page
+* this function must also be static
+*/
+static struct _menu *findCurrentPage() {
+  MENU *m = &mymenu[0];
+  while(m->page) {
+    if(strcmp(m->page, SCRIPT_NAME) == 0) break;
+    m++;
+  }
+  return m;
+}
+%>
+
+<div id="menu">
+ <div id="menuMain">
+  <ul id="menuMainList">
+<%
+  const MENU *current = findCurrentPage();
+  MENU *m = &mymenu[0];
+  char *currentl1 = NULL;
+
+  if(current && current->l1) 
+  {
+  // Print all L1 tabs up to the current one.
+  while(m->l1 && strcmp(m->l1, current->l1)) {
+    // As the L1 will repeat for each L2 - skip duplicates.
+    if(currentl1 != m->l1) {
+        MENU_ITEM( m->page, m->l1, 1, NULL);
+	currentl1 = m->l1;
+    }
+    m++;
+  }
+// Print current L1 tab's L2 menus
+%>
+    <li class="current"><span><%=m->l1%></span>
+
+    <div id="menuSub">
+     <ul id="menuSubList">
+<%
+    while(m->l1 && strcmp(m->l1, current->l1) == 0) {
+	// All L2 tabs have hyperlinks except the current one.
+	int showlink = strcmp(m->l2, current->l2);
+	MENU_ITEM( m->page, m->l2, showlink, m->cond);
+      m++;
+    }
+%>
+    </ul>
+    </div>
+   </li>        
+<% 
+// Print remaining L1 tabs
+        while(m->l1) {
+	  if(currentl1 != m->l1) {
+	    MENU_ITEM( m->page, m->l1, 1, NULL);
+	    currentl1 = m->l1;
+	  }
+	  m++;
+        }
+
+  } else {
+    // Current page not found in MENU structure so just print all L1 tabs
+    while(m->l1) {
+      if(currentl1 != m->l1) {
+        MENU_ITEM( m->page, m->l1, 1, NULL);
+	currentl1 = m->l1;
+      }
+      m++;
+    }
+  }
+%>
+  </ul>
+ </div>
+</div>

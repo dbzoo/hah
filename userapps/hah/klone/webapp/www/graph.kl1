@@ -1,0 +1,155 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+#include <string.h>
+
+#define sizearray(x) (sizeof(x) / sizeof(x[0]))
+static int reboot = 0;
+
+const char *inifile = "/etc/xap.d/xap-xively.ini";
+
+struct _datastream {
+  char feed[12];
+  char id[4];
+  char tag[20];
+} ds[32];
+
+static struct {
+	 char apikey[129];
+	 char feedid[12];
+	 int count;
+} ini;
+
+static void loadDynINI(char *key, int id, char *location, int size) {
+	 char buff[100];
+	 sprintf(buff,"%s%d",key,id);
+	 ini_gets("xively", buff, "", location, size, inifile);
+}
+
+static void readIni() {
+	 ini_gets("xively","apikey","",ini.apikey,sizeof(ini.apikey),inifile);
+	 ini_gets("xively","feedid","",ini.feedid,sizeof(ini.feedid),inifile);
+	 // Comma separated list of ids
+	 ini.count = ini_getl("xively", "count", 0, inifile);
+
+	 if(ini.count > sizearray(ds)) {
+		  ini.count = sizearray(ds);
+	 }
+	 int i;
+	 for(i=0; i < ini.count; i++) {
+          loadDynINI("feed", i, ds[i].feed, sizeof(ds[i].feed));
+		  loadDynINI("id", i, ds[i].id, sizeof(ds[i].id));
+		  loadDynINI("tag", i, ds[i].tag, sizeof(ds[i].tag));					 
+                  if (strcmp(ds[i].feed, "") == 0) { 
+                         strcpy(ds[i].feed, ini.feedid); 
+                  }
+
+	 }
+}
+
+/**********************************************************************/
+%>
+<%
+  REQUIRE_AUTH(SCRIPT_NAME);
+  readIni();
+int act = 0;
+char duration[] = "         ";	
+
+const char *action = request_get_arg(request,"action");
+const char *period = request_get_arg(request,"period");
+if(action) {
+	 act = atoi(action);
+}
+
+if(period) {
+	strcpy(duration, period);
+} else {
+	strcpy(duration, "24hours");
+}
+ 
+%>
+<html>
+<head>
+<%@include component/style.kl1%>
+</head>
+<body class="gui">
+
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<br/>
+<h2>Xively Graphs</h2><div>
+<%
+	 if(ini.count == 0) {
+%>
+  Xively datastreams are not configured: <a href="/xively.kl1">setup</a>
+</div>
+<br/>
+<%
+	 } else {
+%>
+<form name="graph" action="<%= SCRIPT_NAME %>" method="post">
+<p>	 Graph datastream: <select name="action" size="1" onChange="graph.submit()">
+
+<%
+int i=0;
+for(i=0;i<ini.count;i++) {  
+    io_printf(out, "<option value=\"%d\"", i);
+    if (i == act) { io_printf(out, " selected"); }
+    io_printf(out, "> %s - %s - %s </option>\n", ds[act].feed, ds[i].id, ds[i].tag);
+}
+%>
+</select>
+
+&nbsp&nbsp&nbspGraph duration: <select name="period" size="1" onChange="graph.submit()">
+
+<option value="6hours" <% if (strcmp(duration, "6hours") == 0 ) { io_printf(out, " selected"); } %>> 6 hours </option>
+<option value="12hours" <% if (strcmp(duration, "12hours") == 0 ) { io_printf(out, " selected"); } %>> 12 hours </option>
+<option value="24hours" <% if (strcmp(duration, "24hours") == 0 ) { io_printf(out, " selected"); } %>> 24 hours </option>
+<option value="5days" <% if (strcmp(duration, "5days") == 0 ) { io_printf(out, " selected"); } %>> 5 days </option>
+<option value="14days" <% if (strcmp(duration, "14days") == 0 ) { io_printf(out, " selected"); } %>> 14 days </option>
+<option value="31days" <% if (strcmp(duration, "31days") == 0 ) { io_printf(out, " selected"); } %>> 31 days </option>
+<option value="90days" <% if (strcmp(duration, "90days") == 0 ) { io_printf(out, " selected"); } %>> 90 days </option>
+<option value="180days" <% if (strcmp(duration, "180days") == 0 ) { io_printf(out, " selected"); } %>> 180 days </option>
+<option value="1year" <% if (strcmp(duration, "1year") == 0 ) { io_printf(out, " selected"); } %>> 1 year </option>
+</select>
+</p>
+
+</p>
+
+<fieldset>
+<%
+io_printf(out, "<legend>  Feed %s : Datastream %s : %s : Duration %s </legend>", ds[act].feed, ds[act].id, ds[act].tag, duration);
+%>
+    <div id="visualization" style="width: 750px; height: 340px;">
+	<%
+	io_printf(out, "<iframe seamless align=middle width=740 height=340 id=extFrame src=https://api.xively.com/v2/feeds/%s/datastreams/%s.png?detailed_grid=true&width=740&height=340&duration=%s&b=true&t=%s&interval=0&limit=1000&s=1&scale=auto></iframe>", ds[act].feed, ds[act].id, duration, ds[act].tag);
+	%>
+	</div>
+</fieldset>
+</div>
+<br/>
+<div class="submitFooter">
+<input type="submit" value="Refresh"/>
+</div>
+</form>
+<%
+ }
+%>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>

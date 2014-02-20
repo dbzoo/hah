@@ -1,0 +1,73 @@
+#!/usr/bin/lua
+--[[
+   $Id: ini-migrate 537 2014-01-10 05:22:07Z dbzoo.com $
+   Migrate /etc/xap-livebox.ini into multiple files.
+--]]
+require "pl"
+
+function invertTable(t)
+   local res={}
+   for k,v in pairs(t) do
+      if type(v) == 'table' then
+	 for _,l in pairs(v) do
+	    res[l] = k
+	 end
+      else
+	 res[v] = k
+      end
+   end
+   return res
+end
+
+local targetDir = "/etc/xap.d"
+local srcFile = "/etc/xap-livebox.ini"
+
+if not path.exists(srcFile) then
+   utils.quit("File not found: "..srcFile)
+end
+
+if not path.exists(targetDir) then
+   assert(path.mkdir(targetDir))
+end
+
+if #dir.getfiles(targetDir) > 0 then
+   utils.quit(targetDir.." is not empty")
+end
+
+local confFile
+if path.exists("/etc/fileSectionMap.conf") then
+   confFile = "/etc/fileSectionMap.conf"
+else
+   confFile = "/etc_ro_fs/fileSectionMap.conf"
+end
+
+local fileToSectionMap = config.read(confFile, {variabilize=false})
+local sectionToFileMap = invertTable(fileToSectionMap)
+local masterini = config.read(srcFile, {variabilize=false})
+
+-- Parse master INI and split into sub-tables keyed by (sub-ini)
+local output={}
+for k,v in pairs(masterini) do
+   if sectionToFileMap[k] == nil then
+      sectionToFileMap[k] = "unknown.ini"
+   end
+   res = output[sectionToFileMap[k]]
+   if res == nil then
+      output[sectionToFileMap[k]] = {[k]=v}
+   else
+      res[k] = v
+   end
+end
+
+-- Write sub-ini files
+for inifile in pairs(output) do
+   local iniString = ""
+   for section in pairs(output[inifile]) do
+      iniString = iniString.."["..section.."]\n"
+      for k,v in pairs(output[inifile][section]) do
+	 iniString = iniString..k.."="..v.."\n"
+      end
+      iniString = iniString.."\n"
+   end
+   utils.writefile(path.join(targetDir,inifile), iniString)
+end

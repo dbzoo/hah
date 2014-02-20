@@ -1,0 +1,40 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "login.h"
+#include <netinet/in.h>
+%>
+<%
+%>
+<html>
+<head>
+<%@include component/style.kl1%>
+<style type="text/css">
+div.error {border: #365349 dotted; padding: 0.5em; margin: 1em 2em}
+p.blocktext {margin: 1em auto; width: 8em; text-align: left}
+</style>
+</head>
+<body class="gui">
+
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+
+<div class="error">
+<p style="text-align: center">ERROR 404 - Page not found</p>
+</div>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>
+

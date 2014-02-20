@@ -1,0 +1,209 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+#include "utils.h"
+#include "comms.h"
+
+static const char *inifile = "/etc/xap.d/xap-livebox.ini";
+int AVRmajor, AVRminor;
+
+static struct {
+	 char temp_unit[2];
+	 int devices1wire;
+	 int devicesrf;
+	 int rfdelay;
+         int timeout_1wire;
+} ini;
+
+static void readIni() {
+	 ini.devices1wire = ini_getl("1wire","devices", 0, inifile);
+	 ini.devicesrf = ini_getl("rf","devices", 0, inifile);
+	 ini.rfdelay = ini_getl("rf","delay", 500, inifile);
+	 ini_gets("1wire","temp_unit", "C", ini.temp_unit, sizeof(ini.temp_unit), inifile);
+	 ini.timeout_1wire = ini_getl("1wire","timeout", 0, inifile);
+}
+
+static void submit_form() {
+	submit_statickey(request,"1wire","devices", inifile);
+	submit_statickey(request,"1wire","timeout", inifile);
+	submit_statickey(request,"1wire","temp_unit", inifile);
+	submit_statickey(request,"rf","devices", inifile);
+	submit_statickey(request,"rf","delay", inifile);
+	readIni();
+
+	submit_dynkeys(request,"input","input%d.label", 4, inifile);
+	submit_dynkeys(request,"relay","relay%d.label", 4, inifile);
+	submit_dynkeys(request,"rf","rf%d.label", ini.devicesrf, inifile);
+	submit_dynkeys(request,"rf","rf%d.off", ini.devicesrf, inifile);
+	submit_dynkeys(request,"rf","rf%d.on", ini.devicesrf, inifile);
+	submit_dynkeys(request,"1wire","sensor%d.label", ini.devices1wire, inifile);
+	if(AVRmajor > 1) {
+		submit_dynkeys(request,"1wire","sensor%d.romid", ini.devices1wire, inifile);
+	}
+	submit_dynkeys(request,"1wire","sensor%d.hysteresis", ini.devices1wire, inifile);
+	submit_dynkeys(request,"1wire","sensor%d.offset", ini.devices1wire, inifile);
+}
+
+%>
+<%
+REQUIRE_AUTH(SCRIPT_NAME);
+getAVRfirmwareVersion(&AVRmajor, &AVRminor);
+readIni();
+const char *action = request_get_arg(request,"action");
+if(action) {
+	if(strcmp(action,"apply") == 0) {
+		submit_form(out);
+	} else if(strcmp(action,"onewirereset") == 0) {
+		submit_form(out);
+		// Reset the 1wire endpoints and AVR bus.
+		send_cmd("1wirereset");
+	}
+}
+%>
+<html>
+<head>
+<%@include component/style.kl1%>
+<script type="text/javascript">
+function to_submit(F) {
+	F.save_button.value = "Saving";
+	F.action.value = "apply";
+	apply(F);
+}
+function wirereset(F) {
+	 F.onewirereset.value = "Resetting";
+	 F.action.value = "onewirereset";
+	 apply(F);
+}
+</script>
+</head>
+<body class="gui">
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<br/>
+<%
+int i;
+%>
+<form name="frmControl" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="action" />
+<h2>HAH Hardware</h2>
+<table><tr>
+<td valign="top">
+<fieldset>
+<legend>Input</legend>
+<table><tr><th>Item</th><th>Label</th></tr><%
+for(i=1; i<5; i++) {
+  io_printf(out,"<tr>%sInput %d</td>", alt_td(i), i);
+  io_printf(out,"<td><input type=\"text\" name=\"input%d.label\" value=\"%s\"></td></tr>\n", i, iniGetDynLabel("input",i,inifile));
+}
+%></table>
+</fieldset>
+</td><td valign="top"><fieldset>
+<legend>Relay</legend>
+<table><tr><th>Item</th><th>Label</th></tr><%
+for(i=1; i<5; i++) {
+  io_printf(out,"<tr>%sRelay %d</td>", alt_td(i), i);
+  io_printf(out,"<td><input type=\"text\" name=\"relay%d.label\" value=\"%s\"></td></tr>\n", i, iniGetDynLabel("relay",i,inifile));
+}
+%></table>
+</fieldset></td>
+</tr>
+</table>
+<fieldset>
+<legend>RF</legend>
+<table><tr><th>Item</th><th>Label</th><th>On</th><th>Off</th></tr><%
+for(i=1; i<=ini.devicesrf; i++) {
+  io_printf(out,"<tr><td>RF %d</td>", i);
+  io_printf(out,"<td><input size=\"15\" type=\"text\" name=\"rf%d.label\" value=\"%s\"></td>\n", i, iniGetDynLabel("rf",i,inifile));
+  io_printf(out,"<td><input style=\"width:300px\" type=\"text\" name=\"rf%d.on\" value=\"%s\"></td>\n", i, iniGetDynKey("rf","rf%d.on", i,inifile));
+  io_printf(out,"<td><input style=\"width:300px\" type=\"text\" name=\"rf%d.off\" value=\"%s\"></td>\n", i, iniGetDynKey("rf","rf%d.off", i,inifile));
+  io_printf(out,"</tr>");
+}
+%></table>
+  <div class="setting">
+    <div class="label">RF Devices</div>
+	<input class="num" type="text" name="rf.devices" onblur="valid_range(this,0,<% io_printf(out,"%d",AVRmajor>1?96:12); %>,'RF count')" value="<% io_printf(out,"%d",ini.devicesrf); %>" maxlength="2" size="2"/>
+  </div>
+  <div class="setting">
+    <div class="label">RF Delay</div>
+	<input class="num" type="text" name="rf.delay" onblur="valid_range(this,0,2000,'RF Delay')" value="<% io_printf(out,"%d",ini.rfdelay); %>" maxlength="4" size="4"/> milliseconds
+  </div>
+</fieldset>
+<fieldset>
+<legend>1wire devices</legend>
+<%
+if(ini.devices1wire > 0) {
+%>
+<table>
+<tr><th>Item</th><th>Label</th><th>Offset</th><th>Hysteresis</th>
+<%
+if(AVRmajor > 1) io_printf(out,"<th>ROM ID</th>");
+%>
+</tr>
+<%
+for(i=1; i<=ini.devices1wire; i++) {
+   io_printf(out,"<tr><td>Sensor %d</td>", i);
+   io_printf(out,"<td><input type=\"text\" name=\"sensor%d.label\" value=\"%s\"></td>", i, iniGetDynLabel("sensor",i,inifile));
+   io_printf(out,"<td><input type=\"text\" size=\"6\" name=\"sensor%d.offset\" value=\"%s\"></td>", i, iniGetDynKey("1wire","sensor%d.offset",i,inifile));
+   io_printf(out,"<td><input type=\"text\" size=\"6\" name=\"sensor%d.hysteresis\" value=\"%s\"></td>", i, iniGetDynKey("1wire","sensor%d.hysteresis",i,inifile));
+   if(AVRmajor > 1) {
+	   io_printf(out,"<td><input size=\"19\" maxlength=\"18\" type=\"text\" name=\"sensor%d.romid\" value=\"%s\"></td>", 
+		     i, iniGetDynKey("1wire","sensor%d.romid", i,inifile));
+   }
+   io_printf(out,"</tr>\n");
+}
+%>
+</table>
+<%
+}
+%>
+
+  <div class="setting">
+    <div class="label">Number of Sensors</div>
+	<input class="num" type="text" name="1wire.devices" onblur="valid_range(this,0,<% io_printf(out,"%d",AVRmajor>1?31:15); %>,'Sensors')" value="<% io_printf(out,"%d",ini.devices1wire); %>" maxlength="2" size="2"/>
+  </div>
+  <div class="setting">
+    <div class="label">Temperature units</div>
+	<input class="spaceradio" type="radio" value="C" name="1wire.temp_unit" <% if(ini.temp_unit[0] == 'C') { %> checked="checked"<% } %>/>Celsius&nbsp;
+    <input class="spaceradio" type="radio" value="F" name="1wire.temp_unit" <% if(ini.temp_unit[0] == 'F') { %> checked="checked"<% } %>/>Fahrenheit
+  </div>
+  <div class="setting">
+  <div class="label">Timeout check</div>
+    <input class="num" type="text" name="1wire.timeout" onblur="valid_range(this,0,99,'Timeout')" value="<% io_printf(out,"%d",ini.timeout_1wire); %>" maxlength="2" size="2"/> Minute(s)
+  </div>
+<%
+  if(AVRmajor > 1) {
+    // Displays HTML table of unassigned ROMID built by the xap-livebox process
+    io_printf(out, send_cmd("1wireroms"));
+  }
+%>
+  <input type="button" name="onewirereset" value="Reset 1-Wire Bus" onclick="wirereset(this.form)" />
+</fieldset>
+
+
+<br/>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)" />
+<input type="reset" value="Cancel Changes"/>
+<input type="submit" value="Refresh"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>
+

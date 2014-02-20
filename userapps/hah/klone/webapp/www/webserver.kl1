@@ -1,0 +1,156 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+
+static const char *inifile = "/etc/xap.d/system.ini";
+
+static struct {
+  char startPage[6];
+  int infoProtect;
+  int loginScreen;
+} ini;
+
+static void change_passwd(io_t *out) {
+	   const char *old = request_get_arg(request, "old");
+	   const char *new = request_get_arg(request, "new");
+	   const char *confirm = request_get_arg(request, "confirm");
+
+	   if (! (old && new && confirm)) return;
+	   if(strlen(old) == 0 && strlen(new) == 0 && strlen(confirm) == 0) return;
+
+	   // Fetch WEB password
+	   char md5[MD5_DIGEST_BUFSZ];
+	   char passwd[MD5_DIGEST_BUFSZ];
+	   long n;
+	   n = ini_gets("security","admin_passwd", "", passwd, sizeof(passwd), inifile);
+	   if(n > 0) { // Something found?
+			// compute MD5 checksum of entered password
+			u_md5(old, strlen(old), md5);
+	   }
+	   
+	   // No previous WEB password OR what was entered matches that saved.
+	   if (n == 0 || strcmp(passwd, md5) == 0) {
+			if(strcmp(new,confirm) == 0) {
+				 // compute MD5 checksum of entered password
+				 u_md5(new, strlen(new), md5);
+				 // Store new password
+				 n = ini_puts("security","admin_passwd", md5, inifile);
+				 if(n == 0) {
+					  io_printf(out, "<b>Write error: Failed to update password.</b>");
+				 } else {
+					  io_printf(out, "<b>Password updated.</b>");	
+				 }
+			} else {
+				 io_printf(out, "<b>New password was not confirmed.</b>");
+			}
+	   } else {
+			io_printf(out, "<b>Current password is invalid</b>");	
+	   }
+}
+
+static void readIni() {
+	 ini_gets("webserver","startPage","html",ini.startPage,sizeof(ini.startPage),inifile);
+	 ini.infoProtect = ini_getl("security","info_protect", 0, inifile);
+	 ini.loginScreen = ini_getl("security","login_screen", 0, inifile);
+}
+
+static void submitForm(io_t *out) {
+       change_passwd(out);
+
+       const char *val = request_get_arg(request, "infoprotect");
+       ini_putl("security","info_protect", val ? 1 : 0, inifile);
+
+       val = request_get_arg(request, "loginscreen");
+       ini_putl("security","login_screen", val ? 1 : 0, inifile);
+
+       const char *startPage = request_get_arg(request,"startPage");
+       if(startPage && strcmp(startPage, ini.startPage)) {
+	 ini_puts("webserver","startPage", startPage, inifile);			 
+       }       
+}
+
+%>
+<%
+REQUIRE_AUTH(SCRIPT_NAME);
+readIni();
+%>
+<html>
+<head>
+<%@include component/style.kl1%>
+</head>
+<body class="gui">
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<br/>
+<h2>Admin Panel</h2>
+<form action="<%= SCRIPT_NAME %>" method="post">
+<%
+	 if(vars_get_value_i(request_get_args(request), "action") == 1) {
+		  submitForm(out);
+		  readIni();
+	 }
+%>
+
+<fieldset>
+<legend>Password Management</legend>
+ <div class="setting">
+    <div class="label">Current password</div>
+    <input type="password" name="old" maxlength="32" size="20"/>
+ </div>
+ <div class="setting">
+    <div class="label">New password</div>
+    <input type="password" name="new" maxlength="32" size="20"/>
+ </div>
+ <div class="setting">
+    <div class="label">Confirm</div>
+    <input type="password" name="confirm" maxlength="32" size="20"/>
+ </div>
+</fieldset>
+<br/>
+<fieldset>
+<legend>Web Access</legend>
+ <div class="setting">
+    <div class="label">Password protect info page</div>
+    <input class="spaceradio" type="checkbox" name="infoprotect" value="1" <% if(ini.infoProtect){ %>checked<% } %>/>
+ </div>
+ <div class="setting">
+    <div class="label">Login screen</div>
+    <input class="spaceradio" type="checkbox" name="loginscreen" value="1" <% if(ini.loginScreen){ %>checked<% } %>/>
+ </div>
+</fieldset>
+
+<fieldset>
+<legend>Info Page</legend>
+  <div class="setting">
+  <div class="label">Page type</div>
+  <input class="spaceradio" type="radio" value="html" name="startPage" <% if(strcmp(ini.startPage,"html") == 0) { %> checked="checked"<% } %>/>HTML&nbsp;
+  <input class="spaceradio" type="radio" value="flash" name="startPage" <% if(strcmp(ini.startPage,"flash") == 0) { %> checked="checked"<% } %>/>Flash
+  </div>
+</fieldset>
+
+<br/>
+<input type="hidden" name="action" value="1" />
+<div class="submitFooter">
+  <input type="submit" value="Save Settings"/>
+  <input type="reset" value="Cancel Changes"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>
+

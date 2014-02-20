@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Allow a local override
+if [ -f /etc/plugboard/plugboard.lua ]; then
+    exec lua /etc/plugboard/plugboard.lua $*
+else
+    exec lua /etc_ro_fs/plugboard/plugboard.lua $*
+fi

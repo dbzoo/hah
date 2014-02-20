@@ -1,0 +1,320 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include <netinet/in.h>
+#include <string.h>
+#include "login.h"
+#include "const.h"
+
+#define IP(x) inet_aton(x, &addr)
+#define IP4 io_printf(out,"%d",addr.s_addr & 0x000000FF)
+#define IP3 io_printf(out,"%d",(addr.s_addr & 0x0000FF00)>>8)
+#define IP2 io_printf(out,"%d",(addr.s_addr & 0x00FF0000)>>16)
+#define IP1 io_printf(out,"%d",(addr.s_addr & 0xFF000000)>>24) 
+
+static const char *inifile = "/etc/xap.d/system.ini";
+
+static int reboot = 0;
+
+static struct {
+  char type[7];
+  char ip[16];
+  char netmask[16];
+  char gateway[16];
+  char dns[16];
+  char hostname[30];
+  char domain[30];
+  char ntp_host[30];
+  char config_bridge[2];
+  char power[2];
+  char ether0[20];  // 00:18:8B:D4:EC:06
+  char ether1[20];  // 00:18:8B:D4:EC:06
+  char style[15];
+} ini;
+
+struct in_addr addr;
+
+static void readIni() {
+	 ini_gets("network","lan_proto", "dhcp", ini.type, sizeof(ini.type), inifile);
+	 ini_gets("network","ip","0.0.0.0",ini.ip,sizeof(ini.ip), inifile);
+	 ini_gets("network","netmask","0.0.0.0",ini.netmask,sizeof(ini.netmask), inifile);
+	 ini_gets("network","gateway","0.0.0.0",ini.gateway,sizeof(ini.gateway), inifile);
+	 ini_gets("network","dns","0.0.0.0",ini.dns,sizeof(ini.dns), inifile);
+	 ini_gets("network","hostname", "knoxbox", ini.hostname, sizeof(ini.hostname), inifile);
+	 ini_gets("network","domain", "", ini.domain, sizeof(ini.domain), inifile);
+	 ini_gets("network","ntp_host", "uk.pool.ntp.org", ini.ntp_host, sizeof(ini.ntp_host), inifile);
+	 ini_gets("network","config_bridge","1",ini.config_bridge,sizeof(ini.config_bridge),inifile);
+	 ini_gets("hardware","power", "1", ini.power, sizeof (ini.power), inifile);
+	 ini_gets("network","ether_0", "", ini.ether0, sizeof (ini.ether0), inifile);
+	 ini_gets("network","ether_1", "", ini.ether1, sizeof (ini.ether1), inifile);
+	 ini_gets("webserver","style", "elegant", ini.style, sizeof (ini.style), inifile);
+}
+
+/* Append all web named segments *webname into a single IP address
+   using *ip as working storage.  Store into xap-livebox.ini keyed by
+   *inikey.
+ */
+static int processIP(char *webname, char *inikey, char *ip) {
+	 int i;
+	 char key[20];
+	 char oldip[16];
+
+	 strcpy(oldip, ip);
+	 *ip = 0;
+	 for(i=0;i<5;i++) {
+		  snprintf(key,sizeof(key),"%s_%d",webname,i);
+		  const char *val = request_get_arg(request,key);
+		  if(!val) return;
+		  if(*ip) strcat(ip,".");
+		  strcat(ip, val);
+	 }
+	 ini_puts("network",inikey,ip,inifile);
+	 return strcmp(ip, oldip);
+}
+
+/* Return 1 if we need a reboot
+*/
+static int submit_form(io_t *out) {
+	const char *gui_style = request_get_arg(request,"gui_style");
+	if(gui_style && strcmp(gui_style, ini.style)) {
+		ini_puts("webserver","style", gui_style, inifile);    
+	}
+	const char *lan_proto = request_get_arg(request,"lan_proto");
+	if(!lan_proto) return;
+	ini_puts("network","lan_proto", lan_proto, inifile);
+	
+	reboot = strcmp(lan_proto,ini.type);
+	if(strcmp(lan_proto,"static") == 0)  {
+		reboot |= processIP("lan_ipaddr", "ip", ini.ip);
+		reboot |= processIP("lan_netmask", "netmask", ini.netmask);
+		reboot |= processIP("lan_gateway", "gateway", ini.gateway);
+		reboot |= processIP("lan_dns", "dns", ini.dns);
+		ini_puts("network","ip", ini.ip, inifile);
+		ini_puts("network","netmask", ini.netmask, inifile);
+		ini_puts("network","gateway", ini.gateway, inifile);
+		ini_puts("network","dns", ini.dns, inifile);
+	}
+	
+	const char *hostname = request_get_arg(request,"hostname");
+	const char *domain = request_get_arg(request,"domain");
+	const char *ntp_host = request_get_arg(request,"ntp_host");
+	ini_puts("network","hostname", hostname, inifile);
+	ini_puts("network","domain", domain, inifile);
+	ini_puts("network","ntp_host", ntp_host, inifile);
+	 
+	const char *config_bridge = request_get_arg(request, "config_bridge");
+	ini_puts("network","config_bridge", config_bridge, inifile);
+	
+	const char *ether0 = request_get_arg(request,"ether0");
+	const char *ether1 = request_get_arg(request,"ether1");
+	ini_puts("network","ether_0", ether0, inifile);
+	ini_puts("network","ether_1", ether1, inifile);
+	
+	reboot |= strcmp(hostname, ini.hostname)
+		|| strcmp(domain, ini.domain)
+		|| strcmp(ntp_host, ini.ntp_host)
+		|| strcmp(ether0, ini.ether0)
+		|| strcmp(ether1, ini.ether1)
+		|| strcmp(config_bridge, ini.config_bridge);
+	
+	const char *power = request_get_arg(request,"power_enable");
+	if(*power != ini.power[0]) {
+		if(*power == '1') {
+			system("/bin/ledctrl on");
+		} else {	
+			system("/bin/ledctrl off");
+		}
+		ini.power[0] = *power;
+		ini_puts("hardware","power", ini.power, inifile);
+	}
+	return reboot;
+}
+%>
+<%
+ REQUIRE_AUTH(SCRIPT_NAME);
+
+ const char *action = request_get_arg(request,"action");
+ readIni();
+ if(action && strcmp(action,"Apply") == 0) {
+	  submit_form(out);
+	  readIni();
+ }
+ if(action && strcmp(action,"Reboot") == 0) {
+	  response_redirect(response, "reboot.kl1");
+ }
+%>
+<html>
+<head>
+<%@include component/style.kl1%>
+<script type="text/javascript">
+function SelLAN(num,F){
+  F.lan_proto.value=F.lan_proto.options[num].value;
+  if(F.lan_proto.value == "dhcp") {
+     show_layer_ext(this, 'idstatic', false);
+  } else {
+     show_layer_ext(this, 'idstatic', true);
+  }
+}
+function to_submit(F) {
+ F.save_button.value = "Saving";
+ F.action.value = "Apply";
+ apply(F);
+}
+function reboot(F) {
+ F.reboot_button.value = "Rebooting";
+ F.action.value = "Reboot";
+ apply(F);
+}
+
+addEvent(window,"load",function() {
+	 show_layer_ext(document.setup, 'idstatic', "static" == "<%= ini.type %>");
+	 });
+</script>
+</head>
+<body class="gui">
+
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<form name="setup" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="action" />
+<br/>
+<h2>Network Setup</h2>
+<fieldset>
+<legend>Connection Type</legend>
+  <div class="setting">
+     <div class="label">Type</div>
+     <select name="lan_proto" onchange="SelLAN(this.form.lan_proto.selectedIndex,this.form)">
+     <option value="dhcp" <% if(strcmp(ini.type,"dhcp")==0) { %>selected="selected"<% } %>>Automatic - DHCP</option>
+     <option value="static" <% if(strcmp(ini.type,"static")==0) { %>selected="selected"<% } %>>Static IP</option>
+     </select>
+  </div>
+
+<div id="idstatic">
+
+<div class="setting">
+<div class="label">IP Address</div>
+<%
+ IP(ini.ip); 
+%>
+<input type="hidden" name="lan_ipaddr" value="<%= ini.ip %>" />
+<input class="num" maxlength="3" size="3" name="lan_ipaddr_0" onblur="valid_range(this,0,255,'IP Address')" value="<% IP1; %>" />.<input class="num" maxlength="3" size="3" name="lan_ipaddr_1" onblur="valid_range(this,0,255,'IP Address')" value="<% IP2; %>" />.<input class="num" maxlength="3" size="3" name="lan_ipaddr_2" onblur="valid_range(this,0,255,'IP Address')" value="<% IP3; %>" />.<input class="num" maxlength="3" size="3" name="lan_ipaddr_3" onblur="valid_range(this,1,254,'IP Address')" value="<% IP4; %>" />
+</div>
+
+<div class="setting">
+<div class="label">Subnet Mask</div>
+<% IP(ini.netmask); %>
+<input type="hidden" name="lan_netmask" value="<%= ini.netmask %>" />
+<input class="num" maxlength="3" size="3" name="lan_netmask_0" onblur="valid_range(this,0,255,'Subnet')" value="<% IP1; %>" />.<input class="num" maxlength="3" size="3" name="lan_netmask_1" onblur="valid_range(this,0,255,'Subnet')" value="<% IP2; %>" />.<input class="num" maxlength="3" size="3" name="lan_netmask_2" onblur="valid_range(this,0,255,'Subnet')" value="<% IP3; %>" />.<input class="num" maxlength="3" size="3" name="lan_netmask_3" onblur="valid_range(this,0,255,'Subnet')" value="<% IP4; %>" />
+</div>
+
+<div class="setting">
+<div class="label">Gateway</div>
+<% IP(ini.gateway); %>
+<input type="hidden" name="lan_gateway" value="<%= ini.gateway %>" />
+<input class="num" maxlength="3" size="3" name="lan_gateway_0" onblur="valid_range(this,0,255,'Gateway')" value="<% IP1; %>" />.<input class="num" maxlength="3" size="3" name="lan_gateway_1" onblur="valid_range(this,0,255,'Gateway')" value="<% IP2; %>" />.<input class="num" maxlength="3" name="lan_gateway_2" size="3" onblur="valid_range(this,0,255,'Gateway')" value="<% IP3; %>" />.<input class="num" maxlength="3" name="lan_gateway_3" size="3" onblur="valid_range(this,0,254,'Gateway')" value="<% IP4; %>" />
+</div>
+
+<div class="setting">
+<div class="label">DNS</div>
+<% IP(ini.dns); %>
+<input type="hidden" name="lan_dns" value="<%= ini.dns %>" />
+<input class="num" name="lan_dns_0" size="3" maxlength="3" onblur="valid_range(this,0,255,'DNS')" value="<% IP1; %>" />.<input class="num" name="lan_dns_1" size="3" maxlength="3" onblur="valid_range(this,0,255,'DNS')" value="<% IP2; %>" />.<input class="num" name="lan_dns_2" size="3" maxlength="3" onblur="valid_range(this,0,255,'DNS')" value="<% IP3; %>" />.<input class="num" name="lan_dns_3" size="3" maxlength="3" onblur="valid_range(this,0,254,'DNS')" value="<% IP4; %>" />
+</div>
+
+</div>
+<div class="setting">
+  <div class="label">Bridge Ethernet ports</div>
+	 <input class="spaceradio" type="checkbox" name="config_bridge" value="1" <% if(ini.config_bridge[0] == '1') { %>checked<% } %>/>
+</div>
+
+<div class="setting">
+  <div class="label">ETH0</div>
+  <input class="text" name="ether0" value="<%= ini.ether0 %>" maxlength="19" size="19" onblur="isValidMacAddress(this.value)"/>
+</div>
+
+<div class="setting">
+  <div class="label">ETH1</div>
+  <input class="text" name="ether1" value="<%= ini.ether1 %>" maxlength="19" size="19" onblur="isValidMacAddress(this.value)"/>
+</div>
+
+</fieldset>
+<br/>
+<fieldset>
+<legend>Host Settings</legend>
+<div class="setting">
+  <div class="label">Host Name</div>
+  <input type="text" name="hostname" value="<%= ini.hostname %>" maxlength="30" size="30"/>
+</div>
+<div class="setting">
+  <div class="label">Domain Name</div>
+  <input type="text" name="domain" value="<%= ini.domain %>" maxlength="30" size="30"/>
+</div>
+<div class="setting">
+  <div class="label">NTP Host</div>
+  <input type="text" name="ntp_host" value="<%= ini.ntp_host %>" maxlength="30" size="30"/>
+</div>
+</fieldset>
+<br/>
+<h2>General</h2>
+<fieldset>
+<legend>LED</legend>
+  <div class="setting">
+    <div class="label">Power Indicator</div>
+	<input class="spaceradio" type="radio" value="1" name="power_enable" <% if(ini.power[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+    <input class="spaceradio" type="radio" value="0" name="power_enable" <% if(ini.power[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+</fieldset>
+
+<script type="text/javascript">
+function setStyle(val) {
+	var linkTags = document.getElementsByTagName("link");
+	for(var i = 0; i < linkTags.length; i++) {
+		var t = linkTags[i];
+		if(t.getAttribute("rel") != "stylesheet") continue;
+		if(t.getAttribute("href").indexOf("/" + val + "/") != -1) return false;
+		var newStyle = t.getAttribute("href").replace(/style\/\w+\//, "style/" + val + "/");
+		t.removeAttribute("href");
+		t.setAttribute("href", newStyle);
+	}
+}
+document.forms[0].onreset = function() { 
+	setStyle("elegant"); 
+}
+</script>
+
+<fieldset>
+<legend>GUI Style</legend>
+<div class="setting">
+  <div class="label">Style</div>
+  <select name="gui_style">
+  <option value="elegant" <% if(strcmp(ini.style,"elegant")==0) { %>selected="selected"<% } %>>Elegant</option>
+  <option value="blue" <% if(strcmp(ini.style,"blue")==0) { %>selected="selected"<% } %>>Blue</option>
+  </select>
+<input type="button" name="preview_button" value="Preview" onclick="setStyle(this.form.gui_style.value)"/>
+</div>
+</fieldset>
+
+<br/>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)" />
+<input type="reset" value="Cancel Changes"/>
+<input type="button" name="reboot_button" value="Reboot" onclick="reboot(this.form)" />
+</div>
+
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>

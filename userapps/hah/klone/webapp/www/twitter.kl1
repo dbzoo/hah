@@ -1,0 +1,248 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+#include "utils.h"
+#include "tcurl.h"
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
+
+static const char *inifile = "/etc/xap.d/xap-twitter.ini";
+
+// HAH Twitter application keys
+const char *CONSUMER_KEY = "hmGCdLfP9HjVfkzDSnw";
+const char *CONSUMER_SECRET = "6iaSFRs6RFuILhjrBhUYDDEkUBGDsGcFNv7lQyoA";
+
+#define sizearray(x) (sizeof(x) / sizeof(x[0]))
+static int reboot = 0;
+
+static struct {
+	 char key[128];
+	 char secret[128];
+	 char ufreq[5];
+	 char enable[2];
+	 char prefix[18];
+} ini;
+
+static void readIni() {
+	 ini_gets("twitter","enable","0",ini.enable,sizeof(ini.enable),inifile);
+	 ini_gets("twitter","access_key","",ini.key,sizeof(ini.key),inifile);
+	 ini_gets("twitter","access_secret","",ini.secret,sizeof(ini.secret),inifile);
+	 ini_gets("twitter","ufreq","30",ini.ufreq,sizeof(ini.ufreq),inifile);
+	 ini_gets("twitter","prefix","",ini.prefix,sizeof(ini.prefix),inifile);
+}
+
+static int submit_form() {
+	 int restart=0;
+
+	 const char *enable = request_get_arg(request,"enable");
+	 if(enable)
+	     {
+		 if((*enable == '1' && ini.enable[0] == '0') ||
+		    (*enable == '0' && ini.enable[0] == '1')) 
+		     {
+			 ini_puts("twitter","enable",enable,inifile);
+			 restart=1;
+		     }
+	     }
+
+	 const char *ufreq = request_get_arg(request,"ufreq");
+	 if(ufreq && strcmp(ufreq,ini.ufreq)) {
+		  ini_puts("twitter","ufreq",ufreq,inifile);
+		  restart = 1;
+	 }
+
+	 const char *prefix = request_get_arg(request,"prefix");
+	 if(prefix && strcmp(prefix,ini.prefix)) {
+		  ini_puts("twitter","prefix",prefix,inifile);
+		  restart = 1;
+	 }
+
+	 return restart;
+}
+
+static void restart_twitter() {
+  system("/etc/init.d/xap restart twitter");
+}
+
+/**********************************************************************/
+%>
+<%
+  int i;
+  REQUIRE_AUTH(SCRIPT_NAME);
+  const char *action = request_get_arg(request,"action");
+  readIni();
+  if(action && strcmp(action,"Apply") == 0) {
+       if(submit_form()) {
+	    restart_twitter();
+       }
+       readIni();
+  }
+%>
+<html>
+<head>
+<%@include component/style.kl1%>
+<script type="text/javascript">
+function to_submit(F) {
+F.save_button.value = "Saving";
+F.action.value="Apply";
+apply(F);
+}
+addEvent(window,"load",function() {
+	 show_layer_ext(document.services.enable, 'idph', 1 == <%= ini.enable %>);
+	 });
+</script>
+</head>
+<body class="gui">
+
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<form name="services" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="submit_button"/>
+<input type="hidden" name="action"/>
+<br/>
+<h2>Twitter Settings</h2><div>
+
+<fieldset>
+  <legend>Twitter</legend>
+  <div class="setting">
+    <div class="label">Start service</div>
+	<input class="spaceradio" type="radio" value="1" name="enable" onclick="show_layer_ext(this, 'idph', true);"<% if(ini.enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+    <input class="spaceradio" type="radio" value="0" name="enable" onclick="show_layer_ext(this, 'idph', false);"<% if(ini.enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+  <div class="setting" id="idph">
+
+<fieldset>
+  <legend>Configuration</legend>
+
+  <div class="setting">
+    <div class="label">Update Frequency</div>
+	 <input maxlength="5" size="5" name="ufreq" value="<%= ini.ufreq %>" onblur="valid_range(this,15,300,'Update Frequency')"/>
+	 <span class="default">(Default: 30, 15-300 sec)</span>
+  </div>
+
+  <div class="setting">
+    <div class="label">Command prefix</div>
+	 <input maxlength="18" size="18" name="prefix" value="<%= ini.prefix %>"/>
+	 <span class="default">(only process tweets starting with)</span>
+  </div>
+
+  <div class="Authorise">
+    <div class="label">Account</div>
+    <button type="submit" name="auth_button" value="1">Authorise with Twitter</button>
+  </div>
+
+</fieldset>
+
+    <% // OAUTH AUTHORIZATION CALLBACK
+    const char *oauth_verifier = request_get_arg(request,"oauth_verifier");
+    if(oauth_verifier) {
+
+     // Fetch temporary access keyss
+     const char *key = session_get(session,"key");
+     const char *secret = session_get(session,"secret");
+
+     if (key && secret) {
+       tcurl *c = new_tcurl(out);
+       c->oauthAccessKey = (char *)key;
+       c->oauthAccessSecret = (char *)secret;
+       // Obtain access keys and verify us.
+       oauthAuthorize(c, (char *)oauth_verifier);
+
+       // Keys in tcurl are now the permenant keys.
+       ini_puts("twitter","consumer_key", CONSUMER_KEY, inifile);
+       ini_puts("twitter","consumer_secret", CONSUMER_SECRET, inifile);
+       ini_puts("twitter","access_key", c->oauthAccessKey, inifile);
+       ini_puts("twitter","access_secret", c->oauthAccessSecret, inifile);
+       ini_puts("twitter","user", c->user, inifile);
+       ini_puts("twitter","userid", c->userid, inifile);
+
+       // We don't need the temporary access creds anymore.
+       session_del(session,"key");
+       session_del(session,"secret");
+
+       free_tcurl(c);
+%>
+	 <p><b>Authorisation Successful</b></p>
+<%       
+       restart_twitter();
+     }
+   } else {
+      if(strlen(ini.key) == 0) {
+%>
+	<p><b>Authorisation has not been setup</b></p>
+<%
+      }
+   }
+
+// OAUTH REQUEST
+    const char *auth = request_get_arg(request,"auth_button");
+    if(auth && *auth == '1') {   // Authorisation button pressed?
+      char *url = NULL;
+      submit_form(); // Save any outstanding FORM changes first.
+
+      tcurl *c = new_tcurl(out);
+      if(c) {
+	char callback_url[128];
+	snprintf(callback_url, sizeof(callback_url),"http://%s:%d%s",
+		 inet_ntoa(request_get_addr(request)->sa.sin.sin_addr),
+		 htons(request_get_addr(request)->sa.sin.sin_port),
+		 request_get_uri(request));
+	
+	url = oauthGetAuthorizeUrl(c, callback_url);
+	if(url) {
+	  // Store the temporary access key/secret in the session.
+	  // We need this for the callback from twitter.
+	  session_set(session, "key", c->oauthAccessKey);
+	  session_set(session, "secret", c->oauthAccessSecret);
+	} else {
+	  %>
+	  <p><b>Acquiring a request token failed</b></p>
+	    <%
+	    }
+	free_tcurl(c);
+      } else {
+	%>
+	<p><b>Failed to create a TCURL instance</b></p>
+	  <%
+      }
+
+      // Redirect to TWITTER for HAH authorisation.
+      if(url) {
+	response_redirect(response, url);
+	free(url);
+      }
+      
+    }
+%>
+
+</div>
+</fieldset>
+
+</div>
+<br/>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)"/>
+<input type="reset" value="Cancel Changes"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>

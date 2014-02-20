@@ -1,0 +1,100 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+#include "utils.h"
+#include "comms.h"
+#include <klapp_conf.h>
+%>
+<%
+static char *err = NULL;
+REQUIRE_AUTH(SCRIPT_NAME);
+
+static char filename[U_FILENAME_MAX], client_filename[U_FILENAME_MAX];
+static char mime_type[MIME_TYPE_BUFSZ];
+static size_t file_sz;
+
+/* disable client side caching */
+response_disable_caching(response);
+
+if(!request_get_arg(request, "upload"))
+    goto footer; /* error */
+
+/* get the uploaded file */
+if(request_get_uploaded_file(request, "input_file", 0, filename,
+			     client_filename, mime_type, &file_sz)) {
+  err = "Error obtaining upload file";
+  goto footer;
+ }
+/*
+io_printf(out, "mime_type: %s <p>", mime_type);
+io_printf(out, "temporary filename: %s <p>", filename);
+io_printf(out, "client filename: %s <p>", client_filename);
+io_printf(out, "file size: %u <p>", file_sz);
+*/
+// Firefox is gzip, Chrome/IE is x-gzip
+if(strcmp(mime_type,"application/gzip") && strcmp(mime_type,"application/x-gzip")) {
+  err = "Invalid MIME type expecting application/gzip";
+  goto footer;
+ }
+
+/* do something with the file... */ 
+{
+char buf[128];
+snprintf(buf,sizeof(buf),"cd / && gzip -dc %s | tar xf -", filename);
+if(system(buf) < 0)
+  err = "Error during restore";
+err = "Restore successful";
+}
+footer:
+ %>
+<html>
+<head>
+<%@include component/style.kl1%>
+</head>
+<body class="gui">
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<br/>
+<h2>Backup</h2>
+
+<form action="<%= SCRIPT_NAME %>" method="post" enctype="multipart/form-data">
+<fieldset>
+<legend>Backup Configuration</legend>
+<p>Click the "Backup" button to download the configuration backup file to your computer</p>
+</fieldset>
+
+<fieldset>
+<legend>Restore Configuration</legend>
+   Please select a file to restore <input type="file" name="input_file"/>
+</legend>
+</fieldset>
+
+<% if(err) io_printf(out,"<p>%s</p>",err); %>
+<br/>
+
+<div class="submitFooter">
+   <input type="button" value="Backup" onclick="window.location.href='file-backup.kl1'"/>
+   <input type="submit" name="upload" value="Restore"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+</body>
+</html>
+
+
+
+

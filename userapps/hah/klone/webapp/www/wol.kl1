@@ -1,0 +1,286 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+
+#define sizearray(x) (sizeof(x) / sizeof(x[0]))
+
+static const char *inifile = "/etc/xap.d/system.ini";
+
+struct _datastream {
+	 char mac[18];
+	 char hostname[65];
+} host[32];
+
+static struct {
+	 int count;
+} ini;
+
+static void loadDynINI(char *key, int id, char *location, int size) {
+	 char buff[100];
+	 sprintf(buff,"%s%d",key,id);
+	 ini_gets("wol", buff, "", location, size, inifile);
+}
+
+static void saveDynINI(char *key, int id, const char *value) {
+	 char buff[100];
+	 sprintf(buff,"%s%d",key,id);
+	 dbg("%s=%s", buff, value);
+	 ini_puts("wol", buff, value, inifile);
+}
+
+static void readIni() {
+	 ini.count = ini_getl("wol", "count", 0, inifile);
+	 if(ini.count > sizearray(host)) {
+		  ini.count = sizearray(host);
+	 }
+	 int i;
+	 for(i=0; i < ini.count; i++) {
+		  loadDynINI("mac", i, host[i].mac, sizeof(host[i].mac));
+		  loadDynINI("hostname", i, host[i].hostname, sizeof(host[i].hostname));
+	 }
+}
+
+static const char *getdynkey(char *key, int id ) {
+	 char buff[30];
+	 sprintf(buff,"%s%d", key, id);
+	 return request_get_arg(request, buff);
+}
+
+static int in_ether (char *bufp, unsigned char *addr)
+{
+     char c, *orig;
+     int i;
+     unsigned char *ptr = addr;
+     unsigned val;
+
+     i = 0;
+     orig = bufp;
+     while ((*bufp != '\0') && (i < 6)) {
+	  val = 0;
+	  c = *bufp++;
+	  if (isdigit(c))
+	       val = c - '0';
+	  else if (c >= 'a' && c <= 'f')
+	       val = c - 'a' + 10;
+	  else if (c >= 'A' && c <= 'F')
+	       val = c - 'A' + 10;
+	  else {
+	       errno = EINVAL;
+	       return (-1);
+	  }
+	  val <<= 4;
+	  c = *bufp;
+	  if (isdigit(c))
+	       val |= c - '0';
+	  else if (c >= 'a' && c <= 'f')
+	       val |= c - 'a' + 10;
+	  else if (c >= 'A' && c <= 'F')
+	       val |= c - 'A' + 10;
+	  else if (c == ':' || c == 0)
+	       val >>= 4;
+	  else {
+	       errno = EINVAL;
+	       return (-1);
+	  }
+	  if (c != 0)
+	       bufp++;
+	  *ptr++ = (unsigned char) (val & 0377);
+	  i++;
+
+	  /* We might get a semicolon here - not required. */
+	  if (*bufp == ':') {
+	       if (i == 6) {
+                    ;           /* nothing */
+	       }
+	       bufp++;
+	  }
+     }
+     if (bufp - orig != 17) {
+	  return (-1);
+     } else {
+	  return (0);
+     }
+} /* in_ether */
+
+
+static int send_wol (char *mac, char *host)
+{
+     int i, j;
+     int packet;
+     struct sockaddr_in sap;
+     unsigned char ethaddr[8];
+     unsigned char *ptr;
+     unsigned char buf [128];
+     int optval = 1;
+
+     /* Fetch the hardware address. */
+     if (in_ether (mac, ethaddr) < 0) {
+	  dbg("Invalid hardware address");
+	  return (-1);
+     }
+
+     /* setup the packet socket */
+     if ((packet = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
+	  dbg("socket failed");
+	  return (-1);
+     }
+
+     /* Set socket options */
+     if (setsockopt (packet, SOL_SOCKET, SO_BROADCAST, (char *)&optval,
+		     sizeof (optval)) < 0) {
+	  dbg ("setsocket failed %m");
+	  close (packet);
+	  return (-1);
+     }
+
+     /* Set up broadcast address */
+     sap.sin_family = AF_INET;
+     sap.sin_addr.s_addr = htonl(0xffffffff);        /* broadcast address */
+     sap.sin_port = htons(60000);
+
+     /* Build the message to send - 6 x 0xff then 16 x MAC address */
+     ptr = buf;
+     for (i = 0; i < 6; i++)
+	  *ptr++ = 0xff;
+     for (j = 0; j < 16; j++)
+	  for (i = 0; i < 6; i++)
+	       *ptr++ = ethaddr [i];
+
+     /* Send the packet out */
+     if (sendto (packet, (char *)buf, 102, 0, (struct sockaddr *)&sap, sizeof (sap)) < 0) {
+	  dbg ("sendto failed, %m");
+	  close (packet);
+	  return -1;
+     }
+     close (packet);
+     dbg ("magic packet sent to %s %s", mac, host);
+     return 0;
+}
+
+
+static void submit_form() {
+	 int i;
+	 for(i=0; i<ini.count; i++) {
+		  const char *mac = getdynkey("mac", i);
+		  const char *hostname = getdynkey("hostname", i);
+		  if(mac == NULL || hostname == NULL) continue;
+		  saveDynINI("mac", i, mac);
+		  saveDynINI("hostname", i, hostname);
+	 }
+}
+
+%>
+<%
+  int i;
+  REQUIRE_AUTH(SCRIPT_NAME);
+  const char *action = request_get_arg(request,"action");
+  readIni();
+  dbg("action %s", action);
+  if(action && (strcmp(action,"Apply") == 0 || strcmp(action,"Add") == 0)) {
+      submit_form();
+      readIni();
+  }
+  if(action && strcmp(action,"Add") == 0 && ini.count+1 < sizearray(host)) {
+	   memset( &host[ini.count], 0, sizeof(host[i]) );
+	   ini.count++;
+	   ini_putl("wol","count", ini.count, inifile);
+  }
+  if(action && strncmp(action,"Wake",4) == 0) {
+       int row = atoi(action+4);
+       send_wol(host[row].mac, host[row].hostname);       
+  }
+
+  if(action && strncmp(action,"Del",3) == 0) {
+       int row = atoi(action+3);
+       // Bubble the other rows down over this deleted one.
+       for(i=row; i < ini.count-1; i++) {
+	 memcpy(&host[row], &host[row+1], sizeof(host[i]));
+       }
+       // clear our deleted row.
+       memset( &host[ini.count-1], 0, sizeof(host[i]));
+       
+       // Write out the datastreams - including our blank one.
+       for(i=0; i<ini.count; i++) {
+	 saveDynINI("mac", i, host[i].mac);
+	 saveDynINI("hostname", i, host[i].hostname);
+       }
+       // now remove it from the list.
+       ini.count--;
+       ini_putl("wol","count", ini.count, inifile);
+  }
+%>
+<html>
+<head>
+<%@include component/style.kl1%>
+<script type="text/javascript">
+function to_submit(F) {
+  F.save_button.value = "Saving";
+  F.action.value="Apply";
+  apply(F);
+}
+function add(F) {
+ F.action.value = "Add";
+ apply(F);
+}
+function del(i) {
+  F = document.forms['wol'];
+  F.action.value = "Del"+i;
+  apply(F);
+}
+function wake(F,i) {
+ F.action.value = "Wake"+i;
+ apply(F);
+}
+</script>
+<body class="gui">
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<br/>
+<h2>Wake on LAN</h2>
+<form name="wol" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="submit_button"/>
+<input type="hidden" name="action"/>
+
+<fieldset>
+  <legend>WOL Addresses</legend>
+   <table>
+  <tr><th>MAC Address</th><th>Host Name</th><th>&nbsp;</th></tr>
+<%
+	   for(i=0; i<ini.count; i++) {
+%>
+       <tr>
+         <td><input name="mac<% io_printf(out,"%d",i); %>" maxlength="18" size="18" value="<%= host[i].mac %>""/></td>
+         <td><input name="hostname<% io_printf(out,"%d",i); %>" maxlength="30" size="30" value="<%= host[i].hostname %>"/></td>
+         <td class="bin" title="Click to remove WOL host" onclick="del(<% io_printf(out,"%d",i);%>)"></td>
+         <td><input type="button" value="Wake Up" onclick="wake(this.form,<% io_printf(out,"%d",i); %>)"/></td>
+       </tr>
+<%
+	   }
+%>
+</table>
+<input type="button" name="add_button" value="Add" onclick="add(this.form)"/>
+</fieldset>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)"/>
+<input type="reset" value="Cancel Changes"/>
+</div>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>
+

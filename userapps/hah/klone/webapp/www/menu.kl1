@@ -1,0 +1,66 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+/*
+ * $Id$
+ *
+ * Global MENU functions used by the component/menu.kl1
+ */
+#include "minIni.h"
+#include "const.h"
+#include "menu.h"
+#include "login.h"
+
+// Use to conditionally enable the GRAPH L2-Tab only when xively is also enabled.
+int isXivelyEnabled(session_t *s) {
+  char ph_enable[2];
+  ini_gets("xively","enable","0",ph_enable,sizeof(ph_enable), "/etc/xap.d/xap-xively.ini");
+  return ph_enable[0] == '1';
+}
+
+/* The INFO tab is shown on the Admin/L2 level.
+   Don't show the others TABS until we authenticate.
+ */
+int isAuthenticated(session_t *s) {
+	char login_enable[2];
+	ini_gets("security","login_screen","0",login_enable,sizeof(login_enable), "/etc/xap.d/system.ini");
+	if(login_enable[0] == '0') return 1; // No logic screen (we are authenticated)
+
+	const char *username = session_get(s, "username");
+	return(username && strlen(username));
+}
+
+MENU mymenu[] =
+{
+  {"Automation","Control","automation.kl1", NULL},
+  {"Automation","Configure","config.kl1", NULL},
+  {"Automation","CurrentCost","currentcost.kl1", NULL},
+  {"Automation","Calendar","calendar.kl1", NULL},
+  {"Automation","Twitter","twitter.kl1", NULL},
+  {"Automation","iServer","iserver.kl1", NULL},
+  {"Automation","Xively","xively.kl1", NULL},
+  {"Automation","URF Rx","urfrx.kl1", NULL},
+  {"Automation","Graph","graph.kl1", isXivelyEnabled},
+  {"Automation","Assists","assistance.kl1", NULL},
+  {"GUI","xAPFlash","flashgui.kl1", NULL},
+  {"Admin","Info","index.kl1", NULL},
+  {"Admin","Instance","instance.kl1", isAuthenticated},
+  {"Admin","Management","setup.kl1", isAuthenticated},
+  {"Admin","Services","services.kl1", isAuthenticated},
+  {"Admin","Webserver","webserver.kl1", isAuthenticated},
+  {"Admin","WOL","wol.kl1", isAuthenticated},
+  {"Admin","Firmware","firmware.kl1", isAuthenticated},
+  {"Admin","Backup","backup.kl1", isAuthenticated},
+  {NULL,NULL,NULL,NULL}
+};
+
+void menu_item(io_t *out, session_t *ss, response_t *rp, char *script, char *label, 
+	       int linked, int (*cond)(session_t *s)) 
+{
+  if((cond == NULL || (*cond)(ss)) && isScriptAllowed(ss, rp, script)) {
+    if (linked) {
+      io_printf(out,"<li><a href=\"%s\">%s</a></li>", script, label);
+    } else {
+      io_printf(out,"<li><span>%s</span></li>", label);
+    }
+  }
+}
+%>

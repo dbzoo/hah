@@ -1,0 +1,252 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+
+#define sizearray(a)  (sizeof(a) / sizeof((a)[0]))
+static int reboot = 0;
+static const char *inifile = "/etc/xap.d/xap-currentcost.ini";
+
+static struct {
+	 char cc_enable[2];
+	 char cc_hysteresis[3];
+	 char cc_usbserial[16];
+	 char cc_model[20];
+} ini;
+
+
+struct {
+	char *model;
+	int sensors;
+} modelSensor[] = {{"ORIGINAL",0},{"CLASSIC",0},{"CC128",9},{"EDF",14},{(char *)NULL,(int)NULL}};
+
+int sensorCount = 0;
+
+struct {
+	char type[2]; // Analogue/Digital/Impulse
+	char desc[40];
+        char unit[10];
+        char hysteresis[4];
+} sensor[32];  // set to MAX.
+
+static const char *getdynkey(char *key, int id ) {
+	 char buff[30];
+	 sprintf(buff,"%s%d", key, id);
+	 return request_get_arg(request, buff);
+}
+
+static void loadDynINI(char *key, int id, char *location, int size) {
+	 char buff[100];
+	 sprintf(buff,"%s%d",key,id);
+	 ini_gets("currentcost", buff, "", location, size, inifile);
+}
+
+static void saveDynINI(char *key, int id, const char *value) {
+	 char buff[100];
+	 sprintf(buff,"%s%d",key,id);
+	 ini_puts("currentcost", buff, value, inifile);
+}
+
+static void submit_form() {
+	 int cc_restart = 0;
+
+	 const char *cc_meter = request_get_arg(request,"cc_meter");
+	 if(cc_meter) {
+		  if((*cc_meter == '1' && ini.cc_enable[0] == '0') ||
+			 (*cc_meter == '0' && ini.cc_enable[0] == '1')) {
+			   ini_puts("currentcost","enable",cc_meter,inifile);
+			   cc_restart = 1;
+		  }
+	 }
+
+	 const char *cc_hysteresis = request_get_arg(request, "cc_hysteresis");
+	 if(cc_hysteresis && strcmp(cc_hysteresis, ini.cc_hysteresis)) {
+		  ini_puts("currentcost","hysteresis", cc_hysteresis, inifile);
+		  cc_restart = 1;
+	 }
+
+	 const char *cc_usbserial = request_get_arg(request, "cc_usbserial");
+	 if(cc_usbserial && strcmp(cc_usbserial, ini.cc_usbserial)) {
+		  ini_puts("currentcost","usbserial", cc_usbserial, inifile);
+		  cc_restart = 1;
+	 }
+
+	 const char *cc_model = request_get_arg(request, "cc_model");
+	 if(cc_model && strcmp(cc_model, ini.cc_model)) {
+		  ini_puts("currentcost","model", cc_model, inifile);
+		  cc_restart = 1;
+	 }
+
+	 int i;
+	 for(i=0; i<sensorCount; i++) {
+		  const char *type = getdynkey("type", i);
+		  const char *desc = getdynkey("desc", i);
+		  const char *unit = getdynkey("unit", i);
+		  const char *hysteresis = getdynkey("hysteresis", i);
+		  if(type == NULL) continue;
+		  saveDynINI("type", i+1, type);
+		  saveDynINI("desc", i+1, desc);
+		  saveDynINI("unit", i+1, unit);
+		  saveDynINI("hysteresis", i+1, hysteresis);
+	 }
+
+	 if(cc_restart) {
+	   system("/etc/init.d/xap restart currentcost");
+	 }
+}
+
+static void readIni() {
+	 ini_gets("currentcost","enable","0",ini.cc_enable,sizeof(ini.cc_enable),inifile);
+	 ini_gets("currentcost","hysteresis","10",ini.cc_hysteresis,sizeof(ini.cc_hysteresis),inifile);
+	 ini_gets("currentcost","usbserial","/dev/ttyUSB0",ini.cc_usbserial,sizeof(ini.cc_usbserial),inifile);
+	 ini_gets("currentcost","model","CLASSIC",ini.cc_model,sizeof(ini.cc_model),inifile);
+	 int i;
+	 for(i=0; modelSensor[i].model; i++) {
+		 if(strcmp(modelSensor[i].model, ini.cc_model) == 0) {
+			 sensorCount = modelSensor[i].sensors;
+		 }
+	 }
+	 for(i=0; i < sensorCount; i++) {
+		  loadDynINI("type", i+1, sensor[i].type, sizeof(sensor[i].type));
+		  loadDynINI("desc", i+1, sensor[i].desc, sizeof(sensor[i].desc));
+		  loadDynINI("unit", i+1, sensor[i].unit, sizeof(sensor[i].unit));
+		  loadDynINI("hysteresis", i+1, sensor[i].hysteresis, sizeof(sensor[i].hysteresis));
+	 }
+
+}
+%>
+
+<%
+int i;
+REQUIRE_AUTH(SCRIPT_NAME);
+readIni();
+const char *action = request_get_arg(request,"action");
+if(action && strcmp(action,"Apply") == 0) {
+	 submit_form(out);
+	 readIni();
+}
+if(action && strcmp(action,"Reboot") == 0) {
+	  response_redirect(response, "reboot.kl1");
+}
+%>
+<html>
+<head>
+<%@include component/style.kl1%>
+<script type="text/javascript">
+function comboSubmit(F) {
+    F.action.value = "Apply";
+    F.submit();
+}
+function to_submit(F) {
+	F.save_button.value = "Saving";
+	F.action.value = "Apply";
+	apply(F);
+}
+function reboot(F) {
+	 F.reboot_button.value = "Rebooting";
+	 F.action.value = "Reboot";
+	 apply(F);
+}
+addEvent(window,"load",function() {
+	 show_layer_ext(document.frmControl.cc_meter, 'idcc', 1 == <%= ini.cc_enable %>);
+	 });
+
+</script>
+</head>
+<body class="gui">
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<br/>
+<form name="frmControl" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="action" />
+<h2>CurrentCost Settings</h2>
+<fieldset>
+  <legend>Current Cost</legend>
+  <div class="setting">
+    <div class="label">USB attached</div>
+	<input class="spaceradio" type="radio" value="1" name="cc_meter" onclick="show_layer_ext(this, 'idcc', true);"<% if(ini.cc_enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+    <input class="spaceradio" type="radio" value="0" name="cc_meter" onclick="show_layer_ext(this, 'idcc', false);"<% if(ini.cc_enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+  <div class="setting" id="idcc">
+   <div class="setting">
+    <div class="label">Model</div>
+     <select name="cc_model" onchange="comboSubmit(this.form)">
+     <option value="ORIGINAL" <% if(strcmp(ini.cc_model,"ORIGINAL")==0) { %>selected="selected"<% } %>>Classic 1</option>
+     <option value="CLASSIC" <% if(strcmp(ini.cc_model,"CLASSIC")==0) { %>selected="selected"<% } %>>Classic 2</option>
+     <option value="CC128" <% if(strcmp(ini.cc_model,"CC128")==0) { %>selected="selected"<% } %>>CC128</option>
+     <option value="EDF" <% if(strcmp(ini.cc_model,"EDF")==0) { %>selected="selected"<% } %>>EDF</option>
+     </select>
+   </div>
+   <div class="setting">
+    <div class="label">USB Serial Device</div>
+	<input type="text" name="cc_usbserial" value="<%= ini.cc_usbserial %>" maxlength="15" size="15"/>
+	 <span class="default">(Default: /dev/ttyUSB0)</span>
+   </div>
+   <div class="setting">
+    <div class="label">Whole House Hysteresis</div>
+	<input class="num" type="text" name="cc_hysteresis" onblur="is_digit(this,'Hysteresis')" value="<%= ini.cc_hysteresis %>" maxlength="3" size="3"/>
+	 <span class="default">(Default: 10 Watts)</span>
+   </div>
+<%
+     if(sensorCount > 0) {
+%>
+<fieldset>
+  <legend>Sensors</legend>
+  <table>
+	   <tr><th>ID</th><th>Type</th><th>Hysteresis</th><th>Units</th><th>Description</th></tr>
+<%
+	   for(i=0; i<sensorCount; i++) {
+%>
+	   <tr>
+         <td><% io_printf(out,"%d",i+1);%></td>
+	<td>
+<select name="type<% io_printf(out,"%d",i); %>">
+<option value="A" <% if(sensor[i].type[0] == 'A') { %> selected="selected"<% } %>/>Analog</option>
+<option value="D" <% if(sensor[i].type[0] == 'D') { %> selected="selected"<% } %>/>Digital</option>
+<option value="I" <% if(sensor[i].type[0] == 'I') { %> selected="selected"<% } %>/>Impulse</option>
+</select>
+</td>
+         <td><input name="hysteresis<% io_printf(out,"%d",i); %>" maxlength="3" size="3" value="<%= sensor[i].hysteresis %>" onblur="is_digit(this,'Hysteresis')"/></td>
+         <td><input name="unit<% io_printf(out,"%d",i); %>" maxlength="10" size="10" value="<%= sensor[i].unit %>"/></td>
+         <td><input name="desc<% io_printf(out,"%d",i); %>" maxlength="40" size="40" value="<%= sensor[i].desc %>"/></td>
+       </tr>
+<%
+           } // foreach sensor
+%>
+
+  </table>
+</fieldset>
+<%
+     } // If sensor count > 0
+%>
+  </div>
+
+</fieldset>
+
+
+<br/>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)" />
+<input type="reset" value="Cancel Changes"/>
+<% if(reboot) { %><input type="button" name="reboot_button" value="Reboot" onclick="reboot(this.form)" /><% } %>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>
+

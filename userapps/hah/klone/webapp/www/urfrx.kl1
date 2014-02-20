@@ -1,0 +1,176 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+#include "utils.h"
+#include "comms.h"
+
+static const char *inifile = "/etc/xap.d/xap-urfrx.ini";
+
+static struct {
+	int devicesrf;
+	char enable[2];
+	char serialport[16];
+	char vSource[40];
+	char vSerial[2];
+} ini;
+
+static void readIni() {
+	ini_gets("urfrx","enable","0",ini.enable,sizeof(ini.enable),inifile);
+	ini.devicesrf = ini_getl("urfrx","devices", 0, inifile);
+	ini_gets("urfrx","serialport","/dev/ttyUSB0",ini.serialport,sizeof(ini.serialport),inifile);
+	ini_gets("urfrx","vserial","0",ini.vSerial,sizeof(ini.vSerial),inifile);
+	ini_gets("urfrx","vsource","dbzoo.livebox.serial",ini.vSource,sizeof(ini.vSource),inifile);
+}
+
+static void submit_form() {
+	int restart = 0;
+	 const char *vSerial = request_get_arg(request,"vSerial");
+	 if(vSerial) {
+		  if((*vSerial == '1' && ini.vSerial[0] == '0') ||
+			 (*vSerial == '0' && ini.vSerial[0] == '1')) {
+			   ini_puts("urfrx","vserial",vSerial,inifile);
+			   restart = 1;
+		  }
+	 }
+	 const char *vSource = request_get_arg(request,"vSource");
+	 if(vSource && strcmp(vSource, ini.vSource)) {
+		 ini_puts("urfrx","vsource",vSource,inifile);
+		 restart = 1;
+	 }
+	 const char *urfrx_on = request_get_arg(request,"urfrx_on");
+	 if(urfrx_on) {
+		  if((*urfrx_on == '1' && ini.enable[0] == '0') ||
+			 (*urfrx_on == '0' && ini.enable[0] == '1')) {
+			   ini_puts("urfrx","enable",urfrx_on,inifile);
+			   restart = 1;
+		  }
+	 }
+
+	 const char *serialport = request_get_arg(request, "serialport");
+	 if(serialport && strcmp(serialport, ini.serialport)) {
+		  ini_puts("urfrx","serialport", serialport, inifile);
+		  restart = 1;
+	 }
+
+	submit_statickey(request,"urfrx","devices", inifile);
+	readIni();
+
+	submit_dynkeys(request,"urfrx","rf%d.label", ini.devicesrf, inifile);
+	submit_dynkeys(request,"urfrx","rf%d.off", ini.devicesrf, inifile);
+	submit_dynkeys(request,"urfrx","rf%d.on", ini.devicesrf, inifile);
+
+	if(restart) {
+		system("/etc/init.d/xap restart urfrx");
+	}
+}
+
+%>
+<%
+REQUIRE_AUTH(SCRIPT_NAME);
+readIni();
+const char *action = request_get_arg(request,"action");
+if(action) {
+	if(strcmp(action,"apply") == 0) {
+		submit_form(out);
+	}
+}
+%>
+<html>
+<head>
+<%@include component/style.kl1%>
+<script type="text/javascript">
+function to_submit(F) {
+	F.save_button.value = "Saving";
+	F.action.value = "apply";
+	apply(F);
+}
+addEvent(window,"load",function() {
+	 show_layer_ext(document.frmControl.urfrx_on, 'idrf', 1 == <%= ini.enable %>);
+	 show_layer_ext(document.frmControl.vSerial, 'virtual', 1 == <%= ini.vSerial %>);
+	 });
+</script>
+</head>
+<body class="gui">
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<br/>
+<%
+int i;
+%>
+<form name="frmControl" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="action" />
+<h2>Universal RF Receiver</h2>
+<fieldset>
+<legend>URF Rx</legend>
+
+<div class="setting">
+  <div class="label">Start Service</div>
+      <input class="spaceradio" type="radio" value="1" name="urfrx_on" onclick="show_layer_ext(this, 'idrf', true);"<% if(ini.enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+      <input class="spaceradio" type="radio" value="0" name="urfrx_on" onclick="show_layer_ext(this, 'idrf', false);"<% if(ini.enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+</div>
+
+    <div class="setting" id="idrf">
+        <div class="setting">
+          <div class="label">Serial Port</div>
+         	  <input type="text" name="serialport" value="<%= ini.serialport %>" maxlength="15" size="15"/>
+         	  <span class="default">(Default: /dev/ttyUSB0)</span>
+        </div>
+
+        <div class="setting">
+          <div class="label">RF Hardware</div>
+    	  <input class="spaceradio" type="radio" value="0" name="vSerial" onclick="show_layer_ext(this, 'virtual', false);"<% if(ini.vSerial[0] == '0') { %> checked="checked"<% } %>/>Direct connection&nbsp;
+            <input class="spaceradio" type="radio" value="1" name="vSerial" onclick="show_layer_ext(this, 'virtual', true);"<% if(ini.vSerial[0] == '1') { %> checked="checked"<% } %>/>Virtual via xap-serial
+        </div>
+
+        <div class="setting" id="virtual">
+          <div class="setting">
+            <div class="label">xAP Source</div>
+    	      <input type="text" name="vsource" value="<%= ini.vSource %>" maxlength="40" size="40"/>
+    	      <span class="default">(Default: dbzoo.livebox.serial)</span>
+          </div>
+       </div>
+
+       <div class="setting">
+         <div class="label">RF Devices</div>
+    	  <input class="num" type="text" name="urfrx.devices" onblur="valid_range(this,0,96); %>,'RF count')" value="<% io_printf(out,"%d",ini.devicesrf); %>" maxlength="2" size="2"/>
+       </div>
+
+<table><tr><th>Item</th><th>Label</th><th>On</th><th>Off</th></tr><%
+for(i=1; i<=ini.devicesrf; i++) {
+  io_printf(out,"<tr><td>RF %d</td>", i);
+  io_printf(out,"<td><input size=\"15\" type=\"text\" name=\"rf%d.label\" value=\"%s\"></td>\n", i, iniGetDynLabel("urfrx",i, inifile));
+  io_printf(out,"<td><input style=\"width:300px\" type=\"text\" name=\"rf%d.on\" value=\"%s\"></td>\n", i, iniGetDynKey("urfrx","rf%d.on", i, inifile));
+  io_printf(out,"<td><input style=\"width:300px\" type=\"text\" name=\"rf%d.off\" value=\"%s\"></td>\n", i, iniGetDynKey("urfrx","rf%d.off", i, inifile));
+  io_printf(out,"</tr>");
+}
+%></table>
+  </div>
+</fieldset>
+
+<br/>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)" />
+<input type="reset" value="Cancel Changes"/>
+<input type="submit" value="Refresh"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>
+

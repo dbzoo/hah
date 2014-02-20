@@ -10,4 +10,4 @@ $(XAP): $(OBJECTS)
 	$(CC) -o $(XAP) $(OBJECTS) $(LDFLAGS)
 
 clean:
-	$(RM) -f *.o xap-$(XAP)
+	$(RM) -f *.o $(XAP)

@@ -1,0 +1,6 @@
+/etc/xap.d/plugboard.ini
+/etc/xap.d/xap-livebox.ini
+/etc/xap.d/xap-serial.ini
+/etc/xap.d/iserver.ini
+/etc/xap.d/xap-currentcost.ini
+/etc/kloned.conf

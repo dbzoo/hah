@@ -1,4 +1,5 @@
-Ubuntu Beaglebone build notes.
+= Ubuntu build notes =
+ * Tested on a beaglebone running Ubuntu 13.10 (Saucy)
 
 Download ubuntu
 http://elinux.org/BeagleBoardUbuntu
@@ -15,7 +16,20 @@ update-rc.d -f  apache2 remove
 # Distribution will be placed into
 ./build/sysroot
 
-# Installation: copy this over your filesystem as root.
-cp -a build/sysroot/* /
+# To package you need the packaging stuff
+apt-get install packaging-dev
 
-# A packaged distribution will be forthcoming.
+# To build an installable package for the armhf Architecture
+make bb-package
+
+# The resultant .deb file will be in build/
+# Install like this
+sudo dpkg -i build/*.deb
+
+
+= Fedora build notes =
+ * Tested on a Raspberry PI running Pidora 18
+
+# You will need these pre-requisites installed to build
+yum install subversion libxml2-devel libcurl-devel openssl-devel
+yum groupinstall "Development Tools" --skip-broken

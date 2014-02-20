@@ -1,0 +1,2 @@
+update-rc.d xap defaults 50
+/etc/init.d/xap start

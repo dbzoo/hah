@@ -470,11 +470,7 @@ kernel_clean:
 	rm -f $(KERNEL_DIR)/Image
 
 app_clean:
-# This is UGLY but klone just won't play nice on a clean
-# So until I figure out a better idea this will do.
-	mv $(HAH_DIR)/klone/Makefile $(HAH_DIR)/klone/Makefile-ignore
 	$(MAKE) subdirs TGT=clean
-	mv $(HAH_DIR)/klone/Makefile-ignore $(HAH_DIR)/klone/Makefile 
 	find $(INSTALL_DIR) -type l -ilname '*busybox' -exec rm {} \;
 	$(RM) -rf $(INSTALL_DIR)/include
 

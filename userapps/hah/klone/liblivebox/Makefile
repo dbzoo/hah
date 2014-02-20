@@ -1,8 +1,8 @@
 # always include common.mk in MaKL-based makefiles
-include common.mk
+-include common.mk
 
 # include klone-related variables
-include ../vars.mk
+-include ../vars.mk
 
 # uncommment to enable debugging
 #KLONE_CONF_ARGS = --enable_debug
@@ -20,4 +20,7 @@ CURL=$(OPENSRC)/curl/include
 OPENSSL=$(OPENSRC)/openssl/include
 CFLAGS += -I../include -I$(CURL) -I$(OPENSSL) $(KLONE_CFLAGS)
 
-include lib.mk
+-include lib.mk
+
+clean:
+	rm -f *.o *.a

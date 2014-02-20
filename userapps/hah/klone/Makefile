@@ -25,5 +25,8 @@ WEBAPP_LDADD = $(CURDIR)/liblivebox/liblivebox.a
 
 include klapp.mk
 
+clean-pre:
+	rm -rf klone-$(KLONE_VERSION)
+
 klapp.mk:
 	wget -O $@ -c http://koanlogic.com/klone/klapp-2.2.1.mk

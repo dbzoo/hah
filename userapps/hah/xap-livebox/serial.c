@@ -13,6 +13,7 @@ Serial interfacing to the external AVR hardware
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <ctype.h>
 #include "xap.h"
 #include "bsc.h"
 #include "log.h"
@@ -298,7 +299,7 @@ static void processSerialCommand(char *a_cmd)
 /** Read a buffer of serial text and process a line at a time.
 * if a CR/LF isn't seen continue to accumulate cmd data.
 */
-int serialInputHandler(int fd, void *data)
+void serialInputHandler(int fd, void *data)
 {
         static char serial_buff[128];
         int i, len;
@@ -320,7 +321,7 @@ int serialInputHandler(int fd, void *data)
                 }
         }
 	info("exit");
-	return len;
+	if(data) *((int *)data) = len;
 }
 
 /// Send a message to the serial port.
@@ -344,7 +345,7 @@ static void getFirmwareVersion()
   while(inBytes == 0 && retries > 0) {
 	serialSend("version"); // Get AVR version
 	usleep(200 * 1000);     // wait for response - 200ms
-	inBytes = serialInputHandler(gSerialfd, NULL);	// non-blocking read
+	serialInputHandler(gSerialfd, &inBytes);	// non-blocking read
 	retries--;
   }
 }

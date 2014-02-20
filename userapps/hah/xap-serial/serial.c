@@ -79,7 +79,7 @@ void processSerialCommand(void *data, struct serialPort *p)
 			   "{\n"
 			   "port=%s\n"
 			   "data=%s\n"
-                           "}\n", xapGetUID(), xapGetSource(), p->device, data);
+                           "}\n", xapGetUID(), xapGetSource(), p->device, (char *)data);
 	if(len > sizeof(buff)) {
 	  serialError("Buffer overflow");
 	  return;

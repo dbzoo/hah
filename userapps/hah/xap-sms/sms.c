@@ -20,7 +20,7 @@
 char *interfaceName = NULL;
 const char *inifile = "/etc/xap.d/xap-sms.ini";
 
-const char *XAP_CLASS = "sms.message";
+char *XAP_CLASS = "sms.message";
 #define SEND_INTERVAL 60  // in seconds
 
 // When we receive an "outbound" sms.message report on whether is could be sent or not.

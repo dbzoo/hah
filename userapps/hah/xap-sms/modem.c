@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <stdlib.h>
 #include "xap.h"
 #include "modem.h"
 

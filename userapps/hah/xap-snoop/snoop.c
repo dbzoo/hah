@@ -77,6 +77,5 @@ int main(int argc, char* argv[]) {
 
 	xapAddFilterAction(&packetDump, filter, NULL);
 	xapProcess();
+	return 0;
 }
-
-

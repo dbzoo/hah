@@ -1,6 +1,6 @@
 OBJECTS=tokenize.o main.o queue.o mem.o
 XAPLIB=../xaplib2
-CFLAGS=-I$(XAPLIB) -g
+CFLAGS=-I$(XAPLIB)
 LEX=flex
 
 all: $(OBJECTS)

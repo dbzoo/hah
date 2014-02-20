@@ -10,7 +10,7 @@ extern int firmware_revision;
 
 int setupSerialPort(char *serialport, int baud);
 void serialSend(char *buf);
-int serialInputHandler(int fd, void *data);
+void serialInputHandler(int fd, void *data);
 int firmwareMajor();
 int firmwareMinor();
 void setFirmwareVersion(int major, int minor);

@@ -109,7 +109,7 @@ iServer: xaplib2
 
 klone:
 	$(MAKE) -C $(HAH_DIR)/klone
-	install -m 755 $(HAH_DIR)/klone/kloned $(INSTALL_DIR)/usr/bin
+	install -s -m 755 $(HAH_DIR)/klone/kloned $(INSTALL_DIR)/usr/bin
 	install -m 644 $(HAH_DIR)/klone/webapp/etc/kloned.conf $(INSTALL_DIR)/etc
 
 ini:

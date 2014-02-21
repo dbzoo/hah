@@ -22,8 +22,8 @@ make
 # To package you need the packaging stuff
 apt-get install packaging-dev
 
-# To build an installable package for the armhf Architecture
-make bb-package
+# To build a .deb installable package for the armhf Architecture
+make arm-deb
 
 # The resultant .deb file will be in build/
 # Install like this

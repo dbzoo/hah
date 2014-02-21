@@ -115,10 +115,10 @@ klone:
 ini:
 	$(MAKE) -C $(OPENSOURCE_DIR)/ini install
 
-bb-package:
+arm-deb:
 	rm -rf $(INSTALL_DIR)/DEBIAN
 	mkdir $(INSTALL_DIR)/DEBIAN
-	cp -r package/beaglebone/* $(INSTALL_DIR)/DEBIAN
+	cp -r package/arm-DEBIAN/* $(INSTALL_DIR)/DEBIAN
 	cp -r package/etc $(INSTALL_DIR)
 	dpkg-deb -b $(INSTALL_DIR) $(TARGET_DIR)
 

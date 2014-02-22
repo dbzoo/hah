@@ -74,7 +74,11 @@ install:
 
 arm-deb: install
 	install -d $(INSTALL_DIR)/DEBIAN
-	install -m 644 package/arm-DEBIAN/* $(INSTALL_DIR)/DEBIAN/
+	install -m 644 package/arm-DEBIAN/conffiles $(INSTALL_DIR)/DEBIAN/
+	install -m 644 package/arm-DEBIAN/control $(INSTALL_DIR)/DEBIAN/
+	install -m 755 package/arm-DEBIAN/postinst $(INSTALL_DIR)/DEBIAN/
+	install -m 755 package/arm-DEBIAN/postrm $(INSTALL_DIR)/DEBIAN/
+	install -m 755 package/arm-DEBIAN/prerm $(INSTALL_DIR)/DEBIAN/
 	install -m 644 package/etc/xap.d/build $(INSTALL_DIR)/etc/xap.d/
 	install -D -m 755 package/etc/init.d/xap $(INSTALL_DIR)/etc/init.d/xap
 	dpkg-deb -b $(INSTALL_DIR) $(TARGET_DIR)

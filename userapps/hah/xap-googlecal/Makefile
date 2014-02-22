@@ -1,14 +1,15 @@
 # $Id$
 
-XAP=googlecal
-CFLAGS=-I$(INSTALL_DIR)/include -I$(INSTALL_DIR)/include/libxml2
-LDFLAGS=-L$(INSTALL_DIR)/lib -lxap2 -lgcal -lxml2 -lcurl
-#LDFLAGS+=-L../xaplib2
-#CFLAGS=-DDEV -I../../opensource/libgcal -I../../opensource/libxml2/include -I../xaplib2
-OBJECTS=$(XAP).o svn_date.o
+TARGET=xap-googlecal
+LDFLAGS=-L../xaplib2 -lxap2 -lgcal -lxml2 -lcurl
+CFLAGS=-DDEV -I../../opensource/libgcal -I../xaplib2
+OBJECTS=googlecal.o svn_date.o
 
-xap-$(XAP): $(OBJECTS)
+$(TARGET): $(OBJECTS)
 	$(CC) -o xap-$(XAP) $(OBJECTS) $(LDFLAGS)
 
+install: $(TARGET)
+	install -s -m 755 $(TARGET) $(INSTALL_DIR)/usr/bin
+
 clean:
-	$(RM) -f xap-$(XAP) $(OBJECTS) core
+	rm -f $(TARGET) $(OBJECTS) core

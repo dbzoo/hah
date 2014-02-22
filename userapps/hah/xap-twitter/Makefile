@@ -1,19 +1,19 @@
 # $Id$
 
-XAP=twitter
+TARGET=xap-twitter
 
 CFLAGS=-DLINUX -DIDENT
 CFLAGS+=-I../xaplib2 -I../../opensource/jsmn
 LDFLAGS=-lxap2 -lcrypto -lcurl -ljsmn -lm
 LDFLAGS+=-L../xaplib2 -L../../opensource/jsmn
-MAIN=$(XAP).o 
-OBJECTS=tcurl.o oauth.o xmalloc.o hash.o oauth_http.o
+OBJECTS=twitter.o tcurl.o oauth.o xmalloc.o hash.o oauth_http.o
 
-xap-$(XAP): $(MAIN) $(OBJECTS)
-	$(CC) -o xap-$(XAP) $(MAIN) $(OBJECTS) $(LDFLAGS)
+$(TARGET): $(OBJECTS)
+	$(CC) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
-deleteLastTweet: deleteLastTweet.o $(OBJECTS)
-	$(CC) -o deleteLastTweet deleteLastTweet.o $(OBJECTS) $(LDFLAGS)
+install: $(TARGET)
+	install -s -m 755 $(TARGET) $(INSTALL_DIR)/usr/bin
+	install -m 644 $(TARGET).ini $(INSTALL_DIR)/etc/xap.d
 
 clean:
-	$(RM) -f xap-$(XAP) $(OBJECTS) $(MAIN) core
+	$(RM) -f $(TARGET) *.o core

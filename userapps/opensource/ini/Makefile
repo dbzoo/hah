@@ -12,6 +12,6 @@ clean:
 	rm -f $(INSTALL_DIR)/usr/bin/iniset
 
 install: ini
-	install -s -m 755 $(OPENSOURCE_DIR)/ini/ini $(INSTALL_DIR)/usr/bin
+	install -s -m 755 ini $(INSTALL_DIR)/usr/bin
 	test -h $(INSTALL_DIR)/usr/bin/iniget || ln -s /usr/bin/ini $(INSTALL_DIR)/usr/bin/iniget
 	test -h $(INSTALL_DIR)/usr/bin/iniset || ln -s /usr/bin/ini $(INSTALL_DIR)/usr/bin/iniset

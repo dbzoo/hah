@@ -1,13 +1,15 @@
-XAP=xap-xively
-CFLAGS=-DIDENT -I$(INSTALL_DIR)/include
-LDFLAGS=-L$(INSTALL_DIR)/lib
-CFLAGS+=-I../xaplib2
-LDFLAGS+=-L../xaplib2
-LDFLAGS+=-lxap2
+# $Id$
+
+TARGET=xap-xively
+CFLAGS=-DIDENT -I../xaplib2
+LDFLAGS=-L../xaplib2 -lxap2
 OBJECTS=main.o xively.o mem.o dscache.o pachulib.o
 
-$(XAP): $(OBJECTS)
-	$(CC) -o $(XAP) $(OBJECTS) $(LDFLAGS)
+$(TARGET): $(OBJECTS)
+	$(CC) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
+
+install: $(TARGET)
+	install -s -m 755 $(TARGET) $(INSTALL_DIR)/usr/bin
 
 clean:
-	$(RM) -f *.o $(XAP)
+	$(RM) -f *.o $(TARGET)

@@ -1,11 +1,11 @@
-XAP=echo
-CFLAGS=-Os -Wall -DLINUX -I$(INSTALL_DIR)/include -g
-LDFLAGS=-L$(INSTALL_DIR)/lib -lxap2
-CFLAGS+=-I../xaplib2
-LDFLAGS+=-L../xaplib2
+# $Id$
 
-xap-$(XAP): $(XAP).o
-	$(CC) -o xap-$(XAP) $(XAP).o $(LDFLAGS)
+TARGET=xap-echo
+CFLAGS=-Os -Wall -DLINUX -I../xaplib2
+LDFLAGS=-L../xaplib2 -lxap2
+
+$(TARGET): echo.o
+	$(CC) -o $(TARGET) $< $(LDFLAGS)
 
 clean:
-	rm -f xap-$(XAP) core *.o
+	rm -f $(TARGET) core *.o

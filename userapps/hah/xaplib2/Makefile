@@ -8,6 +8,9 @@ libxap2.so: $(OBJECTS)
 libxap2.a: $(OBJECTS)
 	$(AR) rcv libxap2.a $(OBJECTS)
 
+install: libxap2.so
+	install -s -m 644 libxap2.so $(INSTALL_DIR)/usr/lib
+
 clean:
 	rm -f $(OBJECTS) libxap2.a libxap2.so *~
 

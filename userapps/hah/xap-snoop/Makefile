@@ -1,11 +1,13 @@
-XAP=snoop
-CFLAGS=-Os -Wall -DLINUX -I$(INSTALL_DIR)/include
-LDFLAGS=-L$(INSTALL_DIR)/lib -lxap2
-CFLAGS+=-I../xaplib2
-LDFLAGS+=-L../xaplib2
+# $Id$
+TARGET=xap-snoop
+CFLAGS=-Os -Wall -DLINUX -I../xaplib2
+LDFLAGS=-L../xaplib2 -lxap2
 
-xap-$(XAP): $(XAP).o
-	$(CC) -o xap-$(XAP) $(XAP).o $(LDFLAGS)
+$(TARGET): snoop.o
+	$(CC) -o $(TARGET) $< $(LDFLAGS)
+
+install: $(TARGET)
+	install -s -m 755 $(TARGET) $(INSTALL_DIR)/usr/bin
 
 clean:
-	rm -f xap-$(XAP) core *.o
+	rm -f $(TARGET) core *.o

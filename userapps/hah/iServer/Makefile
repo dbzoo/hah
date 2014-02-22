@@ -1,13 +1,18 @@
+TARGET=iServer
 OBJECTS=tokenize.o main.o queue.o mem.o
 XAPLIB=../xaplib2
 CFLAGS=-I$(XAPLIB)
 LEX=flex
 
-all: $(OBJECTS)
-	$(CC) -o iServer $(OBJECTS) -L$(XAPLIB) -lxap2 -lpthread
+$(TARGET): $(OBJECTS)
+	$(CC) -o $(TARGET) $(OBJECTS) -L$(XAPLIB) -lxap2 -lpthread
+
+install: $(TARGET)
+	install -s -m 755 $(TARGET) $(INSTALL_DIR)/usr/bin
+	install -m 644 iserver.ini $(INSTALL_DIR)/etc/xap.d
 
 static: $(OBJECTS)
-	$(CC) -static -o iServer $(OBJECTS) -L$(XAPLIB) -lxap2 -lpthread
+	$(CC) -static -o $(TARGET) $(OBJECTS) -L$(XAPLIB) -lxap2 -lpthread
 
 tokenize.c: tokenize.l
 
@@ -18,4 +23,4 @@ loadClient: loadClient.o
 	$(CC) -o loadClient loadClient.o -L$(XAPLIB) -lxap2
 
 clean:
-	$(RM) -f *.o iServer loadClient loadTest tokenize.c *~
+	$(RM) -f *.o $(TARGET) loadClient loadTest tokenize.c *~

@@ -3,6 +3,8 @@
 
 all: libjsmn.a 
 
+install: all
+
 libjsmn.a: jsmn.o
 	$(AR) rc $@ $^
 

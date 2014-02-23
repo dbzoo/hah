@@ -120,7 +120,13 @@ start_plugboard() {
 }
 
 stop_plugboard() {
-    kill `cat /var/run/xap-plugboard.pid`
+    if [ -f /var/run/xap-plugboard.pid ]; then
+      pid=`cat /var/run/xap-plugboard.pid`
+      if [ -d /proc/$pid ]; then
+        kill $pid
+      fi
+      rm /var/run/xap-plugboard.pid
+    fi
 }
 
 start_iserver() {

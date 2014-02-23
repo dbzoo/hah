@@ -25,7 +25,7 @@ start_web() {
 }
 
 stop_web() {
-    killall kloned
+    pkill kloned
 }
 
 start_hub() {
@@ -34,7 +34,7 @@ start_hub() {
 }
 
 stop_hub() {
-    killall xap-hub
+    pkill xap-hub
 }
 
 start_livebox() {
@@ -45,7 +45,7 @@ start_livebox() {
 }
 
 stop_livebox() {
-    killall xap-livebox
+    pkill xap-livebox
 }
 
 start_serial() {
@@ -55,7 +55,7 @@ start_serial() {
     fi
 }
 stop_serial() {
-    killall xap-serial
+    pkill xap-serial
 }
 
 start_twitter() {
@@ -65,7 +65,7 @@ start_twitter() {
     fi
 }
 stop_twitter() {
-    killall xap-twitter
+    pkill xap-twitter
 }
 
 start_sms() {
@@ -76,7 +76,7 @@ start_sms() {
     fi
 }
 stop_sms() {
-    killall xap-sms
+    pkill xap-sms
 }
 
 start_xively() {
@@ -86,7 +86,7 @@ start_xively() {
     fi
 }
 stop_xively() {
-    killall xap-xively
+    pkill xap-xively
 }
 
 start_currentcost() {
@@ -97,7 +97,7 @@ start_currentcost() {
     fi
 }
 stop_currentcost() {
-    killall xap-currentcost
+    pkill xap-currentcost
 }
 
 start_googlecal() {
@@ -107,7 +107,7 @@ start_googlecal() {
     fi
 }
 stop_googlecal() {
-    killall xap-googlecal
+    pkill xap-googlecal
 }
 
 start_plugboard() {
@@ -130,7 +130,7 @@ start_iserver() {
     fi
 }
 stop_iserver() {
-    killall iServer
+    pkill iServer
 }
 
 start_urfrx() {
@@ -141,7 +141,7 @@ start_urfrx() {
     fi
 }
 stop_urfrx() {
-    killall xap-urfrx
+    pkill xap-urfrx
 }
 
 # Param 1: subsystem

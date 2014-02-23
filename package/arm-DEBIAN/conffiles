@@ -3,4 +3,6 @@
 /etc/xap.d/xap-serial.ini
 /etc/xap.d/iserver.ini
 /etc/xap.d/xap-currentcost.ini
+/etc/xap.d/xap-twitter.ini
+/etc/xap.d/xap-sms.ini
 /etc/kloned.conf

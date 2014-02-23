@@ -3,13 +3,14 @@ OBJECTS=tokenize.o main.o queue.o mem.o
 XAPLIB=../xaplib2
 CFLAGS=-I$(XAPLIB)
 LEX=flex
+INI=$(INSTALL_DIR)/etc/xap.d/iserver.ini
 
 $(TARGET): $(OBJECTS)
 	$(CC) -o $(TARGET) $(OBJECTS) -L$(XAPLIB) -lxap2 -lpthread
 
 install: $(TARGET)
 	install -s -m 755 $(TARGET) $(INSTALL_DIR)/usr/bin
-	install -m 644 iserver.ini $(INSTALL_DIR)/etc/xap.d
+	test -f $(INI) || install -m 644 iserver.ini $(INI)
 
 static: $(OBJECTS)
 	$(CC) -static -o $(TARGET) $(OBJECTS) -L$(XAPLIB) -lxap2 -lpthread

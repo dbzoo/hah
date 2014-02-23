@@ -28,7 +28,7 @@ clean-pre:
 
 realinstall:
 	install -s -m 755 kloned $(INSTALL_DIR)/usr/bin
-	install -m 644 webapp/etc/kloned.conf $(INSTALL_DIR)/etc
+	test -f $(INSTALL_DIR)/etc/kloned.conf || install -m 644 webapp/etc/kloned.conf $(INSTALL_DIR)/etc
 
 klapp.mk:
 	wget -O $@ -c http://koanlogic.com/klone/klapp-2.2.1.mk

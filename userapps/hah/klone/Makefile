@@ -28,6 +28,7 @@ clean-pre:
 
 realinstall:
 	install -s -m 755 kloned $(INSTALL_DIR)/usr/bin
+	install -d -m 755 $(INSTALL_DIR)/etc/www
 	test -f $(INSTALL_DIR)/etc/kloned.conf || install -m 644 webapp/etc/kloned.conf $(INSTALL_DIR)/etc
 
 klapp.mk:

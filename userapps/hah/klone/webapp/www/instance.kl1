@@ -15,7 +15,7 @@ struct _daemon {
 	char *dflt;
 	char uid[5];
 } daemons[] = {
-	{"xap-bridge","bridge","Bridge","00D3",""},
+  //	{"xap-bridge","bridge","Bridge","00D3",""},
 	{"xap-snoop","snoop","Snoop","00D4",""},
 	{"xap-serial", "serial","Serial","00D5",""},
 	{"xap-xively", "xively","Xively","00D7",""},
@@ -25,7 +25,7 @@ struct _daemon {
 	{"xap-livebox", "xap","Livebox","00DB", ""},
 	{"xap-currentcost", "currentcost","CurrentCost","00DC",""},
 	{"xap-sms", "sms","SMS","00DD",""},
-	{"xap-iserver", "iserver","iServer","00DE",""}
+	{"iserver", "iserver","iServer","00DE",""}
 };
 #define daemonCount (sizeof(daemons)/sizeof(daemons[0]))
 char iniDevice[32];
@@ -44,7 +44,7 @@ static void submit_form() {
 		 const char *uid = request_get_arg(request, uidKey);
 		 if(uid && strcmp(uid, daemons[i].uid)) {
 			 char inifile[40];
-			 snprintf(inifile, sizeof inifile, "/etc/xap.d/%.ini", daemons[i].file);
+			 snprintf(inifile, sizeof inifile, "/etc/xap.d/%s.ini", daemons[i].file);
 			 ini_puts(daemons[i].section,"uid",uid, inifile);
 			 reboot = 1;
 		 }
@@ -58,7 +58,7 @@ static void readIni() {
 	 ini_gets("xap","deviceid","",iniDevice,sizeof(iniDevice), "/etc/xap.d/system.ini");
 	 for(i=0; i<daemonCount; i++) {
 		 char inifile[40];
-		 snprintf(inifile, sizeof inifile, "/etc/xap.d/%.ini", daemons[i].file);
+		 snprintf(inifile, sizeof inifile, "/etc/xap.d/%s.ini", daemons[i].file);
 		 snprintf(uidKey, sizeof uidKey, "uid%d", i);
 		 ini_gets(daemons[i].section,"uid",daemons[i].dflt,daemons[i].uid,5,inifile);
 	 }

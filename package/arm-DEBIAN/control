@@ -7,6 +7,6 @@ Priority: optional
 Maintainer: Brett England <brett@dbzoo.com>
 Architecture: armhf
 Homepage: http://www.homeautomationhub.com
-Depends: libc6,libxml2,libcurl3,lua5.1,lua-filesystem,lua-penlight,lua-rex-posix,lua-socket
+Depends: libc6,libxml2,libcurl3,lua5.1,lua-filesystem,lua-rex-posix,lua-socket
 Provides: hah
 Source: http://livebox-hah.googlecode.com/svn/branches/portable

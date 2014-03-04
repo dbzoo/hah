@@ -10,7 +10,8 @@ INSTALL_DIR ?= $(TARGET_DIR)/sysroot
 OPENSOURCE_DIR=$(USERAPPS_DIR)/opensource
 SUBDIRS_OPENSOURCE = \
         $(OPENSOURCE_DIR)/ini \
-	$(OPENSOURCE_DIR)/jsmn
+	$(OPENSOURCE_DIR)/jsmn \
+	$(OPENSOURCE_DIR)/penlight
 
 HAH_DIR=$(USERAPPS_DIR)/hah
 SUBDIRS_HAH = \
@@ -31,7 +32,7 @@ SUBDIRS_HAH = \
 
 SUBDIRS = $(SUBDIRS_OPENSOURCE) $(SUBDIRS_HAH)
 
-OPENSOURCE_APPS = ini jsmn
+OPENSOURCE_APPS = ini jsmn penlight
 HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-xively xap-sms iServer \
 	xap-currentcost xap-twitter xap-serial xap-plugboard \
 	xap-flash xap-urfrx klone

@@ -6,7 +6,7 @@
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 
-// Do we want this HAHCentral to also be a RF receiver.
+// Do we want this HAHCentral to also be a 433 Mhz RF receiver.
 //#define CENTRAL_RF
 
 #ifdef CENTRAL_RF
@@ -23,24 +23,43 @@ RFResults results;
 
 // Hardcode our node ID so it won't ever change once flashed.
 #define NODE_ID 1
+#define GROUP 212
 
-static unsigned long now () {
-  // FIXME 49-day overflow
-  return millis() / 1000;
+// Uncomment to also make the Central a ROOMNODE !
+//#define DHT11PIN 4      // Arduino PD4 - is port 1
+//s#define LDR_PORT    4   // defined if LDR is connected to a port's AIO pin
+
+#if LDR_PORT
+Port ldr (LDR_PORT);
+#endif
+#if DHT11PIN
+DHTxx dht(DHT11PIN);
+#endif
+
+#define smillis() ((long)millis())
+#define TIMEOUT 120000 // how often to report in milliseconds (2mins)
+long waitUntil = smillis();
+
+struct roomnode {
+  byte light;     // light sensor: 0..255
+byte moved :
+  1;  // motion detector: 0..1
+byte humi  :
+  7;  // humidity: 0..100
+int temp   :
+  10; // temperature: -500..+500 (tenths)
+byte lobat :
+  1;  // supply voltage dropped under 3.1V: 0..1
+};
+
+union {
+  byte b[6];
+  struct roomnode n;
 }
+payload;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // RF12 configuration setup code
-
-typedef struct {
-  byte nodeId;
-  byte group;
-  char msg[RF12_EEPROM_SIZE-4];
-  word crc;
-} 
-RF12Config;
-
-static RF12Config config;
 
 static char cmd;
 static byte value, stack[RF12_MAXDATA], top, sendLen, dest, quiet=1;
@@ -114,14 +133,44 @@ static void handleInput (char c) {
   else if (c > ' ')
     showHelp();
 }
+// readout all the sensors and other values
+static void doMeasure() {
+  memset(&payload, 0, sizeof payload);
+#if LDR_PORT
+  ldr.digiWrite2(1);  // enable AIO pull-up
+  payload.n.light = ~ ldr.anaRead() >> 2;
+  ldr.digiWrite2(0);  // disable pull-up to reduce current draw
+#endif
+#if DHT11PIN
+  int t,h;
+  if(dht.reading(t, h)) {    
+    payload.n.temp = t;
+    // Convert from tenth's back to 0-100 range.
+    payload.n.humi = h/10;  
+  }
+#endif
+}
+
+// periodic report, i.e. send out a packet and optionally report on serial port
+static void doReport() { 
+  Serial.print("OK");
+  Serial.print(' ');
+  Serial.print(NODE_ID, DEC);    
+  Serial.print(' ');
+  for (byte i = 0; i < sizeof payload; i++) {
+    Serial.print(' ');
+    Serial.print(payload.b[i], DEC);
+  }
+  Serial.println();
+}
 
 #ifdef CENTRAL_RF
 void dumpRaw(RFResults *results) {
   unsigned int *buf = results->buf;
   Serial.print("RFRX ");
   for (int i = 0; i < results->len; i++) {
-     // yes I know it was unsigned int and I could loose precision.
-     // but a real pulse won't be using numbers > 32767
+    // yes I know it was unsigned int and I could loose precision.
+    // but a real pulse won't be using numbers > 32767
     int val = (*buf)*USECPERTICK;
     Serial.print(i%2 == 0 ? -val : val, DEC);
     if(i < results->len-1) Serial.print(",");
@@ -132,28 +181,31 @@ void dumpRaw(RFResults *results) {
 #endif
 
 void setup() {
-  config.nodeId = NODE_ID;
-  config.group = 212;
-
   Serial.begin(57600);
-  Serial.print("\n[HAHCentral.1]");
-  Serial.print(config.nodeId,DEC);
+  Serial.print("\n[HAHCentral]");
+  Serial.print(NODE_ID,DEC);
   Serial.print(" g");
-  Serial.print(config.group,DEC);
-  Serial.println(" @ 868Mhz");
+  Serial.print(GROUP,DEC);
+  Serial.print(" @ 868Mhz ");
 
   // RF12_868MHZ, RF12_915MHZ, RF12_433MHZ
-  rf12_initialize(config.nodeId, RF12_868MHZ, config.group);
-  
+  rf12_initialize(NODE_ID, RF12_868MHZ, GROUP);
+
 #ifdef CENTRAL_RF
-    Serial.print("RF Receiver: pin ");
-    Serial.println(RECV_PIN, DEC);
-    rfrecv.enableRFIn();
+  Serial.print("RFRX ");
+  rfrecv.enableRFIn();
 #endif
+#if DHT11PIN
+  Serial.print("DHT11 ");
+#endif
+#if LDR_PORT
+  Serial.print("LDR ");
+#endif
+  Serial.println();
 }
 
 void loop() {
-  if (Serial.available())
+   if (Serial.available())
     handleInput(Serial.read());
 
   if (rf12_recvDone()) {
@@ -168,7 +220,7 @@ void loop() {
       if (n > 20) // print at most 20 bytes if crc is wrong
         n = 20;
     }
-    if (config.group == 0) {
+    if (GROUP == 0) {
       Serial.print("G ");
       Serial.print((int) rf12_grp);
     }
@@ -199,10 +251,20 @@ void loop() {
     cmd = 0;
   }  
 #ifdef CENTRAL_RF
-    if(rfrecv.match(&results)) {
+  if(rfrecv.match(&results)) {
     dumpRaw(&results);
     rfrecv.resume();
   };
 #endif
+
+#if DHT11PIN || LDR_PORT
+  if (smillis() - waitUntil > 0) {
+     waitUntil = smillis() + TIMEOUT;
+     doMeasure();
+     doReport();
+  }
+#endif
 }
+
+
 

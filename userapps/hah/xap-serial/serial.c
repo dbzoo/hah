@@ -111,6 +111,12 @@ void xapSerialRx(int fd, void *userData)
                 } else {
 			p->sPos++;
 			if (p->sPos == p->sLen) {
+				if(p->sLen > XAP_DATA_LEN) {
+					// A run away serial process is just feeding us junk without /r or /n
+					// So we don't keep expanding memory until we EOM just eat chars.
+					p->sPos--;
+					continue;
+				}
 				p->sLen *= 2;
 				p->sBuff = (char *)realloc(p->sBuff, p->sLen * sizeof(char));
 			}

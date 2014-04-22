@@ -32,6 +32,9 @@ struct serialPort {
 	struct termios tios;
 	int fd;
 	struct serialPort *next;
+        char *sBuff;
+        unsigned int sLen;
+        unsigned int sPos;
 } *serialList = NULL;
 
 void serialError(const char *fmt, ...)
@@ -64,7 +67,7 @@ void serialError(const char *fmt, ...)
 	}
 }
 
-void processSerialCommand(void *data, struct serialPort *p)
+void processSerialCommand(struct serialPort *p)
 {	
         char buff[XAP_DATA_LEN];  // nominally 1500 bytes
         int len = snprintf(buff, sizeof(buff), "xap-header\n"
@@ -79,7 +82,7 @@ void processSerialCommand(void *data, struct serialPort *p)
 			   "{\n"
 			   "port=%s\n"
 			   "data=%s\n"
-                           "}\n", xapGetUID(), xapGetSource(), p->device, (char *)data);
+                           "}\n", xapGetUID(), xapGetSource(), p->device, p->sBuff);
 	if(len > sizeof(buff)) {
 	  serialError("Buffer overflow");
 	  return;
@@ -96,19 +99,21 @@ void xapSerialRx(int fd, void *userData)
         char serial_buff[512];
         int i, len;
 
-        static char cmd[XAP_DATA_LEN];
-        static int pos = 0;
-
         len = read(fd, serial_buff, sizeof(serial_buff));
         for(i=0; i < len; i++) {
-                cmd[pos] = serial_buff[i];
-                if (cmd[pos] == '\r' || cmd[pos] == '\n') {
-                        cmd[pos] = '\0';
-                        if(pos)
-                                processSerialCommand(cmd, p);
-                        pos = 0;
-                } else if(pos < sizeof(cmd)) {
-                        pos++;
+                char ch = serial_buff[i];
+                p->sBuff[p->sPos] = ch;
+                if (ch == '\r' || ch == '\n') {
+                        p->sBuff[p->sPos] = '\0';
+                        if(p->sPos)
+                                processSerialCommand(p);
+                        p->sPos = 0;
+                } else {
+			p->sPos++;
+			if (p->sPos == p->sLen) {
+				p->sLen *= 2;
+				p->sBuff = (char *)realloc(p->sBuff, p->sLen * sizeof(char));
+			}
                 }
         }
 }
@@ -183,8 +188,11 @@ void xapSerialSetup(void *userData) {
 	struct serialPort *p = (struct serialPort *)malloc(sizeof(struct serialPort));
 	p->fd = fd;
 	p->device = strdup(s_port);
+	p->sLen = 32;
+	p->sPos = 0;
+	p->sBuff = (char *)malloc(p->sLen * sizeof(char));
 	LL_APPEND(serialList, p);
-
+	
 	/*
 	** Get the current termios structure for the device
 	** and set up the initial defaults. Then configure

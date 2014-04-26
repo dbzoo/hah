@@ -31,8 +31,8 @@ function lookupSun()
 			     latitude, longitude, now.day, now.month, 
 			     now.isdst and 1 or 0
 			  )
-   local xmlstring = http.request(url)
-   if(xmlstring == nil) then return end
+   local xmlstring,statuscode = http.request(url)
+   if xmlstring == nil or statuscode ~= 200 then return end
    
    -- print(xmlstring)
     local d = xml.parse(xmlstring)

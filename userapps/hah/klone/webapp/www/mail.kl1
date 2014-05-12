@@ -1,0 +1,160 @@
+<%! /* -*- mode:c;coding:utf-8; -*- */
+#include "minIni.h"
+#include "login.h"
+#include "const.h"
+#include "utils.h"
+#include <string.h>
+
+#define sizearray(x) (sizeof(x) / sizeof(x[0]))
+static int reboot = 0;
+static const char *inifile = "/etc/xap.d/xap-mail.ini";
+
+static struct {
+	 char from[64];
+	 char passwd[64];
+	 char server[64];
+	 char fullname[64];
+	 char enable[2];
+} ini;
+
+static void readIni() {
+	 ini_gets("mail","enable","0",ini.enable,sizeof(ini.enable),inifile);
+	 ini_gets("mail","from","",ini.from,sizeof(ini.from),inifile);
+	 ini_gets("mail","password","",ini.passwd,sizeof(ini.passwd),inifile);
+	 ini_gets("mail","server","",ini.server,sizeof(ini.server),inifile);
+	 ini_gets("mail","fullname","",ini.fullname,sizeof(ini.fullname),inifile);
+
+}
+
+static void submit_form() {
+	 int restart=1;
+
+	 const char *enable = request_get_arg(request,"enable");
+	 if(enable)
+	     {
+		 if((*enable == '1' && ini.enable[0] == '0') ||
+		    (*enable == '0' && ini.enable[0] == '1')) 
+		     {
+			 ini_puts("mail","enable",enable,inifile);
+			 restart=1;
+		     }
+	     }
+
+	 const char *user = request_get_arg(request,"from");
+	 if(user && strcmp(user,ini.from)) {
+		  ini_puts("mail","from",user,inifile);
+		  restart = 1;
+	 }
+	 const char *passwd = request_get_arg(request,"passwd");
+	 if(passwd && strlen(passwd) > 0 && strcmp(passwd,ini.passwd)) {
+		  ini_puts("mail","passwd",passwd,inifile);
+		  restart = 1;
+	 }
+	 const char *server = request_get_arg(request,"server");
+	 if(server && strcmp(server,ini.server)) {
+		  ini_puts("mail","server",server,inifile);
+		  restart = 1;
+	 }
+	 const char *fullname = request_get_arg(request,"fullname");
+	 if(fullname && strcmp(fullname,ini.fullname)) {
+		  ini_puts("mail","fullname",fullname,inifile);
+		  restart = 1;
+	 }
+
+	 if(restart) {
+	   system("/etc/init.d/xap restart mail");
+	 }
+}
+/**********************************************************************/
+%>
+<%
+  int i;
+  REQUIRE_AUTH(SCRIPT_NAME);
+  const char *action = request_get_arg(request,"action");
+  readIni();
+  if(action && strcmp(action,"Apply") == 0) {
+      submit_form();
+      readIni();
+  }
+%>
+<html>
+<head>
+<%@include component/style.kl1%>
+<script type="text/javascript">
+function to_submit(F) {
+F.save_button.value = "Saving";
+F.action.value="Apply";
+apply(F);
+}
+addEvent(window,"load",function() {
+	 show_layer_ext(document.services.enable, 'idph', 1 == <%= ini.enable %>);
+	 });
+</script>
+</head>
+<body class="gui">
+
+<div id="wrapper">
+<div id="content">
+
+<%@include component/heading.kl1%>
+
+<div id="main">
+<div id="contents">
+<form name="services" action="<%= SCRIPT_NAME %>" method="post">
+<input type="hidden" name="submit_button"/>
+<input type="hidden" name="action"/>
+<br/>
+<h2>Email Settings</h2><div>
+
+<fieldset>
+  <legend>GMAIL</legend>
+  <div class="setting">
+    <div class="label">Start service</div>
+	<input class="spaceradio" type="radio" value="1" name="enable" onclick="show_layer_ext(this, 'idph', true);"<% if(ini.enable[0] == '1') { %> checked="checked"<% } %>/>Enable&nbsp;
+    <input class="spaceradio" type="radio" value="0" name="enable" onclick="show_layer_ext(this, 'idph', false);"<% if(ini.enable[0] == '0') { %> checked="checked"<% } %>/>Disable
+  </div>
+  <div class="setting" id="idph">
+
+<fieldset>
+  <legend>Configuration</legend>
+
+  <div class="setting">
+    <div class="label">Username</div>
+    <input maxlength="64" size="40" name="user" value="<%= ini.from %>"/>
+  </div>
+  <div class="setting">
+    <div class="label">Full name</div>
+    <input maxlength="64" size="40" name="fullname" value="<%= ini.fullname %>"/>
+  </div>
+  <div class="setting">
+    <div class="label">Password</div>
+    <input maxlength="64" size="40" name="passwd"/>
+  </div>
+  <div class="setting">
+    <div class="label">Server</div>
+    <input maxlength="64" size="40" name="server" value="<%= ini.server %>"/>
+  </div>
+</fieldset>
+</div>
+</fieldset>
+
+</div>
+<br/>
+
+<div class="submitFooter">
+<input type="button" name="save_button" value="Save Settings" onclick="to_submit(this.form)"/>
+<input type="reset" value="Cancel Changes"/>
+</div>
+</form>
+
+</div>
+</div>
+
+<div id="floatKiller"></div>
+<%@include component/statusinfo.kl1%>
+
+</div>
+</div>
+
+</body>
+</html>

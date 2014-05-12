@@ -111,16 +111,17 @@ SUBDIRS_HAH = \
 	$(HAH_DIR)/iServer \
 	$(HAH_DIR)/xap-flash \
 	$(HAH_DIR)/xap-urfrx \
+	$(HAH_DIR)/xap-mail \
 	$(HAH_DIR)/ini-migrate
 
 SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIRS_HAH)
 
 OPENSOURCE_APPS = brctl dropbear iptables busybox ntpclient ini mtd lua \
-	lrexlib luafilesystem luasocket penlight avrdude jsmn
+	lrexlib luafilesystem luasocket penlight jsmn
 INVENTEL_APPS = inventelbin sendarp ledctrl
 HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-xively xap-sms iServer \
 	xap-currentcost xap-googlecal xap-twitter xap-serial klone xap-plugboard \
-	xap-flash xap-urfrx ini-migrate
+	xap-flash xap-urfrx xap-mail ini-migrate
 
 BUSYBOX_DIR = $(OPENSOURCE_DIR)/busybox
 
@@ -208,6 +209,9 @@ xap-urfrx: xaplib2
 	install -m 755 $(HAH_DIR)/xap-urfrx/xap-urfrx $(INSTALL_DIR)/usr/bin
 	$(STRIP) $(INSTALL_DIR)/usr/bin/xap-urfrx
 
+xap-mail: xaplib2 libcurl
+	$(MAKE) -C $(HAH_DIR)/xap-mail install
+
 xap-livebox: xaplib2
 	$(MAKE) -C $(HAH_DIR)/xap-livebox
 	install -m 755 -d $(INSTALL_DIR)/usr/bin
@@ -257,8 +261,8 @@ libopenssl:
 	cp $(OPENSOURCE_DIR)/openssl/*.a $(OPENSOURCE_DIR)/openssl/lib
 
 libcurl: libopenssl
-	@if [ ! -d $(OPENSOURCE_DIR)/curl-7.19.7 ]; then \
-	   (cd $(OPENSOURCE_DIR); tar zxf curl-7.19.7.tar.gz; ln -s curl-7.19.7 curl; rm -f $(OPENSOURCE_DIR)/curl/Makefile) \
+	@if [ ! -d $(OPENSOURCE_DIR)/curl-7.21.7 ]; then \
+	   (cd $(OPENSOURCE_DIR); tar zxf curl-7.21.7.tar.gz; ln -s curl-7.21.7 curl; rm -f $(OPENSOURCE_DIR)/curl/Makefile) \
 	fi
 	@if [ ! -f $(OPENSOURCE_DIR)/curl/Makefile ]; then \
 	    (cd $(OPENSOURCE_DIR)/curl; ./configure CFLAGS='-Os' LDFLAGS='-Wl,-s -Wl,-Bsymbolic -Wl,--gc-sections' --host=mips-linux --with-ssl=$(OPENSOURCE_DIR)/openssl --with-random=/dev/urandom --disable-manual --disable-static --disable-proxy --enable-optimize --disable-tftp --disable-ftp --disable-dict --disable-ldap --disable-file --disable-telnet --disable-largefile --disable-debug --with-ca-bundle=/etc_ro_fs/curl-ca-bundle.crt --prefix=$(INSTALL_DIR)) \
@@ -456,7 +460,7 @@ clean: app_clean kernel_clean target_clean hosttools_clean
 	rm -f $(INSTALL_DIR)/etc_ro_fs/plugboard/plugboard.lua
 	rm -f $(INSTALL_DIR)/etc_ro_fs/kloned.conf
 	rm -f $(IMAGES_DIR)/*
-	rm -rf $(OPENSOURCE_DIR)/curl-7.19.7 $(OPENSOURCE_DIR)/curl
+	rm -rf $(OPENSOURCE_DIR)/curl-7.21.7 $(OPENSOURCE_DIR)/curl
 	rm -rf $(OPENSOURCE_DIR)/libxml2-2.7.6 $(OPENSOURCE_DIR)/libxml2
 	rm -rf $(OPENSOURCE_DIR)/openssl-0.9.8l $(OPENSOURCE_DIR)/openssl
 	rm -rf $(OPENSOURCE_DIR)/libgcal-0.9.6 $(OPENSOURCE_DIR)/libgcal

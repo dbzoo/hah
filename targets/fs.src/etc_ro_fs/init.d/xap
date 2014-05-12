@@ -3,7 +3,7 @@
 # /etc/init.d/xap start [component...]
 # /etc/init.d/xap stop [component...]
 
-subsystem="hub xively livebox iserver web sms serial currentcost twitter googlecal plugboard urfrx"
+subsystem="hub xively livebox iserver web sms serial currentcost twitter googlecal plugboard urfrx mail"
 
 #To force an interface bind
 #MYDEV=-i wlan0
@@ -45,6 +45,16 @@ start_serial() {
 }
 stop_serial() {
     killall xap-serial
+}
+
+start_mail() {
+    INI="/etc/xap.d/xap-mail.ini"
+    if [ `iniget $INI mail enable 0` -eq 1 ] ;  then 
+	/usr/bin/xap-mail $MYDEV >/var/log/xap-mail.log 2>&1 &
+    fi
+}
+stop_mail() {
+    pkill xap-mail
 }
 
 start_twitter() {

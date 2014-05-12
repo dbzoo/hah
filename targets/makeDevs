@@ -18,11 +18,15 @@ for i in 0 1 2 3 4 5; do
   mknod $ROOTFS/dev/ttyp$i c 3 $i
 # dropbear quits when it chmod()'s to 620 we set it up like this.
   chmod 0620 $ROOTFS/dev/ttyp$i
+  mknod $ROOTFS/dev/rfcomm$i c 216 $i
+  chmod 666 $ROOTFS/dev/rfcomm$i
 done
 for i in 0 1 2 3 4 5; do
   mknod $ROOTFS/dev/tty$i c 4 $i
 done
 mknod $ROOTFS/dev/ttyS0 c 4 64
+mknod $ROOTFS/dev/ttyS1 c 4 65
+mknod $ROOTFS/dev/ttySPI c 215 0
 mknod $ROOTFS/dev/tty c 5 0
 mknod $ROOTFS/dev/console c 5 1
 mknod $ROOTFS/dev/ptmx c 5 2
@@ -31,6 +35,7 @@ chmod 666 $ROOTFS/dev/ptmx
 mkdir -p $ROOTFS/dev/usb
 mknod $ROOTFS/dev/usb/lp0 c 180 0
 mknod $ROOTFS/dev/urandom c 1 9
+mknod $ROOTFS/dev/random c 1 8
 
 echo USB Serial
 for i in 0 1 2 3 4 5 6 7 8 9; do

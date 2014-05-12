@@ -179,7 +179,7 @@ void mailStatus(char *status, const char *fmt, ...)
 			   "v=12\n"
 			   "hop=1\n"
 			   "uid=%s\n"
-			   "class=mail\n"
+			   "class=email\n"
 			   "source=%s\n"
 			   "}\n"
 			   "mail.%s\n"
@@ -257,6 +257,7 @@ int main(int argc, char *argv[])
         xAPFilter *f = NULL;
 	xapAddFilter(&f, "xap-header", "target", xapGetSource());
         xapAddFilter(&f, "xap-header", "class", "email");
+        xapAddFilter(&f, "message", "to", XAP_FILTER_ANY);
         xapAddFilterAction(&emailService, f, NULL);
 
         xapProcess();

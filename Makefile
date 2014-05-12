@@ -28,6 +28,7 @@ SUBDIRS_HAH = \
 	$(HAH_DIR)/iServer \
 	$(HAH_DIR)/xap-flash \
 	$(HAH_DIR)/xap-urfrx \
+	$(HAH_DIR)/xap-mail \
 	$(HAH_DIR)/klone
 
 SUBDIRS = $(SUBDIRS_OPENSOURCE) $(SUBDIRS_HAH)
@@ -35,7 +36,7 @@ SUBDIRS = $(SUBDIRS_OPENSOURCE) $(SUBDIRS_HAH)
 OPENSOURCE_APPS = ini jsmn penlight
 HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-xively xap-sms iServer \
 	xap-currentcost xap-twitter xap-serial xap-plugboard \
-	xap-flash xap-urfrx klone
+	xap-flash xap-urfrx xap-mail klone
 
 ALLAPPS = $(OPENSOURCE_APPS) $(HAH_APPS)
 

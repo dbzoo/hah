@@ -70,8 +70,7 @@ stop_twitter() {
 start_sms() {
     INI="/etc/xap.d/xap-sms.ini"
     if [ `iniget $INI sms enable 0` -eq 1 ] ;  then 
-	USBSERIAL=`iniget $INI sms usbserial /dev/ttyUSB0`
-	/usr/bin/xap-sms -s $USBSERIAL $MYDEV >/var/log/xap-sms.log 2>&1 &
+	/usr/bin/xap-sms $MYDEV >/var/log/xap-sms.log 2>&1 &
     fi
 }
 stop_sms() {

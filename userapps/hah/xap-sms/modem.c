@@ -99,9 +99,9 @@ error:
         return 0;
 }
 
-static int getBaud() {
+static speed_t getBaud() {
     long n = ini_getl("sms", "baud", 19200, inifile);
-    unsigned int speed;
+    speed_t speed;
 
     switch (n)
       {

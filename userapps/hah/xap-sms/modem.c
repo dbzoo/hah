@@ -53,7 +53,7 @@ int put_command(char *cmd, int cmd_len, char *answer, int max, int timeout, char
                 if(available < 1) {
                         usleep(READ_SLEEP);
                         timeoutcounter++;
-                        ioctl(g_serial_fd, TIOCMGET, &available);
+                        ioctl(g_serial_fd, FIONREAD, &available);
                 }
                 if(available > 0) {
                         n = (available > MAX_BUF-buf_len-1)?MAX_BUF-buf_len-1:available;
@@ -91,8 +91,7 @@ int put_command(char *cmd, int cmd_len, char *answer, int max, int timeout, char
 
         // show modem command
         info("Serial Rx: %s", answer);
-        buf_len = 0;
-
+	
         return answer_e-answer_s;
 
 error:
@@ -137,7 +136,7 @@ int setup_serial_port()
         ini_gets("sms","usbserial","/dev/ttyUSB0", serialPort, sizeof(serialPort), inifile);
         info("Using serial device %s", serialPort);
 
-        g_serial_fd = open(serialPort, O_RDWR | O_NOCTTY );
+        g_serial_fd = open(serialPort, O_RDWR | O_NOCTTY | O_NDELAY);
         die_if(g_serial_fd < 0, "Unable to open the serial port %s",serialPort);
 
 	if(flock(g_serial_fd, LOCK_EX | LOCK_NB) == -1) {

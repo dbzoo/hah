@@ -63,7 +63,7 @@ AirPressureP=974
 
 // DEBUGGING
 #define SERIAL_BAUD 9600
-#define SERIAL_DEBUG 1
+#define SERIAL_DEBUG 0
 
 // ENC28J60
 #define CS_PIN 10
@@ -79,8 +79,8 @@ XapEther xap("dbzoo.nanode.weather","FFDBFF00");
 TimedAction timedAction = TimedAction(60000, process); // 60 sec
 
 // DC-SS500
-#define rxPin 2
-#define txPin 3
+#define rxPin 3
+#define txPin 2
 SoftwareSerial dcss500 =  SoftwareSerial(rxPin, txPin);
 int dcssT, dcssRH;  // Temperature, Relative Humidity
 
@@ -163,7 +163,9 @@ int str_to_int(char *s){
   // assumes the first three characters are numeric 
   int v = 0, n;
   for (n=0; n<3; n++) {
-    v = v * 10 + (s[n] - '0');
+    if(isdigit(s[n])) {
+      v = v * 10 + (s[n] - '0');
+    }
   }
   return v;
 } 
@@ -193,22 +195,23 @@ void process_dcss() {
   char s[30];
   int T, RH;
 
-  // measure and display the temperature in degrees F
+  // measure and display the temperature in degrees Celcuis
   dcss500.flush();  // clear the Rx UART   
   dcss500.println("$sure temp -c");
   get_str(s, 100, sizeof(s));
   dcssT = str_to_int(s);
 #if SERIAL_DEBUG     
-  Serial.print("T_F = ");
-  Serial.print(dcssT);
-  Serial.print("   ");
-#endif    
+  Serial.println(s);
+  Serial.print("T_C = ");
+  Serial.println(dcssT);
+#endif
   // Now the same for the relative humidity,
   dcss500.flush();  // clear the Rx UART   
   dcss500.println("$sure humidity");
-  get_str(s, 100, sizeof(s));
+  get_str(s, 100, sizeof(s)); 
   dcssRH = str_to_int(s);    
 #if SERIAL_DEBUG 
+  Serial.println(s);
   Serial.print("RH = ");
   Serial.println(dcssRH);    
 #endif

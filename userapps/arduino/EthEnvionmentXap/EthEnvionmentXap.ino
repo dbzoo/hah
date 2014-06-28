@@ -34,6 +34,12 @@
  GND   -> pin GND
  VCC   -> pin 3.3V / 5V
  
+ LDR
+       -> pin A0
+ 
+ 1WIRE
+       -> pin 7
+       
 xAP Payload - semi compliant with this schema
 http://www.xapautomation.org/index.php?title=xAP_Weather_Schema
 
@@ -60,10 +66,12 @@ AirPressureP=974
 #include "TimedAction.h"
 #include <Wire.h>
 #include <BMP085.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 // DEBUGGING
 #define SERIAL_BAUD 9600
-#define SERIAL_DEBUG 0
+#define SERIAL_DEBUG 1
 
 // ENC28J60
 #define CS_PIN 10
@@ -75,7 +83,7 @@ byte Ethernet::buffer[500];
 BufferFiller bfill;
 
 // xAP Configuration
-XapEther xap("dbzoo.nanode.weather","FFDBFF00");
+XapEther xap("dbzoo.arduino.weather","FFDBFF00");
 TimedAction timedAction = TimedAction(60000, process); // 60 sec
 
 // DC-SS500
@@ -87,6 +95,20 @@ int dcssT, dcssRH;  // Temperature, Relative Humidity
 // BMP085
 BMP085 dps = BMP085();
 int32_t bmpT = 0, bmpP = 0; // Temperature, Pressure
+
+// LDR
+#define LDRpin A0
+int ldr;
+
+// 1WIRE
+#define ONE_WIRE_PIN 7
+#define TEMPERATURE_PRECISION 12
+// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
+OneWire oneWire(ONE_WIRE_PIN);
+// Pass our oneWire reference to Dallas Temperature. 
+DallasTemperature sensors(&oneWire);
+DeviceAddress deviceAddress;
+int outTemp;
 
 static int freeRam () {
   extern int __heap_start, *__brkval; 
@@ -125,10 +147,27 @@ reset:
 
   pinMode(txPin, OUTPUT);
   pinMode(rxPin, INPUT);
+  pinMode(LDRpin, INPUT);
   dcss500.begin(9600);
   Wire.begin();
   delay(1000);
   dps.init();
+
+  sensors.begin();
+#if SERIAL_DEBUG
+  Serial.print("Locating OneWire devices...");
+  Serial.print("Found ");
+  Serial.print(sensors.getDeviceCount(), DEC);
+  Serial.println(" devices.");
+#endif
+  if (sensors.getAddress(deviceAddress, 0)) {
+    sensors.setResolution(deviceAddress, TEMPERATURE_PRECISION);
+  } 
+#if SERIAL_DEBUG
+  else {
+    Serial.println("Unable to find address for Device 0");
+  }
+#endif
 
   process();  // Start with a payload.
 }
@@ -138,6 +177,8 @@ void xapSend() {
   int bmpT1 = bmpT / 10;
   int bmpT2 = bmpT - bmpT1 * 10;
   int hPa = bmpP / 100; // Pascals to HectoPascals
+  int outTemp1 = outTemp / 10;
+  int outTemp2 = outTemp - outTemp1 * 10;
 
   bfill = ether.buffer + UDP_DATA_P;
   bfill.emit_p(PSTR("xap-header\n"
@@ -154,8 +195,10 @@ void xapSend() {
     "Humidity=$D\n"    
     "InTempC=$D.$D\n"
     "AirPressureP=$D\n"
+    "Light=$D\n"
+    "OutTempC=$D.$D\n"    
     "}\n" 
-    ), xap.UID, xap.SOURCE, dcssT, dcssRH, bmpT1, bmpT2, hPa);
+    ), xap.UID, xap.SOURCE, dcssT, dcssRH, bmpT1, bmpT2, hPa, ldr, outTemp1, outTemp2);
   xap.broadcastUDP(bfill.position());  
 }
 
@@ -234,6 +277,20 @@ void process_bmp() {
 void process() {
   process_dcss();
   process_bmp();
+  
+  ldr = analogRead(LDRpin);
+#if SERIAL_DEBUG     
+  Serial.print("LDR = ");
+  Serial.println(ldr);
+#endif
+
+  sensors.requestTemperatures();
+  outTemp = sensors.getTempC(deviceAddress) * 10;
+#if SERIAL_DEBUG     
+  Serial.print("1WIRE TEMP = ");
+  Serial.println(outTemp);
+#endif
+
   xapSend();
 }
 

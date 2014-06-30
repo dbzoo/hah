@@ -34,8 +34,10 @@
  GND   -> pin GND
  VCC   -> pin 3.3V / 5V
  
- LDR
-       -> pin A0
+ LDR wiring - http://4tronix.co.uk/arduino/4-Sensor-Datalogger.php
+       pin A0 -----+--- LDR --- GND
+                   |
+                   +--- 10k --- +5v 
  
  1WIRE
        -> pin 7
@@ -84,7 +86,7 @@ BufferFiller bfill;
 
 // xAP Configuration
 XapEther xap("dbzoo.arduino.weather","FFDBFF00");
-TimedAction timedAction = TimedAction(60000, process); // 60 sec
+TimedAction timedAction = TimedAction(120 * 1000, process); // 120 sec
 
 // DC-SS500
 #define rxPin 3
@@ -278,7 +280,7 @@ void process() {
   process_dcss();
   process_bmp();
   
-  ldr = analogRead(LDRpin);
+  ldr = 1023 - analogRead(LDRpin); // LDR is path to GND (inverse)
 #if SERIAL_DEBUG     
   Serial.print("LDR = ");
   Serial.println(ldr);

@@ -18,6 +18,7 @@ Serial interfacing to the external AVR hardware
 #include "bsc.h"
 #include "log.h"
 #include "ini.h"
+#include "minIni.h"
 
 extern bscEndpoint *endpointList;
 
@@ -373,6 +374,14 @@ int setupSerialPort(char *serialport, int baud)
         tcflush(fd, TCIFLUSH);
         tcsetattr(fd, TCSANOW, &newtio);
         gSerialfd = fd;
+
+	// This is useful when connecting the HAH hardware to something other than the livebox.
+	// +++ is needed to unfreeze the firmware from console consume mode.
+	char serialInit[80];
+	long n = ini_gets("livebox", "initserial", "", serialInit, sizeof(serialInit), inifile);
+	if(n) {
+	  serialSend(serialInit);
+	}
 
 	getFirmwareVersion();
 

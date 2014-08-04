@@ -72,7 +72,7 @@ AirPressureP=974
 #include <DallasTemperature.h>
 
 // DEBUGGING
-#define SERIAL_BAUD 9600
+#define SERIAL_BAUD 57600
 #define SERIAL_DEBUG 1
 
 // ENC28J60
@@ -110,7 +110,7 @@ OneWire oneWire(ONE_WIRE_PIN);
 // Pass our oneWire reference to Dallas Temperature. 
 DallasTemperature sensors(&oneWire);
 DeviceAddress deviceAddress;
-int outTemp;
+float outTemp;
 
 static int freeRam () {
   extern int __heap_start, *__brkval; 
@@ -175,13 +175,15 @@ reset:
 }
 
 void xapSend() {
-  // bmpT is in 0.1C units - get Integer and Decimal component.
-  int bmpT1 = bmpT / 10;
-  int bmpT2 = bmpT - bmpT1 * 10;
   int hPa = bmpP / 100; // Pascals to HectoPascals
-  int outTemp1 = outTemp / 10;
-  int outTemp2 = outTemp - outTemp1 * 10;
-
+  
+  char outTempCStr[6];
+  char inTempCStr[6];
+  
+  dtostrf(outTemp,5,1,outTempCStr); 
+  // bmpT is in 0.1C units.
+  dtostrf(bmpT/10.0,5,1,inTempCStr);
+  
   bfill = ether.buffer + UDP_DATA_P;
   bfill.emit_p(PSTR("xap-header\n"
     "{\n"
@@ -195,12 +197,12 @@ void xapSend() {
     "{\n"
     "TempC=$D\n"
     "Humidity=$D\n"    
-    "InTempC=$D.$D\n"
+    "InTempC=$S\n"
     "AirPressureP=$D\n"
     "Light=$D\n"
-    "OutTempC=$D.$D\n"    
+    "OutTempC=$S\n"    
     "}\n" 
-    ), xap.UID, xap.SOURCE, dcssT, dcssRH, bmpT1, bmpT2, hPa, ldr, outTemp1, outTemp2);
+    ), xap.UID, xap.SOURCE, dcssT, dcssRH, inTempCStr, hPa, ldr, outTempCStr);
   xap.broadcastUDP(bfill.position());  
 }
 
@@ -287,7 +289,7 @@ void process() {
 #endif
 
   sensors.requestTemperatures();
-  outTemp = sensors.getTempC(deviceAddress) * 10;
+  outTemp = sensors.getTempC(deviceAddress);
 #if SERIAL_DEBUG     
   Serial.print("1WIRE TEMP = ");
   Serial.println(outTemp);

@@ -298,6 +298,28 @@ function Frame:__tostring()
     return t
   end
 
+  local function encodeOrderedHeader(s)
+     local hdr={'v','hop','uid','class','source','target'}
+     local t
+     t = s..'\n{\n'
+     -- Append header items in order
+     for _,k in ipairs(hdr) do
+	hdr[k] = 1
+	v = self:getValue(s, k)
+	if v then
+	   t = t..k..'='..v..'\n'
+	end
+     end
+     -- Append all other header key/value pairs.
+     for k,v in pairs(self[s]) do
+	if hdr[k] == nil then
+	   t = t..k.."="..v.."\n"
+	end
+     end
+     t = t..'}\n'
+     return t
+  end
+
   local out = ""
   local header = nil
   -- sequence the header sections first
@@ -305,6 +327,7 @@ function Frame:__tostring()
      if self[v] then
 	header = v
 	out = encodeSection(header)
+	-- out = encodeOrderedHeader(header)
 	break
      end
   end

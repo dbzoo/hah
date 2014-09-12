@@ -225,6 +225,27 @@ function Frame:_init(msg)
 			       end
 			    )
 
+   -- Create an internal shadow table for case insenstive key access
+   local function caseInsensitiveTable()
+     local metatbl
+     metatbl = {
+         shadow={},
+         __index = function(table, key)
+		      if(type(key) == "string") then
+			 return rawget(metatbl.shadow, key:lower())
+                      end
+		      return rawget(table, key)
+                   end,
+         __newindex = function(table, key, value)
+                        if(type(key) == "string") then
+	                  metatbl.shadow[key:lower()] = value
+                        end
+                        rawset(table, key, value)
+                      end
+         }
+     return setmetatable({}, metatbl)
+   end
+
    local function nextLine()
       local status, ret = coroutine.resume(co)
       if status then return ret end
@@ -237,7 +258,7 @@ function Frame:_init(msg)
      t={}
      while line ~= nil and line ~= "}" do
        _,_,k,v = line:find("(.-)%s*=%s*(.*)")
-       if k then t[k:lower()] = v end
+       if k then t[k] = v end
        line = nextLine()
      end
      return t
@@ -245,12 +266,12 @@ function Frame:_init(msg)
 
    local function readXap()
      local t,section
-     t={}
+     t = caseInsensitiveTable()
      line = nextLine()
      while line ~= nil do
        section = line
        nextLine() -- Skip the {
-       t[section:lower()] = readBody()
+       t[section] = readBody()
        line = nextLine()
      end
      return t
@@ -260,12 +281,11 @@ function Frame:_init(msg)
 end
 
 function Frame:getValue(section, key)
-  section = section:lower()
   if self[section] then
     if key == nil then
       return FILTER_ANY
     end
-    return self[section][key:lower()]
+    return self[section][key]
   else
     return nil
   end

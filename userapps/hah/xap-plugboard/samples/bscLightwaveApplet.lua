@@ -9,8 +9,8 @@ info={version="1.0", description="Lightwave to BSC adapter"}
 -- A table of mappings
 -- dbzoo.livebox.Plugboard:lw.light -> UDP ON/OFF
 -- 
---Example: The command “000,!R1D1F1|” means room 1 ("R1"), device 1 ("D1"), 
--- switch on ("F1").  Conversely “000,!R1D1F0|” would mean switch off.
+--Example: The command '000,!R1D1F1|' means room 1 ("R1"), device 1 ("D1"),
+-- switch on ("F1").  Conversely '000,!R1D1F0|' would mean switch off.
 -- The "000" is a command reference, (so you increment it for each command in turn).
 
 

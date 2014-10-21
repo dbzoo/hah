@@ -11,8 +11,10 @@ graphite={port=2003,host="192.168.4.46"}
 
 class={}
 class['xAPBSC.event'] = function(frame)
-   path = frame:getValue("xap-header","source"):gsub(":",".")
-   toGraphite(path, getBscDatum(frame))
+   source = frame:getValue("xap-header","source")
+   if source then
+      toGraphite(source:gsub(":","."), getBscDatum(frame))
+   end
 end
 class['weather.data'] = function(frame)
    -- Feed all key/value pairs of the weather.report section.

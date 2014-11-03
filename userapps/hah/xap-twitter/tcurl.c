@@ -207,12 +207,12 @@ static int performDelete(tcurl *c) {
 	argc = oauth_split_url_parameters(c->url, &argv);	
 	char *req_url_signed = oauth_sign_array2(&argc, &argv, 
 						 NULL,  // postarg
-						 OA_HMAC, "DELETE",
+						 OA_HMAC, "POST",
 						 CONSUMER_KEY, CONSUMER_SECRET, 
 						 c->oauthAccessKey, c->oauthAccessSecret);
 	oauth_free_array(&argc, &argv);
 
-        curl_easy_setopt( c->curlHandle, CURLOPT_CUSTOMREQUEST, "DELETE");
+        curl_easy_setopt( c->curlHandle, CURLOPT_CUSTOMREQUEST, "POST");
         curl_easy_setopt( c->curlHandle, CURLOPT_URL, req_url_signed);
 	if(getLoglevel() >= LOG_DEBUG)
 		curl_easy_setopt( c->curlHandle, CURLOPT_VERBOSE, 1 );

@@ -57,6 +57,7 @@ int put_command(char *cmd, int cmd_len, char *answer, int max, int timeout, char
                 }
                 if(available > 0) {
                         n = (available > MAX_BUF-buf_len-1)?MAX_BUF-buf_len-1:available;
+		        info("Reading %d chars from modem", n);
                         // read data
                         n = read(g_serial_fd, buf+buf_len, n);
                         if(n<0) {

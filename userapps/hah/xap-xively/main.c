@@ -105,7 +105,7 @@ void xivelyUpdate(void *userData)
         char *min = xapGetValue("datastream","min");
         char *max = xapGetValue("datastream","max");
         char *unit = xapGetValue("datastream","unit");
-        int now = atoi(xapGetValue("datastream","now"));
+        char *now = xapGetValue("datastream","now");
 
         unsigned int idn = atoi(id);
         if(idn <= 0 && strcmp("0",id)) {
@@ -122,7 +122,7 @@ void xivelyUpdate(void *userData)
 	} else { // missing?  Default to global feed id.
 	  feedn = g_feedid;
 	}
-        updateDatastream(feedn, idn, tag, atof(value), min, max, unit, now);
+        updateDatastream(feedn, idn, tag, atof(value), min, max, unit, now ? 1 : 0);
 }
 
 

@@ -255,7 +255,7 @@ function Frame:_init(msg)
    local function readBody()
      local _,k,v,t
      line = nextLine()
-     t={}
+     t = caseInsensitiveTable()
      while line ~= nil and line ~= "}" do
        _,_,k,v = line:find("(.-)%s*=%s*(.*)")
        if k then t[k] = v end

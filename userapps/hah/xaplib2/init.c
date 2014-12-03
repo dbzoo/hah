@@ -110,7 +110,9 @@ void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char **ip, 
                 } else die_strerror("Unable to retrieve IP address");
               if (ioctl(sd, SIOCGIFBRDADDR, &ifr[i]) == 0)
                 {
-                  bcast.s_addr = ((struct sockaddr_in *)(&ifr[i].ifr_broadaddr))->sin_addr.s_addr;
+		  // To force 255.255.255.255 broadcast; bcast_ones=1
+		  long n = ini_getl("network","bcast_ones",0,"/etc/xap.d/system.ini");
+		  bcast.s_addr = n == 1 ? 0xffffffff : ((struct sockaddr_in *)(&ifr[i].ifr_broadaddr))->sin_addr.s_addr;
                   info("broadcast: %s", inet_ntoa(bcast));
                 } else die_strerror("Unable to retrieve broadcast address");
               found = 1;

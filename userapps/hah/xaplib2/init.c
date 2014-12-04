@@ -102,19 +102,25 @@ void discoverBroadcastNetwork(struct sockaddr_in *txAddr, int *txfd, char **ip, 
             info("%d) interface: %s", i+1, ifr[i].ifr_name);
             if(strcmp("lo", ifr[i].ifr_name) == 0) continue;
             if(interfaceName == NULL || strcmp(ifr[i].ifr_name, interfaceName) == 0) {
-              // Retrieve the IP address and broadcast address.
+              // Retrieve the IP address and compute the broadcast address.
               if (ioctl(sd, SIOCGIFADDR, &ifr[i]) == 0)
                 {
                   addr.s_addr = ((struct sockaddr_in *)(&ifr[i].ifr_addr))->sin_addr.s_addr;
                   info("address: %s", inet_ntoa(addr));
                 } else die_strerror("Unable to retrieve IP address");
-              if (ioctl(sd, SIOCGIFBRDADDR, &ifr[i]) == 0)
-                {
-		  // To force 255.255.255.255 broadcast; bcast_ones=1
-		  long n = ini_getl("network","bcast_ones",0,"/etc/xap.d/system.ini");
-		  bcast.s_addr = n == 1 ? 0xffffffff : ((struct sockaddr_in *)(&ifr[i].ifr_broadaddr))->sin_addr.s_addr;
-                  info("broadcast: %s", inet_ntoa(bcast));
-                } else die_strerror("Unable to retrieve broadcast address");
+
+	      long n = ini_getl("network","bcast_ones",0,"/etc/xap.d/system.ini");
+	      if(n == 1) {
+		bcast.s_addr = 0xffffffff;
+		info("broadcast: %s (override)", inet_ntoa(bcast));
+	      } else if(ioctl(sd, SIOCGIFNETMASK, &ifr[i]) == 0) {
+		// Compute the broadcast from our netmask.
+		// On the livebox using SIOCGIFBRDADDR can return an addr that does not match the mask/ip combination.
+		// esp. for the 172.16.0.0/12 network.
+		bcast.s_addr = addr.s_addr | ~((struct sockaddr_in *)(&ifr[i].ifr_broadaddr))->sin_addr.s_addr;
+		info("broadcast: %s", inet_ntoa(bcast));
+	      } else die_strerror("Unable to retrieve broadcast address");
+
               found = 1;
               break;
             }

@@ -7,7 +7,7 @@ require "xap"
 
 info={version="1.0", description="xap graphite feeder"}
 -- Adjust with your graphite host IP
-graphite={port=2003,host="192.168.4.46"}
+graphite={port=2003,host="192.168.1.30"}
 
 class={}
 class['xAPBSC.event'] = function(frame)
@@ -18,8 +18,8 @@ class['xAPBSC.event'] = function(frame)
 end
 class['weather.data'] = function(frame)
    -- Feed all key/value pairs of the weather.report section.
-   for k,v in pairs(frame['weather.report']) do
-      toGraphite(frame['xap-header'].source.."."..k, v)
+   for k,v in pairs(frame:getSection('weather.report')) do
+      toGraphite(frame:getValue('xap-header','source').."."..k, v)
    end
 end
 

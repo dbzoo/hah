@@ -67,8 +67,8 @@ function expandShortMsg(msg, section)
    section = section or "xap-header"
    local f = Frame(msg)
    for k,v in pairs(defaultKeys) do
-      if not f[section][k] then
-	 f[section][k] = v
+      if not f.frame[section][k] then
+	 f.frame[section][k] = v
       end
    end
    return tostring(f)
@@ -114,7 +114,7 @@ function init(t, uid)
    tx = getTxPort()
 
    Select(handlePacket, getRxPort())
-   Timer(heartBeat, 60):start()
+   Timer(heartBeat, 60):start(true)
 end
 
 function process()
@@ -277,23 +277,22 @@ function Frame:_init(msg)
      return t
    end
    
-   return readXap()
+   self.frame = readXap()
+end
+
+function Frame:getSection(section)
+  return self.frame[section]
 end
 
 function Frame:getValue(section, key)
-  if self[section] then
+  if self.frame[section] then
     if key == nil then
       return FILTER_ANY
     end
-    return self[section][key]
+    return self.frame[section][key]
   else
     return nil
   end
-end
-
--- Backward compatibilty with previous BETA api
-function getValue(section, key)
-   return gframe:getValue(section, key)
 end
 
 function Frame:isValue(section, key, value)
@@ -301,8 +300,8 @@ function Frame:isValue(section, key, value)
 end
 
 function Frame:getType()
-  if self["xap-header"] ~= nil then return MSG_ORDINARY end
-  if self["xap-hbeat"] ~= nil then return MSG_HBEAT end
+  if self.frame["xap-header"] ~= nil then return MSG_ORDINARY end
+  if self.frame["xap-hbeat"] ~= nil then return MSG_HBEAT end
   return MSG_UNKNOWN
 end
 
@@ -311,7 +310,7 @@ function Frame:__tostring()
   local function encodeSection(s)
     local t,v
     t = s..'\n{\n'
-    for k,v in pairs(self[s]) do
+    for k,v in pairs(self.frame[s]) do
       t = t..k.."="..v.."\n"
     end
     t = t..'}\n'
@@ -331,7 +330,7 @@ function Frame:__tostring()
 	end
      end
      -- Append all other header key/value pairs.
-     for k,v in pairs(self[s]) do
+     for k,v in pairs(self.frame[s]) do
 	if hdr[k] == nil then
 	   t = t..k.."="..v.."\n"
 	end
@@ -344,7 +343,7 @@ function Frame:__tostring()
   local header = nil
   -- sequence the header sections first
   for _,v in pairs{'xap-header','xap-hbeat'} do
-     if self[v] then
+     if self.frame[v] then
 	header = v
 	out = encodeSection(header)
 	-- out = encodeOrderedHeader(header)
@@ -352,7 +351,7 @@ function Frame:__tostring()
      end
   end
 
-  for k,_ in pairs(self) do
+  for k,_ in pairs(self.frame) do
     if k ~= header then
       out = out .. encodeSection(k)
     end

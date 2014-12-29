@@ -22,35 +22,35 @@ filterMap={
 		  class="xAPBSC.event"
 	       }
 	 }] = function(f) 
-		 return string.format("%s C",f["input.state"].text)
+		 return string.format("%s C",f:getValue("input.state","text"))
 	      end,
    [xap.Filter{["xap-header"]= { 
 		  source="dbzoo.livebox.controller:relay.1",
 		  class="xAPBSC.event"
 	       }
 	 }] = function(f)
-		 return "R1 "..f["output.state"].state
+		 return "R1 "..f:getValue("output.state","state")
 	      end,
    [xap.Filter{["xap-header"]= { 
 		  source="dbzoo.livebox.controller:relay.2",
 		  class="xAPBSC.event"
 	       }
 	 }] = function(f)
-		 return "R2 "..f["output.state"].state
+		 return "R2 "..f:getValue("output.state","state")
 	      end,
    [xap.Filter{["xap-header"]= { 
 		  source="dbzoo.livebox.controller:relay.3",
 		  class="xAPBSC.event"
 	       }
 	 }] = function(f)
-		 return "R3 "..f["output.state"].state
+		 return "R3 "..f:getValue("output.state","state")
 	      end,
    [xap.Filter{["xap-header"]= { 
 		  source="dbzoo.livebox.controller:relay.4",
 		  class="xAPBSC.event"
 	       }
 	 }] = function(f)
-		 return "R4 "..f["output.state"].state
+		 return "R4 "..f:getValue("output.state","state")
 	      end
 }
 

@@ -84,9 +84,9 @@ end
 -- Incoming Serial data (filter callback)
 function serialHandler(frame, config)
    if DEBUG then
-      pretty.dump(frame["serial.received"])
+      pretty.dump(frame)
    end
-   local msg = frame["serial.received"].data
+   local msg = frame:getValue("serial.received","data")
    -- Sometimes the O gets dropped. So make this optional.
    local id, msg = msg:match("O?K (%d+) (.+)")
    -- Any node that reports with a ACK gets 32 added to the ID

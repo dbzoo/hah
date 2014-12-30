@@ -18,8 +18,9 @@ class['xAPBSC.event'] = function(frame)
 end
 class['weather.data'] = function(frame)
    -- Feed all key/value pairs of the weather.report section.
+   source = frame:getValue('xap-header','source')
    for k,v in pairs(frame:getSection('weather.report')) do
-      toGraphite(frame:getValue('xap-header','source').."."..k, v)
+      toGraphite(source.."."..k, v)
    end
 end
 

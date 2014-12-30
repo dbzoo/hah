@@ -63,19 +63,10 @@ function send(msg)
    tx:send(msg)
 end
 
-function expandShortMsg(msg, section)
-   section = section or "xap-header"
-   local f = Frame(msg)
-   for k,v in pairs(defaultKeys) do
-      if not f.frame[section][k] then
-	 f.frame[section][k] = v
-      end
-   end
-   return tostring(f)
-end
-
 function sendShort(msg)   
-   tx:send(expandShortMsg(msg))
+   local f = Frame(msg)
+   f:mergeSection("xap-header", defaultKeys)
+   tx:send(tostring(f))
 end
 
 local heartBeat=function(tm)
@@ -303,6 +294,17 @@ function Frame:getType()
   if self.frame["xap-header"] ~= nil then return MSG_ORDINARY end
   if self.frame["xap-hbeat"] ~= nil then return MSG_HBEAT end
   return MSG_UNKNOWN
+end
+
+function Frame:mergeSection(section, keys)
+   if not self.frame[section] then
+      self.frame[section] = {}
+   end
+   for k,v in pairs(keys) do
+      if not self.frame[section][k] then
+	 self.frame[section][k] = v
+      end
+  end
 end
 
 function Frame:__tostring()

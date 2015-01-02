@@ -16,13 +16,18 @@ class['xAPBSC.event'] = function(frame)
       toGraphite(source:gsub(":","."), getBscDatum(frame))
    end
 end
-class['weather.data'] = function(frame)
-   -- Feed all key/value pairs of the weather.report section.
-   source = frame:getValue('xap-header','source')
-   for k,v in pairs(frame:getSection('weather.report')) do
-      toGraphite(source.."."..k, v)
-   end
+
+function sectionFeedFactory(section)
+  return function(frame)
+     source = frame:getValue('xap-header','source')
+     for k,v in pairs(frame:getSection(section)) do
+        toGraphite(source.."."..k, v)
+     end
+    end
 end
+
+class['pv.report'] = sectionFeedFactory('invertor')
+class['weather.data'] = sectionFeedFactory('weather.report')
 
 function toGraphite(path, value)
    value = value or "0"

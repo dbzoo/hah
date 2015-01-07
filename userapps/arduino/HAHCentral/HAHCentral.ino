@@ -156,7 +156,6 @@ static void doReport() {
   Serial.print("OK");
   Serial.print(' ');
   Serial.print(NODE_ID, DEC);    
-  Serial.print(' ');
   for (byte i = 0; i < sizeof payload; i++) {
     Serial.print(' ');
     Serial.print(payload.b[i], DEC);

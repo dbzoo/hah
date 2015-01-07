@@ -117,7 +117,7 @@ SUBDIRS_HAH = \
 SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIRS_HAH)
 
 OPENSOURCE_APPS = brctl dropbear iptables busybox ntpclient ini mtd lua \
-	lrexlib luafilesystem luasocket penlight jsmn
+	lrexlib luafilesystem luasocket penlight jsmn avrdude
 INVENTEL_APPS = inventelbin sendarp ledctrl
 HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-xively xap-sms iServer \
 	xap-currentcost xap-googlecal xap-twitter xap-serial klone xap-plugboard \

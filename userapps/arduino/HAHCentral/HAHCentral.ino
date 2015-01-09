@@ -53,7 +53,7 @@ byte lobat :
 };
 
 union {
-  byte b[6];
+  byte b[sizeof(struct roomnode)];
   struct roomnode n;
 }
 payload;

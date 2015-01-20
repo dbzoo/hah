@@ -17,6 +17,7 @@ local class = require("pl.class")
 local List = require("pl.List")
 local config = require("pl.config")
 local stringx = require("pl.stringx")
+local tablex = require("pl.tablex")
 
 local gframe
 defaultKeys={}
@@ -104,6 +105,7 @@ local handlePacket = function(udp, data)
 		     end
 
 function init(t, uid)
+   assert(tablex.size(defaultKeys) == 0,"xAP library already initialized")
    if type(t) == "table" then
       assert(t.uid, "Missing UID")
       defaultKeys = {source=buildXapAddress(t), uid=t.uid, v=12, hop=1}

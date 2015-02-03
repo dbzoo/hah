@@ -8,7 +8,7 @@
 #define RETRY_PERIOD    10  // how soon to retry if ACK didn't come in
 #define RETRY_LIMIT     5   // maximum number of times to retry
 #define ACK_TIME        10  // number of milliseconds to wait for an ack
-#define REPORT_EVERY    5   // report every N measurement cycles
+#define REPORT_EVERY    3   // report every N measurement cycles
 #define NODEID          8   // MY NODE ID *** ADJUST PLEASE **
 
 // The scheduler makes it easy to perform various tasks at various times:
@@ -77,6 +77,12 @@ static void setPort (byte port, byte on) {
     Serial.print(port, DEC);
     Serial.println(on ? " set on" : " set off");
 #endif
+    switch(port) {
+      case 1: payload.p1 = on; break;
+      case 2: payload.p2 = on; break;
+      case 3: payload.p3 = on; break;
+      case 4: payload.p4 = on; break;
+    }
     port--; // Adjust for ZERO based index Port1 = index[0]
     out[port].mode(OUTPUT);
     out[port].digiWrite(on);
@@ -102,7 +108,7 @@ static void doIncoming() {
 void setup () {
     #if SERIAL || DEBUG
         Serial.begin(57600);
-        Serial.print("\n[outputNode.1] i");
+        Serial.print("\n[outputNode.2] i");
         Serial.print(NODEID,DEC);
         Serial.println(" g212 @ 868Mhz");
     #endif    

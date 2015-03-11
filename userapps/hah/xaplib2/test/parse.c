@@ -11,10 +11,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include "xap.h"
+#include "log.h"
 
 xAP *gXAP;
 
 int main(int argc, char *argv[]) {
+        setLoglevel(LOG_ERR);
 	char *msg="xap-header\n"
 	"{\n"
 	"v=12\n"
@@ -26,12 +28,13 @@ int main(int argc, char *argv[]) {
 	"input.state\n"
 	"{\n"
 	"state=ON\n"
-	"Level= 64/255\n"
+	"Level=64/255\n"
 	"}\n";
 
 	gXAP = (xAP *)calloc(sizeof(xAP), 1);
 
 	strcpy((char *)gXAP->frame.dataPacket, msg);
+	gXAP->frame.len = strlen(gXAP->frame.dataPacket);
 	parseMsg();
 	
 	char newmsg[XAP_DATA_LEN];
@@ -48,10 +51,10 @@ int main(int argc, char *argv[]) {
 		"}\n"
 		"input.state\n"
 		"{\n"
-		"state=ON\n"
-		"Level= 64/255\n"
+		"State=ON\n"
+		"Level=64/255\n"
 		"}\n";	
-	char *m = fillShortXap(smsg,"livebox.dbzoo.test", "FF77DB00");
+	char *m = fillShortXap(smsg);
 	printf("SHORT MESSAGE\n%s",m);
 	
 	printf("state is %s\n", xapGetValue("input.state","state"));
@@ -60,7 +63,21 @@ int main(int argc, char *argv[]) {
 
 	char *types[] = {"unknown", "heartbeat", "ordinary"};
 	printf("Message type %s\n", types[xapGetType()]);
-	return 0;
-	
-}
 
+
+	printf("\nTesting empty keys and lowercasing an xap message\n");
+	xAPFrame f;
+
+	strcpy(f.dataPacket,"Section\n{\nHello=WORLD\nHi=\nWorlD= hello\nthere=\n}\n");
+	f.len = strlen(f.dataPacket);
+	printf("%s\n", f.dataPacket);
+	
+	parseMsgF(&f);
+	xapLowerMessageF(&f);
+	
+	char output[1024];
+	parsedMsgToRawF(&f, output, sizeof(output));
+	printf("%s\n", output);
+
+	return 0;       
+}

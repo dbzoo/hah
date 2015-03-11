@@ -68,7 +68,7 @@ static void rtrim(unsigned char *msg,  unsigned char *p) {
 */
 int parseMsgF(xAPFrame *frame) {
 	enum {
-		START_SECTION_NAME, IN_SECTION_NAME, START_KEYNAME, IN_KEYNAME, START_KEYVALUE, IN_KEYVALUE  
+		START_SECTION_NAME, IN_SECTION_NAME, START_KEYNAME, IN_KEYNAME, IN_KEYVALUE  
 	} state = START_SECTION_NAME;
 	char *current_section = NULL;
 	unsigned char *buf;
@@ -113,13 +113,8 @@ int parseMsgF(xAPFrame *frame) {
 			if ((*buf < 32) || (*buf == '=')) {
 				*buf = '\0';
 				rtrim(frame->dataPacket, buf);
-				state = START_KEYVALUE;
-			}
-			break;
-		case START_KEYVALUE:
-			if ((*buf>32) && (*buf<128)) {
 				state = IN_KEYVALUE;
-				frame->parsedMsg[frame->parsedMsgCount].value = (char *)buf;
+				frame->parsedMsg[frame->parsedMsgCount].value = (char *)buf+1;
 			}
 			break;
 		case IN_KEYVALUE:

@@ -8,8 +8,11 @@ libxap2.so: $(OBJECTS)
 libxap2.a: $(OBJECTS)
 	$(AR) rcv libxap2.a $(OBJECTS)
 
+utest: libxap2.a utest.o
+	$(CC) -o utest utest.o -L. -static -lxap2
+
 clean:
-	rm -f $(OBJECTS) libxap2.a libxap2.so *~
+	rm -f *.o libxap2.a libxap2.so *~ utest
 
 init.o: init.c xap.h
 parse.o: parse.c xap.h

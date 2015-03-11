@@ -81,7 +81,8 @@ SUBDIRS_OPENSOURCE = \
 	$(OPENSOURCE_DIR)/luasocket \
 	$(OPENSOURCE_DIR)/penlight \
 	$(OPENSOURCE_DIR)/avrdude-5.10 \
-	$(OPENSOURCE_DIR)/jsmn
+	$(OPENSOURCE_DIR)/jsmn \
+	$(OPENSOURCE_DIR)/mqtt_lua
 
 export BROADCOM_DIR=$(USERAPPS_DIR)/broadcom
 
@@ -117,7 +118,7 @@ SUBDIRS_HAH = \
 SUBDIRS = $(SUBDIRS_BROADCOM) $(SUBDIRS_OPENSOURCE) $(SUBDIRS_INVENTEL) $(SUBDIRS_HAH)
 
 OPENSOURCE_APPS = brctl dropbear iptables busybox ntpclient ini mtd lua \
-	lrexlib luafilesystem luasocket penlight jsmn avrdude
+	lrexlib luafilesystem luasocket penlight jsmn avrdude mqtt_lua
 INVENTEL_APPS = inventelbin sendarp ledctrl
 HAH_APPS = xaplib2 xap-hub xap-livebox xap-snoop xap-xively xap-sms iServer \
 	xap-currentcost xap-googlecal xap-twitter xap-serial klone xap-plugboard \
@@ -170,6 +171,9 @@ hah:	$(HAH_APPS)
 
 jsmn:
 	$(MAKE) -C $(OPENSOURCE_DIR)/jsmn
+
+mqtt_lua:
+	$(MAKE) -C $(OPENSOURCE_DIR)/mqtt_lua
 
 avrdude:
 	if [ ! -f $(OPENSOURCE_DIR)/avrdude-5.10.tar.gz ]; then \

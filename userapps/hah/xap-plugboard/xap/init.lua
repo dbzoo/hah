@@ -19,7 +19,6 @@ local config = require("pl.config")
 local stringx = require("pl.stringx")
 local tablex = require("pl.tablex")
 
-local gframe
 defaultKeys={}
 
 MSG_ORDINARY = "xap-header"
@@ -273,9 +272,8 @@ function Frame:getValue(section, key)
   end
 end
 
--- Backward compatibilty with previous BETA api
-function getValue(section, key)
-   return gframe:getValue(section, key)
+function Frame:setValue(section, key, value)
+   self[section][key] = value
 end
 
 function Frame:isValue(section, key, value)
@@ -432,7 +430,6 @@ end
 
 function Filter:dispatch(frame)
    if self.callback and self:ismatch(frame) then
-      gframe = frame
       local status,err = pcall(self.callback, frame, self.userdata)
       if status == false then
          error(err..'\nxAP Message being processed.\n'..tostring(frame))

@@ -1,5 +1,3 @@
-# $Id$
-
 TARGET=xap-serial
 CFLAGS=-I../xaplib2
 LDFLAGS=-L../xaplib2 -lxap2

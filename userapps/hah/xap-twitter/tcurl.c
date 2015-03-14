@@ -1,6 +1,4 @@
 /**
-   $Id$
- 
    Minimalist Twitter interface
 
    Brett England
@@ -18,10 +16,6 @@
 #include "oauth.h"
 #include "log.h"
 #include "jsmn.h"
-
-#ifdef IDENT
-#ident "@(#) $Id$"
-#endif
 
 static void clearCallbackBuffers(tcurl *c) {
 	debug("len: %d", c->cb_length);

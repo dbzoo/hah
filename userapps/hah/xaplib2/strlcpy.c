@@ -1,5 +1,4 @@
-/*  $Id$
-**
+/*
 **  Replacement for a missing strlcpy.
 **
 **  Written by Russ Allbery <rra@stanford.edu>

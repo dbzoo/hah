@@ -1,5 +1,3 @@
-# $Id$
-
 .PHONY: clean
 
 BUILD_DIR = $(shell pwd)

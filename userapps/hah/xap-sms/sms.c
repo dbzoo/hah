@@ -1,15 +1,10 @@
-/* $Id$
-  Copyright (c) Brett England, 2009,2010
+/* Copyright (c) Brett England, 2009,2010
 
   No commercial use.
   No redistribution at profit.
   All derivative work must retain this message and
   acknowledge the work of the original author.  
  */
-#ifdef IDENT
-#ident "@(#) $Id$"
-#endif
-
 #include "xap.h"
 #include "modem.h"
 #include "putsms.h"

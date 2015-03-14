@@ -1,5 +1,4 @@
-/* $Id$
-   xAP echo - capture every incoming packet rewraps the header and spits it out.
+/* xAP echo - capture every incoming packet rewraps the header and spits it out.
    Perhaps useful for debugging and stress testing.
 
    Copyright (c) Brett England, 2012
@@ -9,10 +8,6 @@
    All derivative work must retain this message and
    acknowledge the work of the original author.  
 */
-#ifdef IDENT
-#ident "@(#) $Id$"
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -1,6 +1,4 @@
 /**
-   $Id$
- 
    Minimalist Twitter interface
 
    Brett England
@@ -16,10 +14,6 @@
 #include "tcurl.h"
 #include <errno.h>
 #include <oauth.h>
-
-#ifdef IDENT
-#ident "@(#) $Id$"
-#endif
 
 static void clearCallbackBuffers(tcurl *c) {
         memset( c->errorBuffer, 0, CURL_ERROR_SIZE);

@@ -1,5 +1,3 @@
-# $Id$
-#
 SHELL=/bin/bash
 KLONE_VERSION = 2.3.0
 

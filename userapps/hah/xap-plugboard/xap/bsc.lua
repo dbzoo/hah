@@ -1,4 +1,4 @@
---[[ $Id$
+--[[
    xAP library for implementing BSC
    Copyright (c) Brett England, 2011
 

@@ -1,6 +1,4 @@
 /**
- $Id$
- 
  XAP Twitter daemon
  
  This daemon will monitor a twitter feed scanning for command that match the preconfigured
@@ -25,10 +23,6 @@
  All derivative work must retain this message and
  acknowledge the work of the original author.  
 */
-
-#ifdef IDENT
-#ident "@(#) $Id$"
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>

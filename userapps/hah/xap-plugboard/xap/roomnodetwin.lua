@@ -1,4 +1,4 @@
---[[ $Id$
+--[[
 
    Use in conjuction with the RoomNodeTwin JeeNode sketch.
    Allow an additional 1-Wire temperature sensor on JeePort2

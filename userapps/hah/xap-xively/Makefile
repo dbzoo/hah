@@ -1,7 +1,5 @@
-# $Id$
-
 TARGET=xap-xively
-CFLAGS=-DIDENT -I../xaplib2
+CFLAGS=-I../xaplib2
 LDFLAGS=-L../xaplib2 -lxap2
 OBJECTS=main.o xively.o mem.o dscache.o pachulib.o
 

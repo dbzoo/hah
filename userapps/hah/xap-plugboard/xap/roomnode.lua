@@ -1,4 +1,4 @@
---[[ $Id$
+--[[
 
    Use in conjuction with the RoomNode JeeNode sketch.
    Copyright (c) Brett England, 2011

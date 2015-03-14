@@ -1,5 +1,3 @@
-/* $Id$
-*/
 #ifndef _MODEM_H
 #define _MODEM_H
 

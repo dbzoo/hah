@@ -1,6 +1,5 @@
-# $Id$
 TARGET=xap-urfrx
-CFLAGS=-g -Wall -DIDENT -I../xaplib2
+CFLAGS=-g -Wall -I../xaplib2
 LDFLAGS=-L../xaplib2 -lxap2
 
 OBJECTS = rfrx.o urfdecoder.o

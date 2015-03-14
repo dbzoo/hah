@@ -1,6 +1,4 @@
-/* $Id$
-
-   We act as a server so that external calls can be made from non XAP enabled
+/* We act as a server so that external calls can be made from non XAP enabled
    applications to find out the current state of the endpoints.
 
    This is used to satisfy local web server page queries without having to 

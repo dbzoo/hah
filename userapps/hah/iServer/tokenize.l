@@ -1,6 +1,5 @@
 %{
 /* iServer protocol tokenizer
-   $Id$
 
   Copyright (c) Brett England, 2010
 

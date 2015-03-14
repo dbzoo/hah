@@ -1,4 +1,4 @@
---[[ $Id$
+--[[
    xAP library
    Copyright (c) Brett England, 2011
 

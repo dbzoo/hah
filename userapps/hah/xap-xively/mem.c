@@ -1,5 +1,4 @@
-/* $Id$
-   Copyright (c) Brett England, 2009
+/* Copyright (c) Brett England, 2009
    
    No commercial use.
    No redistribution at profit.

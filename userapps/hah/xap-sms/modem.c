@@ -1,10 +1,3 @@
-/* $Id$
- */
-
-#ifdef IDENT
-#ident "@(#) $Id$"
-#endif
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>

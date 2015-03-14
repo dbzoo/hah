@@ -1,6 +1,4 @@
 /**
- $Id$
-
  Brett England
  No commercial use.
  No redistribution at profit.

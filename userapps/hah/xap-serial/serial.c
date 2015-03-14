@@ -1,5 +1,4 @@
-/* $Id$
-   Copyright (c) Brett England, 2010
+/* Copyright (c) Brett England, 2010
 
    Serial communication using the Serial.Comm Schema
    As this is for UNIX the PORT is the path to the /dev/ttyxxx entry.

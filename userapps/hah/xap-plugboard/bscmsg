@@ -1,5 +1,4 @@
 #!/usr/bin/lua
--- $Id: bscmsg 566 2014-02-18 00:45:29Z dbzoo.com $
 -- Allow xAPBSC.cmd messages to be sent from the command line
 -- also useful within a crontab 
 

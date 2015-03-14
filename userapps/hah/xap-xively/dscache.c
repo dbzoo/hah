@@ -1,5 +1,4 @@
-/* $Id$
-**
+/*
 ** Cache of datastreams
  */
 #include <string.h>

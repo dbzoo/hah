@@ -1,6 +1,5 @@
 #!/usr/bin/lua
 --[[
-   $Id: ini-migrate 537 2014-01-10 05:22:07Z dbzoo.com $
    Migrate /etc/xap-livebox.ini into multiple files.
 --]]
 require "pl"

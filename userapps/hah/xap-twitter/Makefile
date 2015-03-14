@@ -1,8 +1,6 @@
-# $Id$
-
 TARGET=xap-twitter
 
-CFLAGS=-DLINUX -DIDENT
+CFLAGS=-DLINUX
 CFLAGS+=-I../xaplib2 -I../../opensource/jsmn
 LDFLAGS=-lxap2 -lcrypto -lcurl -ljsmn -lm
 LDFLAGS+=-L../xaplib2 -L../../opensource/jsmn

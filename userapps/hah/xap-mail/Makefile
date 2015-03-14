@@ -1,5 +1,3 @@
-# $Id$
-
 TARGET=xap-mail
 CFLAGS=-Os -Wall -DLINUX -I../xaplib2
 LDFLAGS=-L../xaplib2 -lxap2 -lcrypto -lcurl -lm

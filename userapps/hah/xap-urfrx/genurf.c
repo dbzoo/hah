@@ -1,6 +1,4 @@
-/* $Id$
-
-   Dump a binary file of the duration states.
+/* Dump a binary file of the duration states.
    Helper test data generator.
 
    Copyright (c) Brett England, 2012

@@ -1,12 +1,5 @@
-/* $Id$
- 
-Serial interfacing to the external AVR hardware
+/* Serial interfacing to the external AVR hardware
 */
-#ifdef IDENT
-#ident "@(#) $Id$"
-#endif
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

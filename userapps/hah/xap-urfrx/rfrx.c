@@ -1,5 +1,4 @@
-/* $Id$
-   Universal RF receiver
+/* Universal RF receiver
 
    Copyright (c) Brett England, 2012
 

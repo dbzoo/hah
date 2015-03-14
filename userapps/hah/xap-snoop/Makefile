@@ -1,4 +1,3 @@
-# $Id$
 TARGET=xap-snoop
 CFLAGS=-Os -Wall -DLINUX -I../xaplib2
 LDFLAGS=-L../xaplib2 -lxap2

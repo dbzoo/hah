@@ -1,5 +1,3 @@
-# $Id$
-
 TARGET=xap-googlecal
 LDFLAGS=-L../xaplib2 -lxap2 -lgcal -lxml2 -lcurl
 CFLAGS=-DDEV -I../../opensource/libgcal -I../xaplib2

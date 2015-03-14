@@ -1,6 +1,4 @@
-/* $Id$
- 
-  Livebox Communication protocol
+/*  Livebox Communication protocol
  */
 #include <sys/types.h>
 #include <sys/socket.h>

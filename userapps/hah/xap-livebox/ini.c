@@ -1,11 +1,5 @@
-/* $Id$
- 
-INI file processing
+/* INI file processing
 */
-#ifdef IDENT
-#ident "@(#) $Id$"
-#endif
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

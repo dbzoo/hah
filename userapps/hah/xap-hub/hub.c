@@ -1,5 +1,4 @@
-/* $Id$
-   Copyright (c) Brett England, 2010
+/* Copyright (c) Brett England, 2010
 
    xAP HUB
 

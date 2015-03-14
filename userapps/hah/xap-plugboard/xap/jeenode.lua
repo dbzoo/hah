@@ -1,4 +1,4 @@
---[[ $Id$
+--[[
 
    JeeNode xAP mapping
    Copyright (c) Brett England, 2011

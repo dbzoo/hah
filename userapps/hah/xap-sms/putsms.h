@@ -1,5 +1,3 @@
-/* $Id$
-*/
 #ifndef _PUTSMS_H
 #define _PUTSMS_H
 

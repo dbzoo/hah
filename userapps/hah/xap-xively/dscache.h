@@ -1,5 +1,3 @@
-/* $Id$
- */
 #ifndef __DSCACHE_H__
 #define __DSCACHE_H__
 

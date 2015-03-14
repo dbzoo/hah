@@ -1,5 +1,4 @@
-/* $Id$
-  INI file processor
+/*  INI file processor
 */
 #include <stdio.h>
 #include <stdlib.h>

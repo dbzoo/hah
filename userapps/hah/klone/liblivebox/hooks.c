@@ -1,5 +1,3 @@
-/* $Id$
- */
 int startup_hooks() {
 	 const_init();
      return 0;

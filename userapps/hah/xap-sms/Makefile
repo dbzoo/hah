@@ -1,6 +1,5 @@
-# $Id$
 TARGET=xap-sms
-CFLAGS=-DIDENT -I../xaplib2
+CFLAGS=-I../xaplib2
 LDFLAGS=-L../xaplib2 -lxap2
 OBJECTS=sms.o modem.o putsms.o getsms.o
 INI=$(INSTALL_DIR)/etc/xap.d/$(TARGET).ini

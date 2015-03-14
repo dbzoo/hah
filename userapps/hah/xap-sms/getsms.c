@@ -1,9 +1,3 @@
-/* $Id$
-*/
-#ifdef IDENT
-#ident "@(#) $Id$"
-#endif
-
 #include "modem.h"
 #include "log.h"
 #include <stdio.h>

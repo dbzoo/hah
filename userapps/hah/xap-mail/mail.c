@@ -1,6 +1,4 @@
 /**
- $Id$
-
  Requires: libcurl 7.20.0 or above.
 
  It allows you to send email:
@@ -31,10 +29,6 @@
  Copyright (C) 1998 - 2011, Daniel Stenberg, <daniel@haxx.se>, et al.
  Copyright (C) 2011, Tuan Ha, <tuan@tuanht.net>.
 */
-#ifdef IDENT
-#ident "@(#) $Id$"
-#endif
-
 #include <stdio.h>
 #include <string.h>
 #include <curl/curl.h>

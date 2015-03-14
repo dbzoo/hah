@@ -1,5 +1,3 @@
-/* $Id$
- */
 #include <klone/request.h>
 
 void upperstr(char *s);

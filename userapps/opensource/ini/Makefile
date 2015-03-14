@@ -1,5 +1,3 @@
-# $Id$
-
 OBJECTS=ini.o minIni.o
 
 ini: $(OBJECTS)

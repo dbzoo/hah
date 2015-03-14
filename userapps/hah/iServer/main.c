@@ -1,5 +1,4 @@
 /** iServer for Joggler xAP/TCP gateway
-    $Id$
  
     Copyright (c) Brett England, 2010-2012
  

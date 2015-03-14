@@ -1,5 +1,4 @@
-/* $Id$
-   xAP snoop
+/* xAP snoop
 
   Copyright (c) Brett England, 2009
    
@@ -8,10 +7,6 @@
   All derivative work must retain this message and
   acknowledge the work of the original author.  
 */
-#ifdef IDENT
-#ident "@(#) $Id$"
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

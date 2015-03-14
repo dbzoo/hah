@@ -1,4 +1,4 @@
---[[ $Id$
+--[[
 
    Use in conjuction with the BlueNode.ino sketch.
    Copyright (c) Brett England, 2014

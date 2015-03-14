@@ -1,5 +1,4 @@
-/* $Id$
-   Copyright (c) Brett England, 2009
+/* Copyright (c) Brett England, 2009
  
    Google calendar xap daemon.
  
@@ -50,10 +49,6 @@
    acknowledge the work of the original author.  
  
 */
-#ifdef IDENT
-#ident "@(#) $Id$"
-#endif
-
 #include <stdio.h>
 #include <string.h>
 #include <time.h>

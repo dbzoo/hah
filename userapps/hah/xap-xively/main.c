@@ -1,5 +1,4 @@
-/* $Id$
-   Copyright (c) Brett England, 2010
+/* Copyright (c) Brett England, 2010
    
    No commercial use.
    No redistribution at profit.
@@ -35,10 +34,6 @@ value=10.4
  
    A datastream will be created if it does not already exist.
 */
-
-#ifdef IDENT
-#ident "@(#) $Id$"
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>

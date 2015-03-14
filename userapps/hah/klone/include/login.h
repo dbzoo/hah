@@ -1,5 +1,4 @@
 /*
- * $Id$
  * Declarations to the login.kl1 page.
  */
 #ifndef _LOGIN_H_

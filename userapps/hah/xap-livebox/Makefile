@@ -1,7 +1,5 @@
-# $Id$
-
 TARGET=xap-livebox
-CFLAGS=-DIDENT -Wall -DIDENT -I../xaplib2
+CFLAGS=-Wall -I../xaplib2
 LDFLAGS=-L../xaplib2 -lxap2
 OBJECTS=livebox.o serial.o ini.o server.o
 INI=$(INSTALL_DIR)/etc/xap.d/$(TARGET).ini

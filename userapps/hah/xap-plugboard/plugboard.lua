@@ -1,5 +1,4 @@
 --[[
-   $Id$
    Bootstrapper to load the applets.
 --]]
 require "xap"

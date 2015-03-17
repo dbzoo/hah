@@ -10,7 +10,7 @@ module(...,package.seeall)
 require("xap")
 MQTT = require("mqtt_library")
 
-info={version="1.0", description="xAP/MQTT gateway"}
+info={version="1.1", description="xAP/MQTT gateway"}
 -- nil port means use the default
 broker={host="192.168.1.8",port=nil} --mqtt broker location
 subscribedTopics={}
@@ -35,10 +35,7 @@ function toMqtt(frame)
    -- rebadge the message as coming from the GW.
    -- we use this fact later to ignore messages from ourself.
    frame:setValue("xap-header", "source", xap.defaultKeys.source)
-   -- Strip the message to its bones
-   frame:setValue("xap-header", "v", nil)
-   frame:setValue("xap-header", "uid", nil)
-   frame:setValue("xap-header", "hop", nil)
+   bumpHop(frame)
 
    local topic = xAPAddrToTopic(frame:getValue('xap-header','target'))
    broker.c:publish(topic ,tostring(frame))
@@ -55,7 +52,7 @@ function fromMqtt(topic, payload)
    if subscribedTopics[topic] == nil then
       local source = f:getValue("xap-header","source")
       if source  == nil then 
-	 source = f:getValue("xap-hbeat","source")
+         source = f:getValue("xap-hbeat","source")
       end 
       --print("Bind topic "..topic.." to "..source)
       local flt = xap.Filter()
@@ -63,7 +60,6 @@ function fromMqtt(topic, payload)
       flt:callback(toMqtt)
       subscribedTopics[topic]=true
    end
- 
 
    if f['xap-header'] then
       -- sendShort only for xap-header messages
@@ -76,15 +72,30 @@ function fromMqtt(topic, payload)
    end
 end
 
-function init()
+function connect()
+   --print("Connecting...")
    broker.c = MQTT.client.create(broker.host, broker.port, fromMqtt)
    broker.c:connect(xap.defaultKeys.source)
-   -- As long as we don't have a lot of topics and high volumes we
-   -- should be able to keep up with filtering and forwarding.
-   -- I know subscribing to # is not recommended.  :(
-   broker.c:subscribe({"#"})
+   if broker.c.connected then
+      --print("Connected")
+      -- As long as we don't have a lot of topics and high volumes we
+      -- should be able to keep up with filtering and forwarding.
+      -- I know subscribing to # is not recommended.  :(
+      broker.c:subscribe({"#"})
+   end
+end
+
+function init()
+   connect()
    -- pump the mqtt client every second
-   xap.Timer(function() broker.c:handler() end, 1):start()
+   xap.Timer(function() 
+       -- If the mqtt server goes away recover.
+       if broker.c.connected then
+          broker.c:handler()
+       else
+          connect()
+       end
+   end, 1):start(true) -- and fire now to get us going at 0sec.
 end
 
 -- For standalone testing/opertion.

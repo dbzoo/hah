@@ -117,7 +117,7 @@ function service(request)
 end
 
 function updateCache(frame)
-   vfs.data[frame["xap-header"].source] = frame
+   vfs.data[frame:getValue('xap-header','source')] = frame
 end
 
 function handleConnection(server)

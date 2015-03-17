@@ -10,7 +10,7 @@ module(...,package.seeall)
 require("xap")
 MQTT = require("mqtt_library")
 
-info={version="1.0", description="xAP/MQTT gateway"}
+info={version="1.1", description="xAP/MQTT gateway"}
 -- nil port means use the default
 broker={host="192.168.1.8",port=nil} --mqtt broker location
 subscribedTopics={}
@@ -39,6 +39,7 @@ function toMqtt(frame)
 
    local topic = xAPAddrToTopic(frame:getValue('xap-header','target'))
    broker.c:publish(topic ,tostring(frame))
+   --print("Publish topic "..topic)
 end
 
 function fromMqtt(topic, payload)
@@ -51,14 +52,14 @@ function fromMqtt(topic, payload)
    if subscribedTopics[topic] == nil then
       local source = f:getValue("xap-header","source")
       if source  == nil then 
-	 source = f:getValue("xap-hbeat","source")
-      end      
+         source = f:getValue("xap-hbeat","source")
+      end 
+      --print("Bind topic "..topic.." to "..source)
       local flt = xap.Filter()
       flt:add("xap-header","target",source)
       flt:callback(toMqtt)
       subscribedTopics[topic]=true
    end
- 
 
    if f['xap-header'] then
       -- sendShort only for xap-header messages
@@ -71,19 +72,34 @@ function fromMqtt(topic, payload)
    end
 end
 
-function init()
+function connect()
+   --print("Connecting...")
    broker.c = MQTT.client.create(broker.host, broker.port, fromMqtt)
    broker.c:connect(xap.defaultKeys.source)
-   -- As long as we don't have a lot of topics and high volumes we
-   -- should be able to keep up with filtering and forwarding.
-   -- I know subscribing to # is not recommended.  :(
-   broker.c:subscribe({"#"})
-   -- pump the mqtt client every second
-   xap.Timer(function() broker.c:handler() end, 1):start()
+   if broker.c.connected then
+      --print("Connected")
+      -- As long as we don't have a lot of topics and high volumes we
+      -- should be able to keep up with filtering and forwarding.
+      -- I know subscribing to # is not recommended.  :(
+      broker.c:subscribe({"#"})
+   end
 end
 
---[[
+function init()
+   connect()
+   -- pump the mqtt client every second
+   xap.Timer(function() 
+       -- If the mqtt server goes away recover.
+       if broker.c.connected then
+          broker.c:handler()
+       else
+          connect()
+       end
+   end, 1):start(true) -- and fire now to get us going at 0sec.
+end
+
 -- For standalone testing/opertion.
+--[[
 xap.init{instance="gateway",uid="FF00DD00"}
 init()
 xap.process()

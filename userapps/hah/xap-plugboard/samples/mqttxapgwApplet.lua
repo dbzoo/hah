@@ -54,6 +54,10 @@ function fromMqtt(topic, payload)
       if source  == nil then 
          source = f:getValue("xap-hbeat","source")
       end 
+      if source == nil then
+	 -- Handle a bad xAP packet - missing source!
+	 return
+      end
       --print("Bind topic "..topic.." to "..source)
       local flt = xap.Filter()
       flt:add("xap-header","target",source)

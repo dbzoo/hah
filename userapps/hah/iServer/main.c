@@ -1,4 +1,5 @@
 /** iServer for Joggler xAP/TCP gateway
+    $Id$
  
     Copyright (c) Brett England, 2010-2012
  
@@ -771,7 +772,7 @@ void setupXAPini()
   if(opt_a)
   {
     password = getINIPassword("iserver","passwd", (char *)inifile);
-    if(strlen(password) == 0)
+    if(password == NULL || strlen(password) == 0)
     {
       die("password hasn't been setup and we are in authorisation mode");
     }

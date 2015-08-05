@@ -26,8 +26,8 @@ function levelController(opt)
 		local temperature=opt.states[idx+1]
 		opt.listener(temperature)
 		if event.phase == "ended" then
-		  --bscSend{target=opt.xapTarget, text=temperature}
-		  print(string.format("bsc.sendText(%s, %s)", opt.xapTarget, temperature))
+		  bscSend{target=opt.xapTarget, text=temperature, state="on"}
+		  --print(string.format("bsc.sendText(%s, %s)", opt.xapTarget, temperature))
 		end
 	end
 end

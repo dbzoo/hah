@@ -62,7 +62,7 @@ function newHorizSliderWithFeedback(opt)
 	f:add("xap-header","source",opt.xapTarget)
 	f:add("xap-header","class","xAPBSC.event")
 	f:callback(function(frame)
-	              local temp = frame:getValue("output.state.1","text")				  
+	              local temp = frame:getValue("output.state","text")				  
 				  local sliderlevel = ((temp-opt.states[1]) / #opt.states) * 100				  
 				  if sliderLevel < 0 then
 				      sliderLevel = 0

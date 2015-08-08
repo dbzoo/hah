@@ -64,8 +64,8 @@ function newHorizSliderWithFeedback(opt)
 	f:callback(function(frame)
 	              local temp = frame:getValue("output.state","text")				  
 				  local sliderlevel = ((temp-opt.states[1]) / #opt.states) * 100				  
-				  if sliderLevel < 0 then
-				      sliderLevel = 0
+				  if sliderlevel < 0 then
+				      sliderlevel = 0
 			      end
 				  horizontalSlider:setValue( sliderlevel )
 				  -- Synthetic event to update internal state and fire text feedback.

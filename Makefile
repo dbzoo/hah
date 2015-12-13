@@ -10,7 +10,8 @@ SUBDIRS_OPENSOURCE = \
         $(OPENSOURCE_DIR)/ini \
 	$(OPENSOURCE_DIR)/jsmn \
 	$(OPENSOURCE_DIR)/penlight \
-	$(OPENSOURCE_DIR)/mqtt_lua
+	$(OPENSOURCE_DIR)/mqtt_lua \
+	$(OPENSOURCE_DIR)/lua-cjson-2.1.0
 
 HAH_DIR=$(USERAPPS_DIR)/hah
 SUBDIRS_HAH = \

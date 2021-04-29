@@ -1,1 +1,4 @@
 For compilation notes see: http://www.dbzoo.com/livebox/portable
+
+# clone me
+git clone --branch portable https://github.com/dbzoo/hah.git
